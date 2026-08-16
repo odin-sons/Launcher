@@ -694,6 +694,23 @@ namespace Odinsons.ValheimLauncher
                 infoQuery.QueryComplete += (s, r) => infoTask.SetResult(r);
                 infoQuery.Send();
 
+                // SteamQuery retries internally on an unanswered UDP query and can take up to a
+                // couple of minutes to give up on its own; that's long enough to make the launcher
+                // look hung (the Start button stays hidden until this call returns), so bound it
+                // ourselves instead of trusting the library's own timeout.
+                Task completed = await Task.WhenAny(infoTask.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+                if (completed != infoTask.Task)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        ServerStatusIndicator.Fill = new SolidColorBrush(Colors.Red);
+                        PlayerCountText.Text = Loc.T("gui.vikingsCount", 0);
+                    });
+                    _currentPlayers = new List<string>();
+                    Log($"SteamQuery timed out checking status for {SelectedServer}");
+                    return;
+                }
+
                 var infoResponse = await infoTask.Task;
 
                 Dispatcher.Invoke(() =>
