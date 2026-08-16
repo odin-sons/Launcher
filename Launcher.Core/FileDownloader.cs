@@ -304,12 +304,15 @@ namespace Odinsons.ValheimLauncher
                 return;
             }
 
-            await EnsureInjectorPrerequisitesAsync(selectedServerDirectory);
-            TryPrepareInjectorMode();
-            _ui.SetInjectorPlan(_injectorPlan);
-
             _ui.ShowProgress();
             _ui.SetStatus(Loc.T("dl.initializing"));
+
+            await EnsureInjectorPrerequisitesAsync(selectedServerDirectory);
+            // Hashing up to hundreds of Steam game files runs the same status/progress
+            // reporting as the ordinary check below, so it needs to run off the UI thread —
+            // otherwise the progress panel we just showed can't actually paint.
+            await Task.Run(TryPrepareInjectorMode);
+            _ui.SetInjectorPlan(_injectorPlan);
 
             bool logFileMissing = !File.Exists(Path.Combine(clientFolder, "BepInEx", "LogOutput.log"));
             FullCheck = full || logFileMissing;
@@ -392,14 +395,36 @@ namespace Odinsons.ValheimLauncher
         /// </summary>
         private static bool GameFilesMatchSteamInstall()
         {
-            foreach (Manifest.Entry entry in GameEntries)
-            {
-                string fullPath = Path.Combine(_steamGameFolder, entry.Path);
-                if (!File.Exists(fullPath)) return false;
-                if (!string.Equals(FileHash.OfFile(fullPath), entry.Hash, StringComparison.OrdinalIgnoreCase)) return false;
-            }
+            if (GameEntries.Count == 0) return true;
 
-            return true;
+            int total = GameEntries.Count;
+            int processed = 0;
+            bool mismatchFound = false;
+
+            Parallel.ForEach(GameEntries, HashOptions, (entry, state) =>
+            {
+                if (mismatchFound) { state.Stop(); return; }
+
+                string fullPath = Path.Combine(_steamGameFolder, entry.Path);
+                bool matches = File.Exists(fullPath) &&
+                    string.Equals(FileHash.OfFile(fullPath), entry.Hash, StringComparison.OrdinalIgnoreCase);
+
+                if (!matches)
+                {
+                    mismatchFound = true;
+                    state.Stop();
+                    return;
+                }
+
+                int currentProcessed = Interlocked.Increment(ref processed);
+                if (currentProcessed % Math.Max(1, total / 100) == 0)
+                {
+                    SetStateLabel(Loc.T("dl.checkingFiles"), 0, 0);
+                    SetTotalPercent((double)currentProcessed / total * 100, 0, 0);
+                }
+            });
+
+            return !mismatchFound;
         }
 
         private static void TryPrepareInjectorMode()
