@@ -1,0 +1,120 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net9.0-windows</TargetFramework>
+        <OutputType>WinExe</OutputType>
+        <RootNamespace>Odinsons.ValheimLauncher</RootNamespace>
+        <AssemblyName>OdinsonsLauncher</AssemblyName>
+        <FileAlignment>512</FileAlignment>
+        <ApplicationIcon>Resources\favicon.ico</ApplicationIcon>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <SignAssembly>true</SignAssembly>
+        <AssemblyOriginatorKeyFile>MyNewKey.snk</AssemblyOriginatorKeyFile>
+        <UseWPF>true</UseWPF>
+        <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+        <WarningLevel>4</WarningLevel>
+
+        <!-- Настройки для single-file -->
+        <PublishSingleFile>true</PublishSingleFile>
+        <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+        <SelfContained>false</SelfContained>
+
+        <!-- Атрибуты сборки -->
+        <AssemblyTitle>OdinsonsLauncher</AssemblyTitle>
+        <AssemblyDescription>Odinsons Launcher for Valheim</AssemblyDescription>
+        <Company>OdinSons</Company>
+        <Product>OdinsonsLauncher</Product>
+        <Copyright>Copyright © 2025</Copyright>
+        <Version>1.3.3</Version>
+        <FileVersion>1.3.3</FileVersion>
+        <InformationalVersion>1.0.0</InformationalVersion>
+
+        <!-- Отключаем отладочные файлы -->
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <DebugSymbols>false</DebugSymbols>
+        <DebugType>none</DebugType>
+        <Optimize>false</Optimize>
+        <OutputPath>bin\Debug\</OutputPath>
+        <DefineConstants>DEBUG;TRACE</DefineConstants>
+        <ErrorReport>prompt</ErrorReport>
+        <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <DebugType>none</DebugType>
+        <Optimize>true</Optimize>
+        <OutputPath>bin\Release\</OutputPath>
+        <DefineConstants>TRACE</DefineConstants>
+        <ErrorReport>prompt</ErrorReport>
+        <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+        <DebugSymbols>false</DebugSymbols>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Remove="App.config" />
+        <None Include="MyNewKey.snk" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Resource Include="Resources\favicon.ico" />
+        <Resource Include="Resources\background.png" />
+        <Resource Include="Resources\logo.png" />
+        <Resource Include="Resources\discord.png" />
+        <Resource Include="Resources\discord_hover.png" />
+        <Resource Include="Resources\telegram.png" />
+        <Resource Include="Resources\telegram_hover.png" />
+        <Resource Include="Resources\website.png" />
+        <Resource Include="Resources\website_hover.png" />
+        <Resource Include="Resources\donate.png" />
+        <Resource Include="Resources\donate_hover.png" />
+        <Resource Include="Resources\start.png" />
+        <Resource Include="Resources\start_hover.png" />
+        <Resource Include="Resources\settings.png" />
+        <Resource Include="Resources\settings_hover.png" />
+        <Resource Include="Resources\minimaze.png" />
+        <Resource Include="Resources\minimaze_hover.png" />
+        <Resource Include="Resources\close.png" />
+        <Resource Include="Resources\close_hover.png" />
+
+        
+        <Resource Include="Resources\x.png" />
+        <Resource Include="Resources\x_hover.png" />
+        <Resource Include="Resources\test_progressbar_green.png" />
+        <Resource Include="Resources\launcher_check.png" />
+        <Resource Include="Resources\launcher_check_green.png" />
+        <Resource Include="Resources\service_green.png" />
+        <Resource Include="Resources\service.png" />
+        <Resource Include="Resources\changelog.png" />
+        <Resource Include="Resources\changelog_green.png" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="app.manifest" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="Properties\AssemblyInfo.cs" />
+        <Compile Update="Properties\Resources.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Resources.resx</DependentUpon>
+        </Compile>
+        <EmbeddedResource Update="Properties\Resources.resx" />
+        <Compile Remove="ServerModels.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="SteamQuery">
+        <HintPath>SteamQuery.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Launcher.Core\Launcher.Core.csproj" />
+    </ItemGroup>
+</Project>

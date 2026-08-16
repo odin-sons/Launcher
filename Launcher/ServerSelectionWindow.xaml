@@ -1,0 +1,41 @@
+<Window x:Class="Odinsons.ValheimLauncher.ServerSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Выбор сервера" Height="200" Width="300"
+        WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
+        Background="#FF2D2D2D" BorderBrush="Chocolate" BorderThickness="2">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Заголовок -->
+        <TextBlock Grid.Row="0" Text="Выберите сервер" FontSize="16" Foreground="White" 
+                   HorizontalAlignment="Center" Margin="0,10,0,10"/>
+
+        <!-- ComboBox для выбора сервера -->
+        <ComboBox x:Name="ServerComboBox" Grid.Row="1" Width="200" Height="30" 
+                  Margin="0,0,0,20" FontSize="14" SelectionChanged="ServerComboBox_SelectionChanged"/>
+
+        <!-- Кнопка подтверждения -->
+        <Button x:Name="ConfirmButton" Grid.Row="2" Content="ОК" Width="80" Height="30" 
+                Margin="0,0,0,20" Click="ConfirmButton_Click" 
+                Background="Chocolate" Foreground="White" FontSize="14" IsEnabled="False">
+            <Button.Style>
+                <Style TargetType="Button">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Button.Style>
+        </Button>
+    </Grid>
+</Window>

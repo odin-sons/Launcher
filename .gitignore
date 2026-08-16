@@ -1,0 +1,17 @@
+bin/
+obj/
+*.user
+.idea/
+.vs/
+.rtk/
+.codegraph/
+launcher_log.txt
+
+# Маркеры Syncthing — внутренний идентификатор папки синхронизации, не код.
+.stfolder/
+
+# Ключ подписи сборки — не боевой секрет (только имя сборки в .NET strong-name),
+# но публиковать его в открытом репозитории не по конвенции. Для сборки нужен
+# свой файл MyNewKey.snk рядом с Launcher.csproj — либо сгенерировать новый,
+# либо убрать SignAssembly/AssemblyOriginatorKeyFile из проекта.
+*.snk

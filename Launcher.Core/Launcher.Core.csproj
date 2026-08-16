@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <RootNamespace>Odinsons.ValheimLauncher</RootNamespace>
+        <AssemblyName>Launcher.Core</AssemblyName>
+        <LangVersion>latest</LangVersion>
+
+        <!-- Тем же ключом, что и лаунчер, чтобы не плодить CS8002 -->
+        <SignAssembly>true</SignAssembly>
+        <AssemblyOriginatorKeyFile>..\Launcher\MyNewKey.snk</AssemblyOriginatorKeyFile>
+    </PropertyGroup>
+
+</Project>

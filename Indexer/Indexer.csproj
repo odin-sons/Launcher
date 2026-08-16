@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <!-- Формат манифеста описан ровно в одном месте — там же, где его читает лаунчер -->
+        <ProjectReference Include="..\Launcher.Core\Launcher.Core.csproj" />
+    </ItemGroup>
+
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <RootNamespace>Indexer</RootNamespace>
+        <AssemblyName>Indexer</AssemblyName>
+        <LangVersion>latest</LangVersion>
+
+        <!-- Атрибуты сборки берём из Properties\AssemblyInfo.cs, а не генерируем -->
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    </PropertyGroup>
+
+</Project>
