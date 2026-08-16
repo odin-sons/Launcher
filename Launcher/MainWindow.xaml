@@ -19,15 +19,15 @@
     Opacity="1"
     Icon="Resources/favicon.ico">
 
-    <!-- Ресурсы окна -->
+    <!-- Window resources -->
     <Window.Resources>
-        <!-- Конвертер для инверсии состояния IsEnabled -->
+        <!-- Converter to invert IsEnabled -->
         <local:InverseBooleanConverter x:Key="InverseBooleanConverter" />
         <local:MultiplyConverter x:Key="MultiplyConverter" />
-        <!-- Конвертер для преобразования bool в Visibility -->
+        <!-- Converter for bool to Visibility -->
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        
-        <!-- Стиль для ComboBox Выбора Сервера -->
+
+        <!-- Style for the server-selection ComboBox -->
         <Style x:Key="CustomComboBoxStyle" TargetType="{x:Type ComboBox}">
             <Setter Property="Foreground" Value="#FFFFFF"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
@@ -42,7 +42,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ComboBox}">
                         <Grid>
-                            <!-- Кнопка для открытия/закрытия списка -->
+                            <!-- Button to open/close the dropdown -->
                             <ToggleButton x:Name="ToggleButton"
                                           Focusable="False"
                                           IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
@@ -54,7 +54,7 @@
                                                 CornerRadius="5"
                                                 SnapsToDevicePixels="True">
                                             <Grid>
-                                                <!-- Стрелка -->
+                                                <!-- Arrow -->
                                                 <Path x:Name="Arrow"
                                                       Data="M 0 0 L 4 4 L 8 0 Z"
                                                       Fill="#FFFFFF"
@@ -67,7 +67,7 @@
                                         </Border>
 
                                         <ControlTemplate.Triggers>
-                                            <!-- Эффект при наведении -->
+                                            <!-- Hover effect -->
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter TargetName="MainBorder" Property="Effect">
                                                     <Setter.Value>
@@ -75,7 +75,7 @@
                                                     </Setter.Value>
                                                 </Setter>
                                             </Trigger>
-                                            <!-- Эффект при открытии списка -->
+                                            <!-- Effect while the dropdown is open -->
                                             <Trigger Property="IsChecked" Value="True">
                                                 <Setter TargetName="Arrow" Property="RenderTransform">
                                                     <Setter.Value>
@@ -88,7 +88,7 @@
                                                     </Setter.Value>
                                                 </Setter>
                                             </Trigger>
-                                            <!-- Состояние при отключении -->
+                                            <!-- Disabled state -->
                                             <Trigger Property="IsEnabled" Value="False">
                                                 <Setter TargetName="MainBorder" Property="Opacity" Value="0.4"/>
                                                 <Setter TargetName="Arrow" Property="Fill" Value="Gray"/>
@@ -100,7 +100,7 @@
                                 </ToggleButton.Template>
                             </ToggleButton>
 
-                            <!-- Отображение выбранного элемента -->
+                            <!-- Display of the selected item -->
                             <ContentPresenter x:Name="ContentSite"
                                               Content="{TemplateBinding SelectionBoxItem}"
                                               ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
@@ -109,7 +109,7 @@
                                               HorizontalAlignment="Left"
                                               Margin="10,0,20,0"/>
 
-                            <!-- Выпадающий список -->
+                            <!-- Dropdown list -->
                             <Popup x:Name="PART_Popup"
                                    Placement="Bottom"
                                    IsOpen="{TemplateBinding IsDropDownOpen}"
@@ -133,7 +133,7 @@
             </Setter>
         </Style>
         
-        <!-- Стиль для Отображения (ComboBoxItem) -->
+        <!-- Style for the item display (ComboBoxItem) -->
         <Style x:Key="CustomComboBoxItemStyle" TargetType="{x:Type ComboBoxItem}">
             <Setter Property="Foreground" Value="#FFFFFF"/>
             <Setter Property="Background" Value="#80373737"/>          
@@ -150,7 +150,7 @@
                                 CornerRadius="5"
                                 SnapsToDevicePixels="True">
                             <Grid>
-                                <!-- Отображение текста элемента -->
+                                <!-- Item text display -->
                                 <ContentPresenter HorizontalAlignment="Left"
                                                   VerticalAlignment="Center"
                                                   Content="{TemplateBinding Content}"
@@ -160,39 +160,39 @@
 
                         <ControlTemplate.Triggers>
 
-                            <!-- Наведение мышью -->
+                            <!-- Mouse hover -->
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ItemBorder" Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect Color="#FFFFFF" 
-                                                          ShadowDepth="0" 
-                                                          BlurRadius="10" 
-                                                          Opacity="0.8"/>   <!-- чуть ярче, как в ToggleButton -->
+                                        <DropShadowEffect Color="#FFFFFF"
+                                                          ShadowDepth="0"
+                                                          BlurRadius="10"
+                                                          Opacity="0.8"/>   <!-- slightly brighter, like the ToggleButton -->
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
 
-                            <!-- Выбранный пункт -->
+                            <!-- Selected item -->
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="ItemBorder" Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect Color="#FFFFFF" 
-                                                          ShadowDepth="0" 
-                                                          BlurRadius="15" 
-                                                          Opacity="1"/>     <!-- максимально яркий glow -->
+                                        <DropShadowEffect Color="#FFFFFF"
+                                                          ShadowDepth="0"
+                                                          BlurRadius="15"
+                                                          Opacity="1"/>     <!-- brightest glow -->
                                     </Setter.Value>
                                 </Setter>
-                                <!-- Можно добавить лёгкое осветление фона при выборе, если хочется -->
+                                <!-- Could lighten the background slightly on selection, if wanted -->
                                 <!-- <Setter TargetName="ItemBorder" Property="Background" Value="#A0333737"/> -->
                             </Trigger>
 
-                            <!-- Отключённое состояние -->
+                            <!-- Disabled state -->
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Foreground" Value="Gray"/>
                                 <Setter TargetName="ItemBorder" Property="Opacity" Value="0.4"/>
                             </Trigger>
 
-                            <!-- Опционально: выделение при фокусе клавиатурой (если нужно) -->
+                            <!-- Optional: keyboard-focus highlight (if needed) -->
                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
                                 <Setter TargetName="ItemBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                 <Setter TargetName="ItemBorder" Property="BorderThickness" Value="1"/>
@@ -204,7 +204,7 @@
             </Setter>
         </Style>
         
-        <!-- Стиль для прогресс-бара -->
+        <!-- Style for the progress bar -->
         <Style x:Key="ImageFill" TargetType="{x:Type ProgressBar}">
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Template">
@@ -225,7 +225,7 @@
         
     </Window.Resources>
 
-    <!-- Основной контейнер -->
+    <!-- Main container -->
     <Grid Margin="0,0,0,0"
           MouseDown="Grid_MouseDown"
           MouseMove="Grid_MouseMove"
@@ -235,7 +235,7 @@
         </Grid.Background>
         
         
-        <!-- Фон Панели с кнопками -->
+        <!-- Button panel background -->
         <Border x:Name="mainButtons" 
                 Width="334"
                 Height="540"
@@ -263,7 +263,7 @@
             </Border.OpacityMask>
         </Border>
         
-        <!-- Логотип -->
+        <!-- Logo -->
         <Image Source="/Resources/logo.png"
                Width="298"
                Height="81"
@@ -271,7 +271,7 @@
                HorizontalAlignment="Left"
                Margin="28,27,0,0"/>
         
-        <!-- Кнопка Discord -->
+        <!-- Discord button -->
         <Button x:Name="Discord"
                 Width="176"
                 Height="52"
@@ -295,7 +295,7 @@
             </Button.Template>
         </Button>
         
-        <!-- Кнопка Telegram -->
+        <!-- Telegram button -->
         <Button x:Name="Telegram"
                 Width="176"
                 Height="52"
@@ -319,7 +319,7 @@
             </Button.Template>
         </Button>
         
-        <!-- Кнопка Website -->
+        <!-- Website button -->
         <Button x:Name="Website"
                 Width="176"
                 Height="52"
@@ -343,7 +343,7 @@
             </Button.Template>
         </Button>
         
-        <!-- Кнопка Donate -->
+        <!-- Donate button -->
         <Button x:Name="Donate"
                 Width="176"
                 Height="52"
@@ -366,7 +366,7 @@
                 </ControlTemplate>
             </Button.Template>
         </Button>
-        <!-- Кнопка Start -->
+        <!-- Start button -->
         <Grid Name="StartButtonGrid">
             <Button x:Name="StartGameBtn"
                     Width="226"
@@ -393,9 +393,9 @@
             </Button>
         </Grid>
         
-        <!-- Верхняя панель -->
-        
-            <!-- Индикатор статуса сервера -->
+        <!-- Top panel -->
+
+            <!-- Server status indicator -->
                 <Ellipse x:Name="ServerStatusIndicator"
                          Width="10"
                          Height="10"
@@ -404,7 +404,7 @@
                          VerticalAlignment="Top"
                          Margin="384,22,0,0"/>
 
-                <!-- Кастомный ComboBox для выбора сервера -->
+                <!-- Custom ComboBox for server selection -->
                 <ComboBox x:Name="ServerSelector"
                           Style="{StaticResource CustomComboBoxStyle}"
                           ItemContainerStyle="{StaticResource CustomComboBoxItemStyle}"
@@ -415,9 +415,9 @@
                           Focusable="True"
                           IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}, RelativeSource={RelativeSource AncestorType=Window}}"/>
 
-                <!-- Количество игроков -->
+                <!-- Player count -->
                 <TextBlock x:Name="PlayerCountText"
-                           Text="Викингов: 0"
+                           Text="Vikings: 0"
                            HorizontalAlignment="Left"
                            VerticalAlignment="Top"
                            Width="170"
@@ -429,7 +429,7 @@
                            MouseEnter="PlayerCountText_MouseEnter"
                            MouseLeave="PlayerCountText_MouseLeave" />
 
-                <!-- Popup для списка игроков -->
+                <!-- Popup for the player list -->
                 <Popup x:Name="PlayersPopup"
                        Placement="Bottom"
                        PlacementTarget="{Binding ElementName=PlayerCountText}"
@@ -452,7 +452,7 @@
                         </ScrollViewer>
                     </Border>
                 </Popup>
-        <!-- Кнопка Changelog -->
+        <!-- Changelog button -->
         <Button x:Name="ChangelogButton"
                 HorizontalAlignment="Left"
                 Margin="799,17,0,0"
@@ -477,16 +477,16 @@
             </Button.Template>
         </Button>
         
-        <!-- Панель changelog -->
+        <!-- Changelog panel -->
         <Grid Name="ChangelogGrid" 
               Visibility="Collapsed"
               Panel.ZIndex="1000">
-            <!-- Темный полупрозрачный фон -->
+            <!-- Dark semi-transparent background -->
             <Rectangle Fill="#E6000000" 
                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Window}}"
                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Window}}"/>
 
-            <!-- Список changelog -->
+            <!-- Changelog list -->
             <ScrollViewer VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource MultiplyConverter}, ConverterParameter=0.90}"
@@ -498,11 +498,11 @@
                             Margin="30,40,30,60"
                             VerticalAlignment="Top"
                             HorizontalAlignment="Left">
-                    <!-- Содержимое будет заполняться динамически -->
+                    <!-- Content is populated dynamically -->
                 </StackPanel>
             </ScrollViewer>
 
-            <!-- Кнопка закрытия changelog -->
+            <!-- Changelog close button -->
             <Button x:Name="CloseChangelogButton"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
@@ -527,7 +527,7 @@
             </Button>
         </Grid> 
         
-        <!-- Кнопка минимизации -->
+        <!-- Minimize button -->
         <Button x:Name="minimize_btn"
                 Height="4"
                 Width="24"
@@ -551,7 +551,7 @@
             </Button.Template>
         </Button>
         
-        <!-- Кнопка закрытия -->
+        <!-- Close button -->
             <Button x:Name="button"
                     Margin="872,18,10,0"
                     VerticalAlignment="Top"
@@ -580,9 +580,9 @@
         
         
         
-        <!-- Блок Новостей -->
+        <!-- News block -->
         <Grid Name="NewsGrid">
-            <!-- Фон Новостей -->
+            <!-- News background -->
             <Border x:Name="NewsBackground" 
                     Width="489"
                     Height="390"
@@ -609,7 +609,7 @@
                     </VisualBrush>
                 </Border.OpacityMask>
             </Border>
-            <!-- Новости -->
+            <!-- News -->
             <ScrollViewer 
                 Width="452"
                 Height="365"
@@ -629,19 +629,18 @@
             </ScrollViewer>
         </Grid>
         
-        <!-- Версия лаунчера -->
+        <!-- Launcher version -->
         <Grid x:Name="VersionForm"
               VerticalAlignment="Top"
               HorizontalAlignment="Left">
-            <TextBlock Width="245"
+            <TextBlock x:Name="CopyrightText"
+                       Width="245"
                        Height="13"
                        Margin="599,589,0,0"
                        FontSize="12"
                        FontFamily="Microsoft New Tai Lue"
                        Foreground="#FFFFFF"
-                       TextAlignment="Left">
-                <Run>© OdinSons Team, 2026. Версия Лаунчера:</Run>
-            </TextBlock>
+                       TextAlignment="Left"/>
         </Grid>
         <Grid x:Name="VersionForm2"
               VerticalAlignment="Top"
@@ -657,10 +656,7 @@
                 <Run>____</Run>
             </TextBlock>
         </Grid>
-        
-        <!--  TESTttttttttttttttttttttttttttttttttttttttttttt -->
-        
-        <!-- Панель прогресс-бара -->
+        <!-- Progress bar panel -->
         <Grid Name="ProgressBarGrid"
               Width="900"
               Height="60"
@@ -725,7 +721,7 @@
         
         
         
-        <!-- Кнопка полной проверки -->
+        <!-- Full check button -->
         <Button x:Name="FullCheck"
                 HorizontalAlignment="Left"
                 Margin="768,18,0,0"
@@ -754,9 +750,7 @@
                    IsOpen="{Binding IsMouseOver, ElementName=Boosty, Mode=OneWay}"
                    PlacementTarget="{Binding ElementName=Boosty}"
                    Placement="Top">
-                <TextBlock Foreground="Azure">
-                    Проверка клиента
-                </TextBlock>
+                <TextBlock x:Name="FullCheckTooltipText" Foreground="Azure"/>
             </Popup>
         </Button>
         

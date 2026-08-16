@@ -213,7 +213,7 @@ namespace Odinsons.ValheimLauncher
                     await InitializeLauncherUrlAsync();
                     if (string.IsNullOrEmpty(ActiveLauncherUrl))
                     {
-                        MessageBox.Show("All servers are unavailable. The launcher will close.");
+                        MessageBox.Show(Loc.T("gui.allServersDown"));
                         Log("All mirrors unreachable, closing the launcher");
                         Close();
                         return;
@@ -240,7 +240,7 @@ namespace Odinsons.ValheimLauncher
                                     }
                                     catch (Exception ex)
                                     {
-                                        MessageBox.Show($"Failed to write config.ini: {ex.Message}\nPath: {configPath}");
+                                        MessageBox.Show(Loc.T("gui.configWriteFailed", ex.Message, configPath));
                                         Log($"Error writing config.ini: {ex.Message}");
                                         Close();
                                         return;
@@ -268,7 +268,7 @@ namespace Odinsons.ValheimLauncher
                                         }
                                         catch (Exception ex)
                                         {
-                                            MessageBox.Show($"Failed to write config.ini: {ex.Message}\nPath: {configPath}");
+                                            MessageBox.Show(Loc.T("gui.configWriteFailed", ex.Message, configPath));
                                             Log($"Error writing config.ini: {ex.Message}");
                                             Close();
                                             return;
@@ -284,7 +284,7 @@ namespace Odinsons.ValheimLauncher
                                     }
                                     else
                                     {
-                                        MessageBox.Show("No server selected. The launcher will close.");
+                                        MessageBox.Show(Loc.T("gui.noServerSelected"));
                                         Log("No server selected, closing the launcher");
                                         Close();
                                         return;
@@ -293,7 +293,7 @@ namespace Odinsons.ValheimLauncher
                             }
                             else
                             {
-                                MessageBox.Show("No servers available to choose from.");
+                                MessageBox.Show(Loc.T("gui.noServersToChoose"));
                                 Log("No servers available to choose from, closing the launcher");
                                 Close();
                                 return;
@@ -301,7 +301,7 @@ namespace Odinsons.ValheimLauncher
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"Initialization error: {ex.Message}");
+                            MessageBox.Show(Loc.T("gui.initError", ex.Message));
                             Log($"Initialization error: {ex.Message}");
                             Close();
                         }
@@ -317,13 +317,16 @@ namespace Odinsons.ValheimLauncher
                 {
                     VersionText.Inlines.Clear();
                     VersionText.Inlines.Add(new Run(_currentVersion) { FontFamily = new FontFamily("Sitka Text") });
+                    CopyrightText.Text = Loc.T("gui.versionLabel");
+                    FullCheckTooltipText.Text = Loc.T("gui.fullCheckTooltip");
+                    PlayerCountText.Text = Loc.T("gui.vikingsCount", 0);
                 });
 
                 _isInitializing = false;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Critical error on startup: {ex.Message}");
+                MessageBox.Show(Loc.T("gui.criticalStartupError", ex.Message));
                 Log($"Critical error on startup: {ex.Message}");
                 Environment.Exit(1);
             }
@@ -451,7 +454,7 @@ namespace Odinsons.ValheimLauncher
 
                 if (availableServers.Count == 0)
                 {
-                    MessageBox.Show("No servers available.");
+                    MessageBox.Show(Loc.T("gui.noServersAvailable"));
                     Log("No servers available");
                     Close();
                     return;
@@ -495,7 +498,7 @@ namespace Odinsons.ValheimLauncher
                         Log($"Server {SelectedServer} unavailable at {ActiveLauncherUrl}, looking for another mirror");
                         if (!await TrySwitchMirrorAsync(SelectedServer))
                         {
-                            MessageBox.Show($"Server {SelectedServer} is unavailable on all mirrors.");
+                            MessageBox.Show(Loc.T("gui.serverUnavailableAllMirrors", SelectedServer));
                             Log($"Server {SelectedServer} unavailable on all mirrors");
                             Close();
                             return;
@@ -509,7 +512,7 @@ namespace Odinsons.ValheimLauncher
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to load the server list: " + ex.Message);
+                MessageBox.Show(Loc.T("gui.serverListLoadFailed", ex.Message));
                 Log($"Error loading the server list: {ex.Message}");
                 Close();
             }
@@ -544,7 +547,7 @@ namespace Odinsons.ValheimLauncher
 
                 if (!File.Exists(tempExePath))
                 {
-                    throw new Exception("Failed to download the new launcher.");
+                    throw new Exception(Loc.T("gui.launcherDownloadFailed"));
                 }
 
                 CreateUpdateScript(currentExePath, tempExePath, baseDir);
@@ -557,7 +560,7 @@ namespace Odinsons.ValheimLauncher
                 {
                     try { File.Delete(tempExePath); } catch { }
                 }
-                MessageBox.Show($"Auto-update error: {ex.Message}");
+                MessageBox.Show(Loc.T("gui.autoUpdateError", ex.Message));
                 Log($"Auto-update error: {ex.Message}");
             }
         }
@@ -623,7 +626,7 @@ namespace Odinsons.ValheimLauncher
                 }
                 catch (Exception ex)
                 {
-                    Dispatcher.Invoke(() => News.Text = $"Failed to load news: {ex.Message}");
+                    Dispatcher.Invoke(() => News.Text = Loc.T("gui.newsLoadFailed", ex.Message));
                     Log($"Error loading news: {ex.Message}");
                 }
             }
@@ -647,7 +650,7 @@ namespace Odinsons.ValheimLauncher
                     Dispatcher.Invoke(() =>
                     {
                         ServerStatusIndicator.Fill = new SolidColorBrush(Colors.Red);
-                        PlayerCountText.Text = "Vikings: 0";
+                        PlayerCountText.Text = Loc.T("gui.vikingsCount", 0);
                     });
                     return;
                 }
@@ -666,7 +669,7 @@ namespace Odinsons.ValheimLauncher
                     Dispatcher.Invoke(() =>
                     {
                         ServerStatusIndicator.Fill = new SolidColorBrush(Colors.Green);
-                        PlayerCountText.Text = $"Vikings: {serverInfo.playersCount}";
+                        PlayerCountText.Text = Loc.T("gui.vikingsCount", serverInfo.playersCount);
                     });
 
                     _currentPlayers = serverInfo.players?.Select(p => p.Name).ToList() ?? new List<string>();
@@ -698,12 +701,12 @@ namespace Odinsons.ValheimLauncher
                     if (infoResponse.Result == ServerQueryResult.ResponseReceived)
                     {
                         ServerStatusIndicator.Fill = new SolidColorBrush(Colors.Green);
-                        PlayerCountText.Text = $"Vikings: {infoResponse.Data.PlayerCount}";
+                        PlayerCountText.Text = Loc.T("gui.vikingsCount", infoResponse.Data.PlayerCount);
                     }
                     else
                     {
                         ServerStatusIndicator.Fill = new SolidColorBrush(Colors.Red);
-                        PlayerCountText.Text = "Vikings: 0";
+                        PlayerCountText.Text = Loc.T("gui.vikingsCount", 0);
                     }
                 });
 
@@ -714,7 +717,7 @@ namespace Odinsons.ValheimLauncher
                 Dispatcher.Invoke(() =>
                 {
                     ServerStatusIndicator.Fill = new SolidColorBrush(Colors.Red);
-                    PlayerCountText.Text = "Vikings: 0";
+                    PlayerCountText.Text = Loc.T("gui.vikingsCount", 0);
                 });
                 _currentPlayers = new List<string>();
                 Log($"Error checking server status (fallback): {ex.Message}");
@@ -757,7 +760,7 @@ namespace Odinsons.ValheimLauncher
             {
                 Dispatcher.Invoke(() =>
                 {
-                    MessageBox.Show($"The client is unavailable for server {SelectedServer} on the current mirror.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(Loc.T("gui.clientUnavailableOnMirror", SelectedServer), Loc.T("gui.title.error"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     IsLoading = false;
                     StartButtonGrid.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation
                     {
@@ -778,9 +781,8 @@ namespace Odinsons.ValheimLauncher
                 Dispatcher.Invoke(() =>
                 {
                     MessageBox.Show(
-                        $"Update stopped: {permReason}.\n\nFolder: {Path.GetFullPath(ClientFolder)}\n\n" +
-                        $"How to fix it:\n{permAdvice}",
-                        "No write access", MessageBoxButton.OK, MessageBoxImage.Error);
+                        Loc.T("gui.updateStoppedPermissions", permReason, Path.GetFullPath(ClientFolder), permAdvice),
+                        Loc.T("gui.title.noWriteAccess"), MessageBoxButton.OK, MessageBoxImage.Error);
                     IsLoading = false;
                     StartButtonGrid.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation
                     {
@@ -799,10 +801,8 @@ namespace Odinsons.ValheimLauncher
                 Dispatcher.Invoke(() =>
                 {
                     MessageBox.Show(
-                        $"Update stopped: {unsafeReason}.\n\nFolder: {Path.GetFullPath(ClientFolder)}\n\n" +
-                        "An update deletes everything from the client folder that isn't on the server, so " +
-                        "it refuses to run against an unrelated folder.",
-                        "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        Loc.T("gui.updateStoppedUnsafe", unsafeReason, Path.GetFullPath(ClientFolder)),
+                        Loc.T("gui.title.error"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     IsLoading = false;
                     StartButtonGrid.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation
                     {
@@ -821,9 +821,8 @@ namespace Odinsons.ValheimLauncher
                 Dispatcher.Invoke(() =>
                 {
                     MessageBox.Show(
-                        $"Update not started: {sessionReason}.\n\n" +
-                        "Wait for it to finish, or close the other launcher.",
-                        "Folder busy", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        Loc.T("gui.updateNotStarted", sessionReason),
+                        Loc.T("gui.title.folderBusy"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     IsLoading = false;
                     StartButtonGrid.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation
                     {
@@ -869,7 +868,7 @@ namespace Odinsons.ValheimLauncher
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to update config.ini: {ex.Message}");
+                MessageBox.Show(Loc.T("gui.configUpdateFailed", ex.Message));
                 Log($"Error updating config.ini: {ex.Message}");
             }
 
@@ -881,7 +880,7 @@ namespace Odinsons.ValheimLauncher
                 Log($"Server {SelectedServer} unavailable at {ActiveLauncherUrl}, looking for another mirror");
                 if (!await TrySwitchMirrorAsync(SelectedServer))
                 {
-                    MessageBox.Show($"Server {SelectedServer} is unavailable on all mirrors.");
+                    MessageBox.Show(Loc.T("gui.serverUnavailableAllMirrors", SelectedServer));
                     Log($"Server {SelectedServer} unavailable on all mirrors");
                     return;
                 }
@@ -926,7 +925,7 @@ namespace Odinsons.ValheimLauncher
                     }
                     else
                     {
-                        changelogText = "Changelog unavailable for this server";
+                        changelogText = Loc.T("gui.changelogUnavailable");
                     }
                 }
 
@@ -950,7 +949,7 @@ namespace Odinsons.ValheimLauncher
                     ChangelogContent.Children.Clear();
                     ChangelogContent.Children.Add(new TextBlock
                     {
-                        Text = $"Error loading changelog: {ex.Message}",
+                        Text = Loc.T("gui.changelogLoadError", ex.Message),
                         Foreground = new SolidColorBrush(Colors.White),
                         FontFamily = new FontFamily("Sitka Text"),
                         FontSize = 16,
@@ -1170,7 +1169,7 @@ namespace Odinsons.ValheimLauncher
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        MessageBox.Show($"File valheim.exe not found in {ClientFolder}", "Launch error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(Loc.T("gui.valheimExeNotFound", ClientFolder), Loc.T("gui.title.launchError"), MessageBoxButton.OK, MessageBoxImage.Error);
                         HideProgress();
                         StartButtonGrid.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation
                         {

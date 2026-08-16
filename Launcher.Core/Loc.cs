@@ -14,6 +14,13 @@ namespace Odinsons.ValheimLauncher
     ///
     /// Nothing in a non-English language (or any human-facing text at all) should exist outside
     /// this file — otherwise the string won't make it into translation.
+    ///
+    /// To add a 10th language: add its code to <see cref="Supported"/> and its native name to
+    /// <see cref="DisplayNames"/>, then add one more parameter to <see cref="L"/> (give it a
+    /// default of <c>null</c> so every existing call site keeps compiling unchanged) and pass it
+    /// through into the returned dictionary. Existing keys don't need to be touched all at once —
+    /// <see cref="Lookup"/> already falls back to English for any key missing the new language, so
+    /// translations can be filled in key by key, over time, without ever leaving a blank string.
     /// </summary>
     public static class Loc
     {
@@ -807,7 +814,325 @@ namespace Odinsons.ValheimLauncher
                 "Atualização concluída, mas o cliente não está pronto para arrancar.",
                 "Обновление завершено, но клиент не готов к запуску.",
                 "Uppdateringen är klar, men klienten är inte redo att starta.",
-                "更新已完成，但客户端尚未就绪。")
+                "更新已完成，但客户端尚未就绪。"),
+
+            // ---------- GUI: MainWindow ----------
+
+            ["gui.allServersDown"] = L(
+                "All servers are unavailable. The launcher will close.",
+                "Alle Server sind nicht erreichbar. Der Launcher wird geschlossen.",
+                "Todos los servidores no están disponibles. El launcher se cerrará.",
+                "Tous les serveurs sont indisponibles. Le launcher va se fermer.",
+                "Wszystkie serwery są niedostępne. Launcher zostanie zamknięty.",
+                "Todos os servidores estão indisponíveis. O launcher será fechado.",
+                "Все серверы недоступны. Лаунчер будет закрыт.",
+                "Alla servrar är otillgängliga. Launchern stängs.",
+                "所有服务器均不可用。启动器将关闭。"),
+
+            ["gui.configWriteFailed"] = L(
+                "Failed to write config.ini: {0}\nPath: {1}",
+                "config.ini konnte nicht geschrieben werden: {0}\nPfad: {1}",
+                "No se pudo escribir config.ini: {0}\nRuta: {1}",
+                "Impossible d'écrire config.ini : {0}\nChemin : {1}",
+                "Nie udało się zapisać config.ini: {0}\nŚcieżka: {1}",
+                "Não foi possível gravar config.ini: {0}\nCaminho: {1}",
+                "Не удалось записать config.ini: {0}\nПуть: {1}",
+                "Det gick inte att skriva config.ini: {0}\nSökväg: {1}",
+                "无法写入 config.ini：{0}\n路径：{1}"),
+
+            ["gui.noServerSelected"] = L(
+                "No server selected. The launcher will close.",
+                "Kein Server ausgewählt. Der Launcher wird geschlossen.",
+                "No se seleccionó ningún servidor. El launcher se cerrará.",
+                "Aucun serveur sélectionné. Le launcher va se fermer.",
+                "Nie wybrano serwera. Launcher zostanie zamknięty.",
+                "Nenhum servidor selecionado. O launcher será fechado.",
+                "Сервер не выбран. Лаунчер будет закрыт.",
+                "Ingen server vald. Launchern stängs.",
+                "未选择服务器。启动器将关闭。"),
+
+            ["gui.noServersToChoose"] = L(
+                "No servers available to choose from.",
+                "Keine Server zur Auswahl verfügbar.",
+                "No hay servidores disponibles para elegir.",
+                "Aucun serveur disponible pour la sélection.",
+                "Brak serwerów do wyboru.",
+                "Não há servidores disponíveis para escolher.",
+                "Нет доступных серверов для выбора.",
+                "Inga servrar att välja mellan.",
+                "没有可供选择的服务器。"),
+
+            ["gui.initError"] = L(
+                "Initialization error: {0}",
+                "Initialisierungsfehler: {0}",
+                "Error de inicialización: {0}",
+                "Erreur d'initialisation : {0}",
+                "Błąd inicjalizacji: {0}",
+                "Erro de inicialização: {0}",
+                "Ошибка при инициализации: {0}",
+                "Initieringsfel: {0}",
+                "初始化错误：{0}"),
+
+            ["gui.criticalStartupError"] = L(
+                "Critical error on startup: {0}",
+                "Kritischer Fehler beim Start: {0}",
+                "Error crítico al iniciar: {0}",
+                "Erreur critique au démarrage : {0}",
+                "Krytyczny błąd podczas uruchamiania: {0}",
+                "Erro crítico na inicialização: {0}",
+                "Критическая ошибка при запуске: {0}",
+                "Kritiskt fel vid start: {0}",
+                "启动时发生严重错误：{0}"),
+
+            ["gui.noServersAvailable"] = L(
+                "No servers available.",
+                "Keine Server verfügbar.",
+                "No hay servidores disponibles.",
+                "Aucun serveur disponible.",
+                "Brak dostępnych serwerów.",
+                "Nenhum servidor disponível.",
+                "Нет доступных серверов.",
+                "Inga servrar tillgängliga.",
+                "没有可用的服务器。"),
+
+            ["gui.serverUnavailableAllMirrors"] = L(
+                "Server {0} is unavailable on all mirrors.",
+                "Server {0} ist auf allen Mirrors nicht erreichbar.",
+                "El servidor {0} no está disponible en ningún mirror.",
+                "Le serveur {0} est indisponible sur tous les miroirs.",
+                "Serwer {0} jest niedostępny na wszystkich mirrorach.",
+                "O servidor {0} está indisponível em todos os mirrors.",
+                "Сервер {0} недоступен на всех зеркалах.",
+                "Servern {0} är otillgänglig på alla speglar.",
+                "服务器 {0} 在所有镜像上均不可用。"),
+
+            ["gui.serverListLoadFailed"] = L(
+                "Failed to load the server list: {0}",
+                "Die Serverliste konnte nicht geladen werden: {0}",
+                "No se pudo cargar la lista de servidores: {0}",
+                "Impossible de charger la liste des serveurs : {0}",
+                "Nie udało się wczytać listy serwerów: {0}",
+                "Não foi possível carregar a lista de servidores: {0}",
+                "Не удалось загрузить список серверов: {0}",
+                "Det gick inte att läsa in serverlistan: {0}",
+                "无法加载服务器列表：{0}"),
+
+            ["gui.launcherDownloadFailed"] = L(
+                "Failed to download the new launcher.",
+                "Der neue Launcher konnte nicht heruntergeladen werden.",
+                "No se pudo descargar el nuevo launcher.",
+                "Impossible de télécharger le nouveau launcher.",
+                "Nie udało się pobrać nowego launchera.",
+                "Não foi possível baixar o novo launcher.",
+                "Не удалось скачать новый лаунчер.",
+                "Det gick inte att hämta den nya launchern.",
+                "无法下载新的启动器。"),
+
+            ["gui.autoUpdateError"] = L(
+                "Auto-update error: {0}",
+                "Fehler bei der automatischen Aktualisierung: {0}",
+                "Error de actualización automática: {0}",
+                "Erreur de mise à jour automatique : {0}",
+                "Błąd automatycznej aktualizacji: {0}",
+                "Erro de atualização automática: {0}",
+                "Ошибка автообновления: {0}",
+                "Fel vid automatisk uppdatering: {0}",
+                "自动更新错误：{0}"),
+
+            ["gui.vikingsCount"] = L(
+                "Vikings: {0}",
+                "Wikinger: {0}",
+                "Vikingos: {0}",
+                "Vikings : {0}",
+                "Wikingowie: {0}",
+                "Vikings: {0}",
+                "Викингов: {0}",
+                "Vikingar: {0}",
+                "维京人：{0}"),
+
+            ["gui.clientUnavailableOnMirror"] = L(
+                "The client is unavailable for server {0} on the current mirror.",
+                "Der Client ist für Server {0} auf dem aktuellen Mirror nicht verfügbar.",
+                "El cliente no está disponible para el servidor {0} en el mirror actual.",
+                "Le client est indisponible pour le serveur {0} sur le miroir actuel.",
+                "Klient jest niedostępny dla serwera {0} na bieżącym mirrorze.",
+                "O cliente está indisponível para o servidor {0} no mirror atual.",
+                "Клиент не доступен для сервера {0} на текущем зеркале.",
+                "Klienten är inte tillgänglig för servern {0} på den aktuella spegeln.",
+                "在当前镜像上，服务器 {0} 的客户端不可用。"),
+
+            ["gui.updateStoppedPermissions"] = L(
+                "Update stopped: {0}.\n\nFolder: {1}\n\nHow to fix it:\n{2}",
+                "Update gestoppt: {0}.\n\nOrdner: {1}\n\nSo beheben Sie das Problem:\n{2}",
+                "Actualización detenida: {0}.\n\nCarpeta: {1}\n\nCómo solucionarlo:\n{2}",
+                "Mise à jour arrêtée : {0}.\n\nDossier : {1}\n\nComment y remédier :\n{2}",
+                "Aktualizacja zatrzymana: {0}.\n\nFolder: {1}\n\nJak to naprawić:\n{2}",
+                "Atualização interrompida: {0}.\n\nPasta: {1}\n\nComo corrigir:\n{2}",
+                "Обновление остановлено: {0}.\n\nПапка: {1}\n\nКак исправить:\n{2}",
+                "Uppdateringen stoppades: {0}.\n\nMapp: {1}\n\nSå här åtgärdar du det:\n{2}",
+                "更新已停止：{0}。\n\n文件夹：{1}\n\n解决方法：\n{2}"),
+
+            ["gui.updateStoppedUnsafe"] = L(
+                "Update stopped: {0}.\n\nFolder: {1}\n\nAn update deletes everything from the client folder that isn't on the server, so it refuses to run against an unrelated folder.",
+                "Update gestoppt: {0}.\n\nOrdner: {1}\n\nEin Update löscht alles aus dem Client-Ordner, was nicht auf dem Server liegt, deshalb wird es nicht auf einem fremden Ordner ausgeführt.",
+                "Actualización detenida: {0}.\n\nCarpeta: {1}\n\nUna actualización elimina de la carpeta del cliente todo lo que no esté en el servidor, por lo que se niega a ejecutarse en una carpeta ajena.",
+                "Mise à jour arrêtée : {0}.\n\nDossier : {1}\n\nUne mise à jour supprime du dossier client tout ce qui n'est pas sur le serveur, elle refuse donc de s'exécuter sur un dossier étranger.",
+                "Aktualizacja zatrzymana: {0}.\n\nFolder: {1}\n\nAktualizacja usuwa z folderu klienta wszystko, czego nie ma na serwerze, dlatego odmawia działania na obcym folderze.",
+                "Atualização interrompida: {0}.\n\nPasta: {1}\n\nUma atualização exclui da pasta do cliente tudo o que não está no servidor, por isso ela se recusa a rodar em uma pasta alheia.",
+                "Обновление остановлено: {0}.\n\nПапка: {1}\n\nОбновление удаляет из папки клиента всё, чего нет на сервере, поэтому в постороннюю папку оно не запускается.",
+                "Uppdateringen stoppades: {0}.\n\nMapp: {1}\n\nEn uppdatering tar bort allt från klientmappen som inte finns på servern, så den vägrar köras mot en främmande mapp.",
+                "更新已停止：{0}。\n\n文件夹：{1}\n\n更新会删除客户端文件夹中服务器上没有的所有内容，因此拒绝在无关文件夹中运行。"),
+
+            ["gui.updateNotStarted"] = L(
+                "Update not started: {0}.\n\nWait for it to finish, or close the other launcher.",
+                "Update nicht gestartet: {0}.\n\nWarten Sie, bis es abgeschlossen ist, oder schließen Sie den anderen Launcher.",
+                "Actualización no iniciada: {0}.\n\nEspere a que termine o cierre el otro launcher.",
+                "Mise à jour non démarrée : {0}.\n\nAttendez qu'elle se termine ou fermez l'autre launcher.",
+                "Aktualizacja nie została rozpoczęta: {0}.\n\nPoczekaj na jej zakończenie lub zamknij drugiego launchera.",
+                "Atualização não iniciada: {0}.\n\nAguarde até terminar ou feche o outro launcher.",
+                "Обновление не начато: {0}.\n\nДождитесь окончания или закройте второй лаунчер.",
+                "Uppdateringen startades inte: {0}.\n\nVänta tills den är klar eller stäng den andra launchern.",
+                "更新未开始：{0}。\n\n请等待其完成，或关闭另一个启动器。"),
+
+            ["gui.configUpdateFailed"] = L(
+                "Failed to update config.ini: {0}",
+                "config.ini konnte nicht aktualisiert werden: {0}",
+                "No se pudo actualizar config.ini: {0}",
+                "Impossible de mettre à jour config.ini : {0}",
+                "Nie udało się zaktualizować config.ini: {0}",
+                "Não foi possível atualizar config.ini: {0}",
+                "Не удалось обновить config.ini: {0}",
+                "Det gick inte att uppdatera config.ini: {0}",
+                "无法更新 config.ini：{0}"),
+
+            ["gui.changelogUnavailable"] = L(
+                "Changelog unavailable for this server",
+                "Änderungsprotokoll für diesen Server nicht verfügbar",
+                "Registro de cambios no disponible para este servidor",
+                "Journal des modifications indisponible pour ce serveur",
+                "Lista zmian niedostępna dla tego serwera",
+                "Changelog indisponível para este servidor",
+                "Changelog не доступен для этого сервера",
+                "Ändringslogg saknas för den här servern",
+                "此服务器的更新日志不可用"),
+
+            ["gui.changelogLoadError"] = L(
+                "Error loading changelog: {0}",
+                "Fehler beim Laden des Änderungsprotokolls: {0}",
+                "Error al cargar el registro de cambios: {0}",
+                "Erreur lors du chargement du journal des modifications : {0}",
+                "Błąd wczytywania listy zmian: {0}",
+                "Erro ao carregar o changelog: {0}",
+                "Ошибка загрузки changelog: {0}",
+                "Fel vid inläsning av ändringsloggen: {0}",
+                "加载更新日志出错：{0}"),
+
+            ["gui.newsLoadFailed"] = L(
+                "Failed to load news: {0}",
+                "Neuigkeiten konnten nicht geladen werden: {0}",
+                "No se pudieron cargar las noticias: {0}",
+                "Impossible de charger les actualités : {0}",
+                "Nie udało się wczytać aktualności: {0}",
+                "Não foi possível carregar as novidades: {0}",
+                "Не удалось загрузить новости: {0}",
+                "Det gick inte att läsa in nyheterna: {0}",
+                "无法加载新闻：{0}"),
+
+            ["gui.valheimExeNotFound"] = L(
+                "File valheim.exe not found in {0}",
+                "Datei valheim.exe nicht gefunden in {0}",
+                "No se encontró el archivo valheim.exe en {0}",
+                "Fichier valheim.exe introuvable dans {0}",
+                "Nie znaleziono pliku valheim.exe w {0}",
+                "Arquivo valheim.exe não encontrado em {0}",
+                "Файл valheim.exe не найден в {0}",
+                "Filen valheim.exe hittades inte i {0}",
+                "在 {0} 中未找到 valheim.exe 文件"),
+
+            ["gui.title.error"] = L(
+                "Error", "Fehler", "Error", "Erreur", "Błąd", "Erro", "Ошибка", "Fel", "错误"),
+
+            ["gui.title.noWriteAccess"] = L(
+                "No write access",
+                "Kein Schreibzugriff",
+                "Sin acceso de escritura",
+                "Aucun accès en écriture",
+                "Brak dostępu do zapisu",
+                "Sem acesso de gravação",
+                "Нет прав на запись",
+                "Ingen skrivbehörighet",
+                "没有写入权限"),
+
+            ["gui.title.folderBusy"] = L(
+                "Folder busy",
+                "Ordner belegt",
+                "Carpeta ocupada",
+                "Dossier occupé",
+                "Folder zajęty",
+                "Pasta ocupada",
+                "Папка занята",
+                "Mappen upptagen",
+                "文件夹被占用"),
+
+            ["gui.title.launchError"] = L(
+                "Launch error",
+                "Startfehler",
+                "Error de inicio",
+                "Erreur de lancement",
+                "Błąd uruchamiania",
+                "Erro ao iniciar",
+                "Ошибка запуска",
+                "Startfel",
+                "启动错误"),
+
+            // ---------- GUI: ServerSelectionWindow ----------
+
+            ["serverSelection.title"] = L(
+                "Server selection",
+                "Serverauswahl",
+                "Selección de servidor",
+                "Sélection du serveur",
+                "Wybór serwera",
+                "Seleção de servidor",
+                "Выбор сервера",
+                "Serverval",
+                "选择服务器"),
+
+            ["serverSelection.selectAServer"] = L(
+                "Select a server",
+                "Server auswählen",
+                "Seleccione un servidor",
+                "Sélectionnez un serveur",
+                "Wybierz serwer",
+                "Selecione um servidor",
+                "Выберите сервер",
+                "Välj en server",
+                "请选择服务器"),
+
+            ["serverSelection.ok"] = L(
+                "OK", "OK", "Aceptar", "OK", "OK", "OK", "ОК", "OK", "确定"),
+
+            ["gui.versionLabel"] = L(
+                "© OdinSons Team, 2026. Launcher version:",
+                "© OdinSons Team, 2026. Launcher-Version:",
+                "© OdinSons Team, 2026. Versión del launcher:",
+                "© OdinSons Team, 2026. Version du launcher :",
+                "© OdinSons Team, 2026. Wersja launchera:",
+                "© OdinSons Team, 2026. Versão do launcher:",
+                "© OdinSons Team, 2026. Версия лаунчера:",
+                "© OdinSons Team, 2026. Launcherversion:",
+                "© OdinSons Team, 2026年。启动器版本："),
+
+            ["gui.fullCheckTooltip"] = L(
+                "Client check",
+                "Client-Prüfung",
+                "Verificación del cliente",
+                "Vérification du client",
+                "Sprawdzenie klienta",
+                "Verificação do cliente",
+                "Проверка клиента",
+                "Klientkontroll",
+                "客户端检查")
         };
     }
 }

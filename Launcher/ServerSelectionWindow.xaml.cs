@@ -12,6 +12,10 @@ namespace Odinsons.ValheimLauncher
         {
             InitializeComponent();
 
+            Title = Loc.T("serverSelection.title");
+            HeaderText.Text = Loc.T("serverSelection.selectAServer");
+            ConfirmButton.Content = Loc.T("serverSelection.ok");
+
             // Populate the ComboBox with available servers
             foreach (var server in serverDirectories.Keys)
             {
