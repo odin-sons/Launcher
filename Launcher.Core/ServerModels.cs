@@ -22,10 +22,9 @@ namespace Odinsons.ValheimLauncher
     {
         public static readonly IReadOnlyList<string> Default = new[]
         {
-            "https://server.odinsons.club/launcher/",
-            "http://178.16.22.31/launcher/",
-            "https://server-cf.odinsons.club/launcher/",
-            "https://server-mirror.odinsons.club/launcher/"
+            "https://server.odinsons.club/Launcher/",
+            "http://178.16.22.31/Launcher/",
+            "https://server-cf.odinsons.club/Launcher/"
         };
     }
 }
