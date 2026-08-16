@@ -40,6 +40,12 @@ namespace Odinsons.ValheimLauncher
     /// </summary>
     public static class SteamLocator
     {
+        /// <summary>Valheim's Steam app ID — shared so the CLI and GUI can't drift apart.</summary>
+        public const int ValheimAppId = 892970;
+
+        /// <summary>Valheim's Steam depot ID — more precise than the build ID for matching content.</summary>
+        public const int ValheimDepotId = 892972;
+
         /// <summary>Where to look by default. This is data, not logic.</summary>
         public static IReadOnlyList<string> CandidateRoots()
         {

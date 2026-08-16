@@ -25,9 +25,6 @@ namespace Odinsons.ValheimLauncher.Cli
         private const int ExitBusy = 8;
         private const int ExitCancelled = 130;
 
-        private const int ValheimAppId = 892970;
-        private const int ValheimDepotId = 892972;
-
         private static readonly HttpClient Http = new(new SocketsHttpHandler
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
@@ -185,7 +182,7 @@ namespace Odinsons.ValheimLauncher.Cli
                 // The Steam install is looked up here, not in the downloader: the
                 // downloader knows nothing about Steam, it just gets a ready path or null.
                 string steamGameFolder = null;
-                if (SteamLocator.TryFindGame(ValheimAppId, ValheimDepotId, null,
+                if (SteamLocator.TryFindGame(SteamLocator.ValheimAppId, SteamLocator.ValheimDepotId, null,
                                              out SteamGameInfo steamGame, out string steamReason))
                 {
                     LauncherLog.Info($"steam: build {steamGame.BuildId}, depot manifest {steamGame.DepotManifestId}, " +

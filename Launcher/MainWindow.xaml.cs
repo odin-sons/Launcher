@@ -863,9 +863,26 @@ namespace Odinsons.ValheimLauncher
                     full = true;
                 }
 
+                // The Steam install is looked up here, not in the downloader: the
+                // downloader knows nothing about Steam, it just gets a ready path or null.
+                string steamGameFolder = null;
+                if (SteamLocator.TryFindGame(SteamLocator.ValheimAppId, SteamLocator.ValheimDepotId, null,
+                                             out SteamGameInfo steamGame, out string steamReason))
+                {
+                    LauncherLog.Info($"steam: build {steamGame.BuildId}, depot manifest {steamGame.DepotManifestId}, " +
+                                     $"stateFlags={steamGame.StateFlags}");
+
+                    if (steamGame.FullyInstalled) steamGameFolder = steamGame.InstallPath;
+                    else LauncherLog.Warn("steam copy is not fully installed — not using it as a source");
+                }
+                else
+                {
+                    LauncherLog.Info($"steam: {steamReason}");
+                }
+
                 await FileDownloader.StartUpdateAsync(_worker, this, full, start, SelectedServerDirectory,
                     Path.GetFileName(Assembly.GetExecutingAssembly().Location), maxConcurrentDownloads: 3,
-                    session: session);
+                    steamGameFolder: steamGameFolder, session: session);
             }
         }
 
