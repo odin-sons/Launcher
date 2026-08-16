@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -177,6 +178,27 @@ namespace Odinsons.ValheimLauncher
             }
         }
 
+        /// <summary>
+        /// SHA-256 of the running executable — logged once at startup so a player's log tells us
+        /// exactly which build they're on, without having to ask them to check file properties.
+        /// </summary>
+        private static string ComputeExecutableHash()
+        {
+            try
+            {
+                string exePath = Environment.ProcessPath;
+                if (string.IsNullOrEmpty(exePath) || !File.Exists(exePath)) return "unknown";
+
+                using FileStream stream = File.OpenRead(exePath);
+                byte[] hash = SHA256.HashData(stream);
+                return Convert.ToHexString(hash);
+            }
+            catch (Exception ex)
+            {
+                return $"unavailable ({ex.Message})";
+            }
+        }
+
         public MainWindow()
         {
             try
@@ -209,7 +231,7 @@ namespace Odinsons.ValheimLauncher
 
                 Loaded += async (_, __) =>
                 {
-                    Log("Launcher starting");
+                    Log($"Launcher starting — version {_currentVersion}, exe SHA-256 {ComputeExecutableHash()}");
                     await InitializeLauncherUrlAsync();
                     if (string.IsNullOrEmpty(ActiveLauncherUrl))
                     {
