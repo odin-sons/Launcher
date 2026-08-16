@@ -78,38 +78,7 @@ namespace Odinsons.ValheimLauncher
         /// <summary>How many times to try one file, counting the first attempt.</summary>
         private const int MaxAttempts = 4;
 
-        /// <summary>Base backoff between attempts: 1s, 2s, 4s plus a random addition.</summary>
-        private static readonly TimeSpan RetryBaseDelay = TimeSpan.FromSeconds(1);
-
-        private static readonly Random RetryJitter = new();
-
-        /// <summary>
-        /// Whether to retry for a given server response.
-        /// 429 — nginx's rate limit slowed us down, 5xx — a temporary server-side problem.
-        /// Everything else (404, 403) is pointless to retry.
-        /// </summary>
-        private static bool IsRetryableStatus(HttpStatusCode status) =>
-            status == HttpStatusCode.TooManyRequests || (int)status >= 500;
-
-        /// <summary>Pause before the next attempt; honors Retry-After if the server sent one.</summary>
-        private static TimeSpan RetryDelay(int attempt, HttpResponseMessage response)
-        {
-            TimeSpan? serverAsked = response?.Headers.RetryAfter?.Delta;
-            if (serverAsked is null && response?.Headers.RetryAfter?.Date is { } date)
-                serverAsked = date - DateTimeOffset.UtcNow;
-
-            if (serverAsked is { TotalSeconds: > 0 and < 120 })
-                return serverAsked.Value;
-
-            // Exponential, with a random addition: without it, three parallel threads that hit
-            // the same rate limit would retry in lockstep and hit it again together.
-            double seconds = RetryBaseDelay.TotalSeconds * Math.Pow(2, attempt - 1);
-            lock (RetryJitter) seconds += RetryJitter.NextDouble() * 0.5;
-
-            return TimeSpan.FromSeconds(Math.Min(seconds, 30));
-        }
-
-        private static SemaphoreSlim DownloadSemaphore = new SemaphoreSlim(1, 3);
+        private static SemaphoreSlim DownloadSemaphore = new SemaphoreSlim(1, 8);
 
         /// <summary>
         /// How many files are hash-checked at once.
@@ -168,7 +137,7 @@ namespace Odinsons.ValheimLauncher
         /// valheim.exe back into place before the update reports completion — see the
         /// EndUpdate call below.
         /// </param>
-        public static async Task StartUpdateAsync(BackgroundWorker worker, IUpdateUi ui, bool full, bool startGame, string selectedServerDirectory, string ownExecutableName, int maxConcurrentDownloads = 3, string steamGameFolder = null, UpdateSession session = null)
+        public static async Task StartUpdateAsync(BackgroundWorker worker, IUpdateUi ui, bool full, bool startGame, string selectedServerDirectory, string ownExecutableName, int maxConcurrentDownloads = 8, string steamGameFolder = null, UpdateSession session = null)
         {
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
 
@@ -913,8 +882,8 @@ namespace Odinsons.ValheimLauncher
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    bool retryable = IsRetryableStatus(response.StatusCode);
-                    TimeSpan wait = retryable ? RetryDelay(attempt, response) : TimeSpan.Zero;
+                    bool retryable = HttpRetry.IsRetryableStatus(response.StatusCode);
+                    TimeSpan wait = retryable ? HttpRetry.Delay(attempt, response) : TimeSpan.Zero;
                     string problem = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
 
                     LauncherLog.Warn($"{problem} for {file.WebDir}" +
@@ -979,18 +948,18 @@ namespace Odinsons.ValheimLauncher
                 string problem = Loc.T("dl.error.stalled", file.WebDir, StallTimeout.TotalSeconds);
                 LauncherLog.Warn($"stalled: {file.WebDir}, no data for {StallTimeout.TotalSeconds:0}s " +
                                  $"(attempt {attempt}/{MaxAttempts})");
-                return (false, true, RetryDelay(attempt, null), problem);
+                return (false, true, HttpRetry.Delay(attempt, null), problem);
             }
             catch (HttpRequestException ex)
             {
                 LauncherLog.Warn($"network error on {file.WebDir} (attempt {attempt}/{MaxAttempts})", ex);
-                return (false, true, RetryDelay(attempt, null), ex.Message);
+                return (false, true, HttpRetry.Delay(attempt, null), ex.Message);
             }
             catch (IOException ex)
             {
                 // The connection dropped mid-body, or a disk-write problem.
                 LauncherLog.Warn($"I/O error on {file.WebDir} (attempt {attempt}/{MaxAttempts})", ex);
-                return (false, true, RetryDelay(attempt, null), ex.Message);
+                return (false, true, HttpRetry.Delay(attempt, null), ex.Message);
             }
             catch (UnauthorizedAccessException ex)
             {

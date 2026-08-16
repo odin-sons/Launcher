@@ -359,57 +359,76 @@ namespace Odinsons.ValheimLauncher
             Log("Starting mirror check");
             foreach (var url in LauncherUrls)
             {
-                for (int attempt = 0; attempt < 3; attempt++)
+                for (int attempt = 1; attempt <= 3; attempt++)
                 {
-                    Log($"Checking mirror {url}, attempt {attempt + 1}");
-                    if (await CheckMirrorAsync(url))
+                    Log($"Checking mirror {url}, attempt {attempt}");
+                    (bool available, bool retryable, TimeSpan retryDelay) = await CheckMirrorAsync(url, attempt);
+                    if (available)
                     {
                         ActiveLauncherUrl = url;
                         Log($"Mirror selected: {url}");
                         return;
                     }
-                    if (attempt < 2) await Task.Delay(1000);
+
+                    if (!retryable || attempt == 3) break;
+
+                    // A 429/503 here almost always means our own rate limit, not a dead mirror —
+                    // every remaining mirror proxies the same origin (see nginx config), so a flat
+                    // retry would just re-trigger the same limit. Back off properly instead.
+                    Log($"Mirror {url} busy, retrying in {retryDelay.TotalSeconds:0.0}s");
+                    await Task.Delay(retryDelay);
                 }
             }
             ActiveLauncherUrl = null;
             Log("All mirrors unreachable");
         }
 
-        private async Task<bool> CheckMirrorAsync(string url)
+        /// <returns>
+        /// available — version.txt and servers.json both loaded; retryable — whether the failure
+        /// looks transient (429/503/timeout) rather than a genuinely dead mirror; retryDelay — how
+        /// long to wait before trying this same mirror again.
+        /// </returns>
+        private async Task<(bool available, bool retryable, TimeSpan retryDelay)> CheckMirrorAsync(string url, int attempt = 1)
         {
             try
             {
                 using var responseVersion = await HttpClient.GetAsync(url + "version.txt");
                 if (!responseVersion.IsSuccessStatusCode)
                 {
-                    Log($"version.txt error at {url}: {responseVersion.StatusCode}");
-                    return false;
+                    bool retryable = HttpRetry.IsRetryableStatus(responseVersion.StatusCode);
+                    TimeSpan delay = retryable ? HttpRetry.Delay(attempt, responseVersion) : TimeSpan.Zero;
+                    Log($"version.txt error at {url}: {responseVersion.StatusCode}" +
+                        (retryable ? $" (retryable, {delay.TotalSeconds:0.0}s)" : ""));
+                    return (false, retryable, delay);
                 }
 
                 using var responseServers = await HttpClient.GetAsync(url + "servers.json");
                 if (!responseServers.IsSuccessStatusCode)
                 {
-                    Log($"servers.json error at {url}: {responseServers.StatusCode}");
-                    return false;
+                    bool retryable = HttpRetry.IsRetryableStatus(responseServers.StatusCode);
+                    TimeSpan delay = retryable ? HttpRetry.Delay(attempt, responseServers) : TimeSpan.Zero;
+                    Log($"servers.json error at {url}: {responseServers.StatusCode}" +
+                        (retryable ? $" (retryable, {delay.TotalSeconds:0.0}s)" : ""));
+                    return (false, retryable, delay);
                 }
 
                 Log($"Mirror {url} is available: version.txt and servers.json loaded");
-                return true;
+                return (true, false, TimeSpan.Zero);
             }
             catch (TaskCanceledException)
             {
                 Log($"Timeout checking {url}");
-                return false;
+                return (false, true, HttpRetry.Delay(attempt, null));
             }
             catch (HttpRequestException ex)
             {
                 Log($"HTTP error checking {url}: {ex.Message}");
-                return false;
+                return (false, true, HttpRetry.Delay(attempt, null));
             }
             catch (Exception ex)
             {
                 Log($"Unknown error checking {url}: {ex.Message}");
-                return false;
+                return (false, false, TimeSpan.Zero);
             }
         }
 
@@ -446,7 +465,7 @@ namespace Odinsons.ValheimLauncher
             {
                 if (url == ActiveLauncherUrl) continue;
                 Log($"Checking alternate mirror {url} for {serverName}");
-                if (await CheckMirrorAsync(url) && await CheckServerUpdateAsync(url, serverName))
+                if ((await CheckMirrorAsync(url)).available && await CheckServerUpdateAsync(url, serverName))
                 {
                     ActiveLauncherUrl = url;
                     Log($"Switched to mirror {url} for {serverName}");
@@ -903,7 +922,7 @@ namespace Odinsons.ValheimLauncher
                 }
 
                 await FileDownloader.StartUpdateAsync(_worker, this, full, start, SelectedServerDirectory,
-                    Path.GetFileName(Assembly.GetExecutingAssembly().Location), maxConcurrentDownloads: 3,
+                    Path.GetFileName(Assembly.GetExecutingAssembly().Location), maxConcurrentDownloads: 8,
                     steamGameFolder: steamGameFolder, session: session);
             }
         }

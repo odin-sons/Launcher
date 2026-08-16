@@ -362,7 +362,7 @@ namespace Odinsons.ValheimLauncher.Cli
                                         Default: the value from config.ini, or the only one available.
                   --url <address>       Use a specific mirror instead of auto-detection.
                   --full                Full check (verify everything, ignoring exclusions).
-                  --parallel <N>        Concurrent downloads, 3 by default.
+                  --parallel <N>        Concurrent downloads, 8 by default.
                   --list                Print the server list and exit.
                   --check-manifest <f>  Validate a .info manifest, print a summary and exit.
                                         Manifests are plain text — open them in any editor.
@@ -399,13 +399,13 @@ namespace Odinsons.ValheimLauncher.Cli
             public bool Help { get; private init; }
             public string CheckManifest { get; private init; }
             public LogLevel? LogLevel { get; private init; }
-            public int Parallel { get; private init; } = 3;
+            public int Parallel { get; private init; } = 8;
 
             public static Options Parse(string[] args)
             {
                 string server = null, clientFolder = null, url = null, checkManifest = null;
                 bool full = false, list = false, help = false;
-                int parallel = 3;
+                int parallel = 8;
                 LogLevel? logLevel = null;
 
                 for (int i = 0; i < args.Length; i++)
