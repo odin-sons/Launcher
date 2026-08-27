@@ -298,6 +298,77 @@ namespace Launcher.Tests
             Assert.Equal("game data v2", File.ReadAllText(Path.Combine(client.Path, "valheim_Data/data.bin")));
         }
 
+        [Fact]
+        public async Task SelectedOptionalMod_MissingFile_GetsDownloaded()
+        {
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+            pack.AddFile("BepInEx/plugins/VNEI/VNEI.dll", "vnei contents");
+
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteEmptyManifest("game.info");
+            pack.WriteManifest("optional.info", "BepInEx/plugins/VNEI/VNEI.dll");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+
+            // The player turned the mod on via the mods panel — recorded by its plugin
+            // folder name, the same identity ModGrouping uses to group optional.info entries.
+            client.AddFile(OptionalModSelection.FileName, "VNEI\n");
+
+            var ui = new RecordingUpdateUi(client.Path);
+            await RunAsync(ui, server.BaseUrl, full: true);
+
+            // Regression: optional files used to download only if the player already had
+            // them — there was no way to opt into a mod you didn't already have installed.
+            Assert.True(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/VNEI/VNEI.dll")));
+        }
+
+        [Fact]
+        public async Task UnselectedOptionalMod_MissingFile_StaysAbsent()
+        {
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+            pack.AddFile("BepInEx/plugins/VNEI/VNEI.dll", "vnei contents");
+
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteEmptyManifest("game.info");
+            pack.WriteManifest("optional.info", "BepInEx/plugins/VNEI/VNEI.dll");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+            // No optional_selected.txt at all — the player never turned VNEI on.
+
+            var ui = new RecordingUpdateUi(client.Path);
+            await RunAsync(ui, server.BaseUrl, full: true);
+
+            Assert.False(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/VNEI/VNEI.dll")));
+        }
+
+        [Fact]
+        public async Task CorruptManifest_FailsClosed_DoesNotAllowGameToStart()
+        {
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "req-mod-content");
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteEmptyManifest("update_admin.info");
+            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyManifest("optional.info");
+            // Overwrite with a file that isn't a manifest at all, simulating the
+            // stale pre-1.3.0 binary format (or any other unreadable update.info).
+            File.WriteAllText(Path.Combine(pack.Root, "update.info"), "not a manifest at all");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+
+            var ui = new RecordingUpdateUi(client.Path);
+            await RunAsync(ui, server.BaseUrl, full: true);
+
+            Assert.False(ui.CanStartGameAtComplete);
+        }
+
         /// <summary>A temporary client folder with a few files, for setting up an "already installed" state.</summary>
         private sealed class TempClientFolder : IDisposable
         {

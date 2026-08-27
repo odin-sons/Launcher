@@ -25,8 +25,13 @@ namespace Odinsons.ValheimLauncher
         {
             "update.info", "update_admin.info", "Indexer.exe", "full.info", "version.info", "news.info",
             "OdinsonsLauncher.exe", "ValknutLauncher.exe", "LogOutput.log", "admin",
-            "admin_only_patterns.txt", "force_check_files.txt", "game.info", "optional.info", ClientLedger.FileName
+            "admin_only_patterns.txt", "force_check_files.txt", "game.info", "optional.info", ClientLedger.FileName,
+            OptionalModSelection.FileName, ClientHashCacheFileName, SteamHashCacheFileName
         };
+
+        /// <summary>Both live in the client folder — never inside the Steam library, which isn't ours to write into.</summary>
+        private const string ClientHashCacheFileName = "filehashes.cache";
+        private const string SteamHashCacheFileName = "steamhashes.cache";
 
         static FileDownloader()
         {
@@ -38,6 +43,14 @@ namespace Odinsons.ValheimLauncher
         private static string clientFolder;
         private static bool FullCheck;
         private static bool StartAfter;
+
+        /// <summary>
+        /// Skips rehashing a file whose size and exact write time haven't changed since the last
+        /// run — see FileHashCache's doc comment for why this is safe here. One for the client
+        /// folder (required/admin/optional files), one for the Steam install (the game-file check).
+        /// </summary>
+        private static FileHashCache _clientHashCache;
+        private static FileHashCache _steamHashCache;
 
         /// <summary>Current display event sink. Set in <see cref="StartUpdateAsync"/>.</summary>
         private static IUpdateUi _ui;
@@ -159,6 +172,9 @@ namespace Odinsons.ValheimLauncher
             CanStartGame = true;
             FullCheck = full;
             StartAfter = startGame;
+
+            _clientHashCache = FileHashCache.Load(Path.Combine(clientFolder, ClientHashCacheFileName));
+            _steamHashCache = FileHashCache.Load(Path.Combine(clientFolder, SteamHashCacheFileName));
 
             _steamGameFolder = Directory.Exists(steamGameFolder) ? steamGameFolder : null;
             _takenLocally = 0;
@@ -339,7 +355,7 @@ namespace Odinsons.ValheimLauncher
                 if (!byPath.TryGetValue(relativePath, out Manifest.Entry entry)) continue;
 
                 string fullPath = Path.Combine(clientFolder, relativePath);
-                if (string.Equals(CurrentHashOf(fullPath), entry.Hash, StringComparison.OrdinalIgnoreCase)) continue;
+                if (string.Equals(CurrentHashOf(fullPath, relativePath), entry.Hash, StringComparison.OrdinalIgnoreCase)) continue;
 
                 try
                 {
@@ -376,7 +392,7 @@ namespace Odinsons.ValheimLauncher
 
                 string fullPath = Path.Combine(_steamGameFolder, entry.Path);
                 bool matches = File.Exists(fullPath) &&
-                    string.Equals(FileHash.OfFile(fullPath), entry.Hash, StringComparison.OrdinalIgnoreCase);
+                    string.Equals(_steamHashCache.GetHash(entry.Path, fullPath), entry.Hash, StringComparison.OrdinalIgnoreCase);
 
                 if (!matches)
                 {
@@ -392,6 +408,10 @@ namespace Odinsons.ValheimLauncher
                     SetTotalPercent((double)currentProcessed / total * 100, 0, 0);
                 }
             });
+
+            _steamHashCache.Save();
+            LauncherLog.Info($"steam install check: {_steamHashCache.Hits} file(s) reused from cache, " +
+                             $"{_steamHashCache.Misses} hashed for real");
 
             return !mismatchFound;
         }
@@ -439,12 +459,12 @@ namespace Odinsons.ValheimLauncher
         /// No risk of clobbering a freshly downloaded file: UpdateSession.Dispose only moves
         /// the stashed copy back if the real file is absent.
         /// </summary>
-        private static string CurrentHashOf(string fullPath)
+        private static string CurrentHashOf(string fullPath, string relativePath)
         {
-            if (File.Exists(fullPath)) return FileHash.OfFile(fullPath);
+            if (File.Exists(fullPath)) return _clientHashCache.GetHash(relativePath, fullPath);
 
             string stashed = fullPath + UpdateSession.StashSuffix;
-            return File.Exists(stashed) ? FileHash.OfFile(stashed) : null;
+            return File.Exists(stashed) ? _clientHashCache.GetHash(relativePath, stashed) : null;
         }
 
         private static bool ShouldExcludeFile(string fileDir, bool fullCheck)
@@ -567,7 +587,7 @@ namespace Odinsons.ValheimLauncher
                     string fileDirFull = Path.Combine(clientFolder, fileDir);
                     Directory.CreateDirectory(Path.GetDirectoryName(fileDirFull) ?? string.Empty);
 
-                    string currentHash = CurrentHashOf(fileDirFull);
+                    string currentHash = CurrentHashOf(fileDirFull, fileDir);
 
                     if (currentHash != fileHash)
                     {
@@ -657,7 +677,22 @@ namespace Odinsons.ValheimLauncher
                     _ui.SetDegradationWarning(null);
                 }
 
-                // Checking optional mods (update only if the client already has the file)
+                // Checking optional mods (missing files download only if the player explicitly
+                // selected that mod — see ModGrouping for the folder-name identity both this
+                // and OptionalModSelection use, so there's nothing else to keep in sync).
+                var selectedOptionalPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (optionalFiles.Count > 0)
+                {
+                    OptionalModSelection selection = OptionalModSelection.Load(clientFolder);
+                    if (selection.SelectedFolders.Count > 0)
+                    {
+                        Dictionary<string, List<string>> byFolder = ModGrouping.GroupByPluginFolder(optionalFiles);
+                        foreach (string folderKey in selection.SelectedFolders)
+                            if (byFolder.TryGetValue(folderKey, out List<string> paths))
+                                foreach (string path in paths) selectedOptionalPaths.Add(path);
+                    }
+                }
+
                 if (optionalFileList.Count > 0)
                 {
                     Parallel.ForEach(optionalFileList, HashOptions, optionalFile =>
@@ -669,9 +704,14 @@ namespace Odinsons.ValheimLauncher
                         if (allFiles.Contains(fileDir)) return; // already handled as required
 
                         string fileDirFull = Path.Combine(clientFolder, fileDir);
-                        if (!File.Exists(fileDirFull)) return; // don't download missing optional files
+                        // A selected mod's missing files are fetched like a required file would
+                        // be; an unselected (or unmatched) mod is left alone if not already present.
+                        bool exists = File.Exists(fileDirFull);
+                        if (!exists && !selectedOptionalPaths.Contains(fileDir)) return;
 
-                        string currentHash = FileHash.OfFile(fileDirFull);
+                        if (!exists) Directory.CreateDirectory(Path.GetDirectoryName(fileDirFull) ?? string.Empty);
+
+                        string currentHash = exists ? _clientHashCache.GetHash(fileDir, fileDirFull) : null;
 
                         if (currentHash != fileHash)
                         {
@@ -690,6 +730,10 @@ namespace Odinsons.ValheimLauncher
                         }
                     });
                 }
+
+                _clientHashCache.Save();
+                LauncherLog.Info($"client folder check: {_clientHashCache.Hits} file(s) reused from cache, " +
+                                 $"{_clientHashCache.Misses} hashed for real");
 
                 if (worker.CancellationPending)
                 {
@@ -792,6 +836,12 @@ namespace Odinsons.ValheimLauncher
             }
             catch (Exception ex)
             {
+                // Regression: CanStartGame defaults to true at the very start of
+                // StartUpdateAsync and this catch never touched it — an exception here
+                // (a corrupt/unreadable manifest, for instance) showed the player an error
+                // and then launched the game anyway, with whatever files happened to be on
+                // disk, unverified. A failed check must fail closed, not open.
+                CanStartGame = false;
                 _ui.ShowMessage(Loc.T("dl.error.processing", ex.Message), Loc.T("dl.title.error"), UpdateMessageKind.None);
                 _ui.SetLoading(false);
                 Log($"Error while processing files: {ex.Message}");

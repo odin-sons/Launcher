@@ -1027,6 +1027,61 @@ namespace Odinsons.ValheimLauncher
                 "Fel vid inläsning av ändringsloggen: {0}",
                 "加载更新日志出错：{0}"),
 
+            ["mods.loading"] = L(
+                "Loading the mod list…",
+                "Modliste wird geladen…",
+                "Cargando la lista de mods…",
+                "Chargement de la liste des mods…",
+                "Wczytywanie listy modów…",
+                "A carregar a lista de mods…",
+                "Загружаю список модов…",
+                "Läser in modlistan…",
+                "正在加载模组列表…"),
+
+            ["mods.unavailable"] = L(
+                "Mod list unavailable right now — check your connection and try again.",
+                "Modliste momentan nicht verfügbar — Verbindung prüfen und erneut versuchen.",
+                "Lista de mods no disponible ahora mismo — comprueba tu conexión e inténtalo de nuevo.",
+                "Liste des mods indisponible pour le moment — vérifiez votre connexion et réessayez.",
+                "Lista modów obecnie niedostępna — sprawdź połączenie i spróbuj ponownie.",
+                "Lista de mods indisponível no momento — verifique a sua ligação e tente novamente.",
+                "Список модов сейчас недоступен — проверьте соединение и попробуйте ещё раз.",
+                "Modlistan är inte tillgänglig just nu — kontrollera anslutningen och försök igen.",
+                "模组列表当前不可用——请检查网络连接后重试。"),
+
+            ["mods.required"] = L(
+                "Required mods",
+                "Erforderliche Mods",
+                "Mods obligatorios",
+                "Mods requis",
+                "Wymagane mody",
+                "Mods obrigatórios",
+                "Обязательные моды",
+                "Obligatoriska mods",
+                "必装模组"),
+
+            ["mods.optional"] = L(
+                "Optional mods",
+                "Optionale Mods",
+                "Mods opcionales",
+                "Mods optionnels",
+                "Opcjonalne mody",
+                "Mods opcionais",
+                "Опциональные моды",
+                "Valfria mods",
+                "可选模组"),
+
+            ["mods.adminOnly"] = L(
+                "Admin-only mods",
+                "Nur für Admins",
+                "Mods solo para administradores",
+                "Mods réservés aux admins",
+                "Mody tylko dla adminów",
+                "Mods somente para admins",
+                "Моды только для админов",
+                "Endast för admins",
+                "仅管理员模组"),
+
             ["gui.newsLoadFailed"] = L(
                 "Failed to load news: {0}",
                 "Neuigkeiten konnten nicht geladen werden: {0}",
