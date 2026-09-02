@@ -3,6 +3,16 @@
 Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions come from
 `Valheim-Online_Launcher.csproj`.
 
+## [1.3.6] — 2026-08-29
+
+- Fixed the server-status indicator always showing offline (0 players) regardless of the
+  server's actual state. PublicWebLink's `/serverinfo` response changed `mods` from a bare
+  list of names to a list of objects (name/guid/version/description/websiteUrl/dependencies);
+  deserializing that shape into `List<string>` threw, which took down the entire status
+  update — the online indicator and player count are read from the same response as the mod
+  list, not a separate call. `ServerInfo.mods` is now typed as `List<ServerModInfo>`,
+  matching the real shape (the mod list itself still isn't shown anywhere in the UI).
+
 ## [1.3.5] — 2026-08-28
 
 1.3.4 never shipped — its content is folded into this version instead of leaving an

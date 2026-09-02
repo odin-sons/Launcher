@@ -29,7 +29,22 @@ namespace Odinsons.ValheimLauncher
         public string name { get; set; }
         public int playersCount { get; set; }
         public List<PlayerInfo> players { get; set; }
-        public List<string> mods { get; set; }
+
+        // PublicWebLink (server-side mod) switched "mods" from a bare list of names to a list
+        // of objects — deserializing that shape into List<string> throws, which silently took
+        // down the whole status update (online indicator + player count included, not just the
+        // mod list) since both come from this one response.
+        public List<ServerModInfo> mods { get; set; }
+    }
+
+    public class ServerModInfo
+    {
+        public string name { get; set; }
+        public string guid { get; set; }
+        public string version { get; set; }
+        public string description { get; set; }
+        public string websiteUrl { get; set; }
+        public List<string> dependencies { get; set; }
     }
 
     public class PlayerInfo
