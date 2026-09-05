@@ -6,9 +6,11 @@
         <AssemblyName>Launcher.Core</AssemblyName>
         <LangVersion>latest</LangVersion>
 
-        <!-- Тем же ключом, что и лаунчер, чтобы не плодить CS8002 -->
+        <!-- A throwaway key of its own, not the WPF launcher's production key — this assembly
+             just needs SOME strong name to avoid CS8002 when the signed WPF launcher
+             references it; nothing here relies on it matching the launcher's actual key. -->
         <SignAssembly>true</SignAssembly>
-        <AssemblyOriginatorKeyFile>..\Launcher\MyNewKey.snk</AssemblyOriginatorKeyFile>
+        <AssemblyOriginatorKeyFile>CloudBuild.snk</AssemblyOriginatorKeyFile>
     </PropertyGroup>
 
 </Project>

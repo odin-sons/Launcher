@@ -15,3 +15,10 @@ launcher_log.txt
 # свой файл MyNewKey.snk рядом с Launcher.csproj — либо сгенерировать новый,
 # либо убрать SignAssembly/AssemblyOriginatorKeyFile из проекта.
 *.snk
+
+# Except CloudBuild.snk: a throwaway key generated only to give Launcher.Core /
+# Launcher.Avalonia a strong name (avoids CS8002 when the signed WPF launcher
+# references Launcher.Core) without depending on the real production key above —
+# it protects nothing, so committing it is fine and lets a fresh clone (Cloud
+# included) build without needing any key handed to it out of band.
+!Launcher.Core/CloudBuild.snk
