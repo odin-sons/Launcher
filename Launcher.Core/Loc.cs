@@ -464,6 +464,47 @@ namespace Odinsons.ValheimLauncher
                 "Checking files…", "Dateien werden geprüft…", "Comprobando archivos…", "Vérification des fichiers…",
                 "Sprawdzanie plików…", "A verificar ficheiros…", "Проверка файлов…", "Kontrollerar filer…", "正在检查文件…"),
 
+            // ---------- FileDownloader: grouped step list ----------
+
+            ["dl.step.steamCheck"] = L(
+                "Verifying Steam install", "Steam-Installation wird geprüft", "Comprobando la instalación de Steam",
+                "Vérification de l'installation Steam", "Weryfikacja instalacji Steam", "A verificar a instalação Steam",
+                "Проверка установки Steam", "Verifierar Steam-installationen", "正在验证 Steam 安装"),
+
+            ["dl.step.clientCheck"] = L(
+                "Checking game files", "Spieldateien werden geprüft", "Comprobando los archivos del juego",
+                "Vérification des fichiers du jeu", "Sprawdzanie plików gry", "A verificar os ficheiros do jogo",
+                "Проверка файлов игры", "Kontrollerar spelfiler", "正在检查游戏文件"),
+
+            ["dl.step.optionalCheck"] = L(
+                "Checking optional mods", "Optionale Mods werden geprüft", "Comprobando mods opcionales",
+                "Vérification des mods optionnels", "Sprawdzanie opcjonalnych modów", "A verificar mods opcionais",
+                "Проверка опциональных модов", "Kontrollerar valfria mods", "正在检查可选模组"),
+
+            ["dl.step.download"] = L(
+                "Downloading files", "Dateien werden heruntergeladen", "Descargando archivos",
+                "Téléchargement des fichiers", "Pobieranie plików", "A transferir ficheiros",
+                "Загрузка файлов", "Laddar ner filer", "正在下载文件"),
+
+            ["dl.step.finalize"] = L(
+                "Finishing up", "Wird abgeschlossen", "Finalizando", "Finalisation", "Kończenie",
+                "A finalizar", "Завершение", "Slutför", "正在完成"),
+
+            ["dl.stepCounter"] = L(
+                "Step {0} of {1}", "Schritt {0} von {1}", "Paso {0} de {1}", "Étape {0} sur {1}",
+                "Krok {0} z {1}", "Passo {0} de {1}", "Шаг {0} из {1}", "Steg {0} av {1}", "第 {0} 步，共 {1} 步"),
+
+            // "Interrupt", not "Cancel": clicking this does NOT roll back whatever already
+            // installed/downloaded — it only stops the run where it stands (see FileDownloader's
+            // cancellation handling). "Cancel" reads as "undo", which would misrepresent that.
+            ["dl.cancelChecking"] = L(
+                "Interrupt check", "Prüfung unterbrechen", "Interrumpir comprobación", "Interrompre la vérification",
+                "Przerwij sprawdzanie", "Interromper verificação", "Прервать проверку", "Avbryt kontrollen", "中断检查"),
+
+            ["dl.cancelDownloading"] = L(
+                "Interrupt download", "Download unterbrechen", "Interrumpir descarga", "Interrompre le téléchargement",
+                "Przerwij pobieranie", "Interromper transferência", "Прервать загрузку", "Avbryt nedladdningen", "中断下载"),
+
             ["dl.deletingExtra"] = L(
                 "Removing extra files", "Überzählige Dateien werden entfernt", "Eliminando archivos sobrantes",
                 "Suppression des fichiers superflus", "Usuwanie zbędnych plików", "A remover ficheiros supérfluos",
@@ -928,6 +969,83 @@ namespace Odinsons.ValheimLauncher
                 "Det gick inte att hämta den nya launchern.",
                 "无法下载新的启动器。"),
 
+            ["gui.launcherUpdateTitle"] = L(
+                "Launcher update {0} available",
+                "Launcher-Update {0} verfügbar",
+                "Actualización del launcher {0} disponible",
+                "Mise à jour du launcher {0} disponible",
+                "Dostępna aktualizacja launchera {0}",
+                "Atualização do launcher {0} disponível",
+                "Доступно обновление лончера {0}",
+                "Launcher-uppdatering {0} tillgänglig",
+                "启动器更新 {0} 可用"),
+
+            ["gui.launcherUpdateAvailable"] = L(
+                "What's new in {0}:",
+                "Was ist neu in {0}:",
+                "Novedades de {0}:",
+                "Nouveautés de la {0} :",
+                "Co nowego w {0}:",
+                "Novidades da {0}:",
+                "Что нового в {0}:",
+                "Nyheter i {0}:",
+                "{0} 版本更新内容："),
+
+            ["gui.launcherUpdateAvailableNoChangelog"] = L(
+                "A new launcher version ({0}) is available.",
+                "Eine neue Launcher-Version ({0}) ist verfügbar.",
+                "Hay una nueva versión del launcher ({0}) disponible.",
+                "Une nouvelle version du launcher ({0}) est disponible.",
+                "Dostępna jest nowa wersja launchera ({0}).",
+                "Uma nova versão do launcher ({0}) está disponível.",
+                "Доступна новая версия лончера ({0}).",
+                "En ny launcher-version ({0}) är tillgänglig.",
+                "有新的启动器版本（{0}）可用。"),
+
+            ["gui.launcherUpdateNow"] = L(
+                "Update now",
+                "Jetzt aktualisieren",
+                "Actualizar ahora",
+                "Mettre à jour",
+                "Zaktualizuj teraz",
+                "Atualizar agora",
+                "Обновить сейчас",
+                "Uppdatera nu",
+                "立即更新"),
+
+            ["gui.launcherUpdateMandatoryNote"] = L(
+                "This update is mandatory — the launcher can't keep working correctly on the old version.",
+                "Dieses Update ist verpflichtend — der Launcher kann mit der alten Version nicht mehr korrekt funktionieren.",
+                "Esta actualización es obligatoria — el launcher no puede seguir funcionando correctamente con la versión anterior.",
+                "Cette mise à jour est obligatoire — le launcher ne peut plus fonctionner correctement avec l'ancienne version.",
+                "Ta aktualizacja jest obowiązkowa — launcher nie może dalej działać poprawnie na starej wersji.",
+                "Esta atualização é obrigatória — o launcher não pode continuar funcionando corretamente na versão antiga.",
+                "Это обязательное обновление — на старой версии лончер больше не сможет работать корректно.",
+                "Den här uppdateringen är obligatorisk — launchern kan inte fortsätta fungera korrekt på den gamla versionen.",
+                "此更新为强制性更新——启动器无法在旧版本上继续正常工作。"),
+
+            ["gui.launcherPostponeAndExit"] = L(
+                "Postpone and exit",
+                "Verschieben und beenden",
+                "Posponer y salir",
+                "Reporter et quitter",
+                "Odłóż i zamknij",
+                "Adiar e sair",
+                "Отложить и выйти",
+                "Skjut upp och avsluta",
+                "推迟并退出"),
+
+            ["gui.launcherUpdateLater"] = L(
+                "Not now",
+                "Nicht jetzt",
+                "Ahora no",
+                "Plus tard",
+                "Nie teraz",
+                "Agora não",
+                "Не сейчас",
+                "Inte nu",
+                "暂不"),
+
             ["gui.autoUpdateError"] = L(
                 "Auto-update error: {0}",
                 "Fehler bei der automatischen Aktualisierung: {0}",
@@ -1026,6 +1144,116 @@ namespace Odinsons.ValheimLauncher
                 "Ошибка загрузки changelog: {0}",
                 "Fel vid inläsning av ändringsloggen: {0}",
                 "加载更新日志出错：{0}"),
+
+            ["defender.title"] = L(
+                "Speed up file checks",
+                "Dateiprüfungen beschleunigen",
+                "Acelera la comprobación de archivos",
+                "Accélérer la vérification des fichiers",
+                "Przyspiesz sprawdzanie plików",
+                "Acelere a verificação de arquivos",
+                "Ускорить проверку файлов",
+                "Snabba upp filkontrollen",
+                "加快文件检查速度"),
+
+            ["defender.message"] = L(
+                "Windows Defender briefly scans every newly downloaded mod file, which can make the launcher think a file changed when it didn't. Adding this folder to Defender's exclusions avoids that — the game and mod files are still scanned normally by Steam and by Defender's regular full scans.",
+                "Windows Defender scannt kurz jede neu heruntergeladene Mod-Datei, wodurch der Launcher fälschlich annehmen kann, eine Datei habe sich geändert. Diesen Ordner zu den Ausnahmen von Defender hinzuzufügen vermeidet das — Spiel- und Mod-Dateien werden weiterhin normal von Steam und den regulären Voll-Scans von Defender geprüft.",
+                "Windows Defender analiza brevemente cada archivo de mod recién descargado, lo que puede hacer que el launcher piense que un archivo cambió sin haberlo hecho. Añadir esta carpeta a las exclusiones de Defender evita eso — los archivos del juego y los mods siguen siendo analizados normalmente por Steam y por los análisis completos habituales de Defender.",
+                "Windows Defender analyse brièvement chaque fichier de mod nouvellement téléchargé, ce qui peut faire croire au launcher qu'un fichier a changé alors que non. Ajouter ce dossier aux exclusions de Defender évite cela — les fichiers du jeu et des mods restent analysés normalement par Steam et par les analyses complètes habituelles de Defender.",
+                "Windows Defender krótko skanuje każdy nowo pobrany plik moda, przez co launcher może błędnie uznać, że plik się zmienił. Dodanie tego folderu do wykluczeń Defendera temu zapobiega — pliki gry i modów są nadal normalnie skanowane przez Steam i podczas zwykłych pełnych skanów Defendera.",
+                "O Windows Defender examina rapidamente cada arquivo de mod recém-baixado, o que pode fazer o launcher pensar que um arquivo mudou sem ter mudado. Adicionar esta pasta às exclusões do Defender evita isso — os arquivos do jogo e dos mods continuam sendo verificados normalmente pelo Steam e pelas varreduras completas normais do Defender.",
+                "Windows Defender ненадолго сканирует каждый свежескачанный файл мода, из-за чего лончер может решить, что файл изменился, хотя это не так. Добавление этой папки в исключения Defender'а убирает эту проблему — файлы игры и модов по-прежнему проверяются обычным образом через Steam и штатные полные проверки Defender'а.",
+                "Windows Defender skannar hastigt varje nyligen nedladdad moddfil, vilket kan få launchern att tro att en fil ändrats fast den inte gjort det. Att lägga till den här mappen i Defenders undantag löser det — spel- och moddfiler skannas fortfarande normalt av Steam och Defenders vanliga fullständiga skanningar.",
+                "Windows Defender 会短暂扫描每个新下载的模组文件，这可能让启动器误以为文件被更改了。将此文件夹加入 Defender 排除项可以避免这个问题——游戏和模组文件仍会照常被 Steam 以及 Defender 的常规完整扫描检查。"),
+
+            ["defender.addButton"] = L(
+                "Add exclusion",
+                "Ausnahme hinzufügen",
+                "Añadir exclusión",
+                "Ajouter l'exclusion",
+                "Dodaj wykluczenie",
+                "Adicionar exclusão",
+                "Добавить исключение",
+                "Lägg till undantag",
+                "添加排除项"),
+
+            ["defender.notNowButton"] = L(
+                "Not now",
+                "Nicht jetzt",
+                "Ahora no",
+                "Plus tard",
+                "Nie teraz",
+                "Agora não",
+                "Не сейчас",
+                "Inte nu",
+                "暂不"),
+
+            ["defender.uacDeclined"] = L(
+                "The exclusion wasn't added — Windows didn't grant the elevated permission needed.",
+                "Die Ausnahme wurde nicht hinzugefügt — Windows hat die dafür nötige erhöhte Berechtigung nicht erteilt.",
+                "No se añadió la exclusión — Windows no concedió el permiso elevado necesario.",
+                "L'exclusion n'a pas été ajoutée — Windows n'a pas accordé la permission élevée nécessaire.",
+                "Wykluczenie nie zostało dodane — Windows nie przyznał wymaganych uprawnień podwyższonych.",
+                "A exclusão não foi adicionada — o Windows não concedeu a permissão elevada necessária.",
+                "Исключение не добавлено — Windows не выдал нужные повышенные права.",
+                "Undantaget lades inte till — Windows beviljade inte den upphöjda behörighet som krävdes.",
+                "未能添加排除项——Windows 未授予所需的提升权限。"),
+
+            ["gui.noPlayersOnline"] = L(
+                "No vikings online right now.",
+                "Momentan sind keine Wikinger online.",
+                "Ahora mismo no hay vikingos en línea.",
+                "Aucun viking en ligne pour le moment.",
+                "Obecnie żaden wiking nie jest online.",
+                "Nenhum viking online no momento.",
+                "Сейчас на сервере никого нет.",
+                "Inga vikingar är online just nu.",
+                "目前没有维京人在线。"),
+
+            ["gui.installMode.injector"] = L(
+                "Playing directly from Steam",
+                "Spielt direkt aus Steam",
+                "Se juega directamente desde Steam",
+                "Lancé directement depuis Steam",
+                "Uruchamiane bezpośrednio ze Steam",
+                "Jogando diretamente do Steam",
+                "Запуск прямо из Steam",
+                "Spelas direkt från Steam",
+                "直接从 Steam 运行"),
+
+            ["gui.installMode.injectorTip"] = L(
+                "The game runs from your own Steam copy at {0} — nothing is duplicated into the launcher's folder.",
+                "Das Spiel läuft von Ihrer eigenen Steam-Kopie unter {0} — nichts wird in den Launcher-Ordner dupliziert.",
+                "El juego se ejecuta desde tu propia copia de Steam en {0} — nada se duplica en la carpeta del launcher.",
+                "Le jeu s'exécute depuis votre propre copie Steam dans {0} — rien n'est dupliqué dans le dossier du launcher.",
+                "Gra działa z Twojej własnej kopii Steam w {0} — nic nie jest duplikowane do folderu launchera.",
+                "O jogo roda a partir da sua própria cópia do Steam em {0} — nada é duplicado na pasta do launcher.",
+                "Игра запускается прямо из вашей копии в Steam ({0}) — ничего не дублируется в папку лончера.",
+                "Spelet körs från din egen Steam-kopia på {0} — inget dubbleras till launcherns mapp.",
+                "游戏直接从您自己的 Steam 副本运行（{0}）——不会在启动器文件夹中重复保存任何内容。"),
+
+            ["gui.installMode.classic"] = L(
+                "Playing from the launcher's own copy",
+                "Spielt aus der eigenen Kopie des Launchers",
+                "Se juega desde la copia propia del launcher",
+                "Lancé depuis la copie du launcher",
+                "Uruchamiane z własnej kopii launchera",
+                "Jogando a partir da própria cópia do launcher",
+                "Запуск из копии лончера",
+                "Spelas från launcherns egen kopia",
+                "从启动器自带副本运行"),
+
+            ["gui.installMode.classicTip"] = L(
+                "The game files were verified and copied into the client folder — no matching Steam install was used for this run.",
+                "Die Spieldateien wurden geprüft und in den Client-Ordner kopiert — für diesen Lauf wurde keine passende Steam-Installation verwendet.",
+                "Los archivos del juego se verificaron y copiaron en la carpeta del cliente — no se usó ninguna instalación de Steam compatible en esta ejecución.",
+                "Les fichiers du jeu ont été vérifiés et copiés dans le dossier client — aucune installation Steam correspondante n'a été utilisée pour ce lancement.",
+                "Pliki gry zostały zweryfikowane i skopiowane do folderu klienta — do tego uruchomienia nie użyto pasującej instalacji Steam.",
+                "Os arquivos do jogo foram verificados e copiados para a pasta do cliente — nenhuma instalação do Steam compatível foi usada nesta execução.",
+                "Файлы игры проверены и скопированы в папку клиента — подходящая установка Steam для этого запуска не использовалась.",
+                "Spelfilerna verifierades och kopierades till klientmappen — ingen matchande Steam-installation användes för den här körningen.",
+                "游戏文件已校验并复制到客户端文件夹——本次运行未使用匹配的 Steam 安装。"),
 
             ["mods.loading"] = L(
                 "Loading the mod list…",
