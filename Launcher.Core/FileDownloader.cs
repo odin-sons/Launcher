@@ -26,7 +26,7 @@ namespace Odinsons.ValheimLauncher
             "update.info", "update_admin.info", "Indexer.exe", "full.info", "version.info", "news.info",
             "OdinsonsLauncher.exe", "ValknutLauncher.exe", "LogOutput.log", "admin",
             "admin_only_patterns.txt", "force_check_files.txt", "game.info", "optional.info", ClientLedger.FileName,
-            OptionalModSelection.FileName, ClientHashCacheFileName, SteamHashCacheFileName
+            OptionalModSelection.FileName, ClientHashCacheFileName, SteamHashCacheFileName, DefenderExclusion.PromptedMarkerName
         };
 
         /// <summary>Both live in the client folder — never inside the Steam library, which isn't ours to write into.</summary>
@@ -145,6 +145,41 @@ namespace Odinsons.ValheimLauncher
         private static int _takenLocally;
         private static long _bytesTakenLocally;
 
+        /// <summary>
+        /// Grouped step list for IUpdateUi.SetSteps/StartStep/FinishStep — see BuildStepList.
+        /// -1 for a step index means that step isn't part of this run at all (only the Steam
+        /// check is ever actually conditional; the rest always run, completing instantly if
+        /// there was nothing to do, so "X of Y steps" stays stable across runs).
+        /// </summary>
+        private static int _stepIndexSteamCheck;
+        private static int _stepIndexClientCheck;
+        private static int _stepIndexOptionalCheck;
+        private static int _stepIndexDownload;
+        private static int _stepIndexFinalize;
+
+        /// <summary>Builds and announces this run's step list. Call once _steamGameFolder is known.</summary>
+        private static void BuildStepList()
+        {
+            var labels = new List<string>();
+
+            _stepIndexSteamCheck = _steamGameFolder is not null ? labels.Count : -1;
+            if (_steamGameFolder is not null) labels.Add(Loc.T("dl.step.steamCheck"));
+
+            _stepIndexClientCheck = labels.Count;
+            labels.Add(Loc.T("dl.step.clientCheck"));
+
+            _stepIndexOptionalCheck = labels.Count;
+            labels.Add(Loc.T("dl.step.optionalCheck"));
+
+            _stepIndexDownload = labels.Count;
+            labels.Add(Loc.T("dl.step.download"));
+
+            _stepIndexFinalize = labels.Count;
+            labels.Add(Loc.T("dl.step.finalize"));
+
+            _ui.SetSteps(labels);
+        }
+
         /// <param name="session">
         /// The update session, if the caller opened one. Needed to move the stashed
         /// valheim.exe back into place before the update reports completion — see the
@@ -177,6 +212,7 @@ namespace Odinsons.ValheimLauncher
             _steamHashCache = FileHashCache.Load(Path.Combine(clientFolder, SteamHashCacheFileName));
 
             _steamGameFolder = Directory.Exists(steamGameFolder) ? steamGameFolder : null;
+            BuildStepList();
             _takenLocally = 0;
             _bytesTakenLocally = 0;
             _injectorPlan = null;
@@ -296,7 +332,9 @@ namespace Odinsons.ValheimLauncher
             // Hashing up to hundreds of Steam game files runs the same status/progress
             // reporting as the ordinary check below, so it needs to run off the UI thread —
             // otherwise the progress panel we just showed can't actually paint.
+            if (_stepIndexSteamCheck >= 0) _ui.StartStep(_stepIndexSteamCheck);
             await Task.Run(TryPrepareInjectorMode);
+            if (_stepIndexSteamCheck >= 0) _ui.FinishStep(_stepIndexSteamCheck);
             _ui.SetInjectorPlan(_injectorPlan);
 
             bool logFileMissing = !File.Exists(Path.Combine(clientFolder, "BepInEx", "LogOutput.log"));
@@ -310,7 +348,9 @@ namespace Odinsons.ValheimLauncher
             // starts the game on that signal. If the stashed valheim.exe were moved back
             // later — when the lock is released — the launch would land on a moment when
             // the file doesn't exist under its own name yet.
+            _ui.StartStep(_stepIndexFinalize);
             session?.EndUpdate();
+            _ui.FinishStep(_stepIndexFinalize);
 
             OnComplete();
         }
@@ -406,6 +446,7 @@ namespace Odinsons.ValheimLauncher
                 {
                     SetStateLabel(Loc.T("dl.checkingFiles"), 0, 0);
                     SetTotalPercent((double)currentProcessed / total * 100, 0, 0);
+                    _ui.SetStepProgress((double)currentProcessed / total * 100);
                 }
             });
 
@@ -573,6 +614,7 @@ namespace Odinsons.ValheimLauncher
                 }
 
                 // Checking required files
+                _ui.StartStep(_stepIndexClientCheck);
                 int processedFiles = 0;
                 Parallel.ForEach(fileList, HashOptions, file =>
                 {
@@ -654,6 +696,7 @@ namespace Odinsons.ValheimLauncher
                     {
                         SetStateLabel(Loc.T("dl.checkingFiles"), 0, 0);
                         SetTotalPercent((double)currentProcessed / totalFiles * 100, 0, 0);
+                        _ui.SetStepProgress((double)currentProcessed / totalFiles * 100);
                     }
                 });
 
@@ -677,21 +720,56 @@ namespace Odinsons.ValheimLauncher
                     _ui.SetDegradationWarning(null);
                 }
 
+                _ui.FinishStep(_stepIndexClientCheck);
+                _ui.StartStep(_stepIndexOptionalCheck);
+
                 // Checking optional mods (missing files download only if the player explicitly
-                // selected that mod — see ModGrouping for the folder-name identity both this
-                // and OptionalModSelection use, so there's nothing else to keep in sync).
+                // selected that mod; files get uninstalled only if the player explicitly turned
+                // it off through the mods panel). See ModGrouping for the folder-name identity
+                // both this and OptionalModSelection use, so there's nothing else to keep in sync.
                 var selectedOptionalPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var deselectedOptionalPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 if (optionalFiles.Count > 0)
                 {
                     OptionalModSelection selection = OptionalModSelection.Load(clientFolder);
-                    if (selection.SelectedFolders.Count > 0)
+                    Dictionary<string, List<string>> byFolder = ModGrouping.GroupByPluginFolder(optionalFiles);
+                    bool selectionChanged = false;
+
+                    // A mod the player brought themselves and never touched in the panel isn't
+                    // left in limbo: the moment any of its files are found on disk, it's adopted
+                    // as selected, same as if the player had just turned it on. Otherwise the
+                    // panel would show it OFF while the mod is actually installed and running —
+                    // and a genuinely never-installed mod couldn't be told apart from one the
+                    // player deliberately uninstalled through the panel later.
+                    foreach (string folderKey in byFolder.Keys)
                     {
-                        Dictionary<string, List<string>> byFolder = ModGrouping.GroupByPluginFolder(optionalFiles);
-                        foreach (string folderKey in selection.SelectedFolders)
-                            if (byFolder.TryGetValue(folderKey, out List<string> paths))
-                                foreach (string path in paths) selectedOptionalPaths.Add(path);
+                        if (selection.IsKnown(folderKey)) continue;
+
+                        bool anyFilePresent = byFolder[folderKey]
+                            .Any(path => File.Exists(Path.Combine(clientFolder, path)));
+
+                        if (!anyFilePresent) continue;
+
+                        selection.SetSelected(folderKey, true);
+                        selectionChanged = true;
+                        LauncherLog.Info($"optional mod '{folderKey}' found already installed — adopted as selected");
+                    }
+
+                    if (selectionChanged) selection.Save(clientFolder);
+
+                    foreach (string folderKey in byFolder.Keys)
+                    {
+                        if (!selection.IsKnown(folderKey)) continue;
+
+                        HashSet<string> target = selection.IsSelected(folderKey)
+                            ? selectedOptionalPaths
+                            : deselectedOptionalPaths;
+
+                        foreach (string path in byFolder[folderKey]) target.Add(path);
                     }
                 }
+
+                int uninstalledOptionalFiles = 0;
 
                 if (optionalFileList.Count > 0)
                 {
@@ -704,9 +782,28 @@ namespace Odinsons.ValheimLauncher
                         if (allFiles.Contains(fileDir)) return; // already handled as required
 
                         string fileDirFull = Path.Combine(clientFolder, fileDir);
-                        // A selected mod's missing files are fetched like a required file would
-                        // be; an unselected (or unmatched) mod is left alone if not already present.
                         bool exists = File.Exists(fileDirFull);
+
+                        // The player explicitly turned this mod off in the panel — uninstall it,
+                        // rather than the old behavior of quietly keeping it updated forever.
+                        if (exists && deselectedOptionalPaths.Contains(fileDir))
+                        {
+                            try
+                            {
+                                File.Delete(fileDirFull);
+                                Interlocked.Increment(ref uninstalledOptionalFiles);
+                                LauncherLog.Trace($"uninstalled (mod deselected): {fileDir}");
+                            }
+                            catch (Exception ex)
+                            {
+                                LauncherLog.WarnOnce("optional-uninstall-failed",
+                                    $"could not remove {fileDir} after its mod was deselected: {ex.Message}", ex);
+                            }
+                            return;
+                        }
+
+                        // A selected mod's missing files are fetched like a required file would
+                        // be; a mod the player never acted on is left alone if not already present.
                         if (!exists && !selectedOptionalPaths.Contains(fileDir)) return;
 
                         if (!exists) Directory.CreateDirectory(Path.GetDirectoryName(fileDirFull) ?? string.Empty);
@@ -731,6 +828,28 @@ namespace Odinsons.ValheimLauncher
                     });
                 }
 
+                if (uninstalledOptionalFiles > 0)
+                {
+                    LauncherLog.Info($"uninstalled {uninstalledOptionalFiles} file(s) from deselected optional mod(s)");
+
+                    // Single-level only, same as the extra-files cleanup below — a mod's own
+                    // subfolder clears once its files are gone, the plugin folder itself once
+                    // that subfolder is gone too.
+                    foreach (string dir in deselectedOptionalPaths
+                                 .Select(path => Path.GetDirectoryName(Path.Combine(clientFolder, path)))
+                                 .Where(dir => dir is not null)
+                                 .Distinct(StringComparer.OrdinalIgnoreCase)
+                                 .OrderByDescending(dir => dir.Length))
+                    {
+                        try
+                        {
+                            if (Directory.Exists(dir) && !Directory.EnumerateFileSystemEntries(dir).Any())
+                                Directory.Delete(dir);
+                        }
+                        catch { /* best-effort cleanup, not worth failing the update over */ }
+                    }
+                }
+
                 _clientHashCache.Save();
                 LauncherLog.Info($"client folder check: {_clientHashCache.Hits} file(s) reused from cache, " +
                                  $"{_clientHashCache.Misses} hashed for real");
@@ -738,6 +857,7 @@ namespace Odinsons.ValheimLauncher
                 if (worker.CancellationPending)
                 {
                     e.Cancel = true;
+                    CanStartGame = false;
                     _ui.SetLoading(false);
                     return;
                 }
@@ -764,6 +884,8 @@ namespace Odinsons.ValheimLauncher
                     })
                     .ToList();
 
+                _ui.FinishStep(_stepIndexOptionalCheck);
+
                 if (differencesFound || extraFiles.Count > 0)
                 {
                     if (extraFiles.Count > 0)
@@ -781,6 +903,7 @@ namespace Odinsons.ValheimLauncher
                             if (worker.CancellationPending)
                             {
                                 e.Cancel = true;
+                                CanStartGame = false;
                                 _ui.SetLoading(false);
                                 return;
                             }
@@ -820,7 +943,11 @@ namespace Odinsons.ValheimLauncher
                     }
 
                     SetTotalPercent(100, 0, 0);
-                    if (CanStartGame) return;
+                    if (CanStartGame)
+                    {
+                        _ui.FinishStep(_stepIndexDownload);
+                        return;
+                    }
 
                     _lastBytesDownloaded = 0;
                     _lastSpeedUpdate = DateTime.Now;
@@ -828,9 +955,19 @@ namespace Odinsons.ValheimLauncher
                     var downloadTasks = filesToDownload.Select((file, index) =>
                         DownloadFileAsyncWithProgress(file, index, filesToDownload.Count, worker, selectedServerDirectory)).ToArray();
 
+                    _ui.StartStep(_stepIndexDownload);
                     SetStateLabel(Loc.T("dl.startingDownload"), 0, 0);
                     await Task.WhenAll(downloadTasks);
 
+                    if (worker.CancellationPending)
+                    {
+                        e.Cancel = true;
+                        CanStartGame = false;
+                        _ui.SetLoading(false);
+                        return;
+                    }
+
+                    _ui.FinishStep(_stepIndexDownload);
                     CanStartGame = true;
                 }
             }
@@ -982,6 +1119,7 @@ namespace Odinsons.ValheimLauncher
 
                         SetFilePercent((double)bytesReceived / totalBytes * 100);
                         SetTotalPercent((double)_totalBytesDownloaded / _totalBytesToDownload * 100, _totalBytesDownloaded, _totalBytesToDownload);
+                        _ui.SetStepProgress((double)_totalBytesDownloaded / _totalBytesToDownload * 100);
                         SetStateLabel(Loc.T("dl.downloading"), _totalBytesDownloaded, _totalBytesToDownload);
                     }
                 }
