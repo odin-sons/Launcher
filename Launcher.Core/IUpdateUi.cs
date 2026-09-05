@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Odinsons.ValheimLauncher
 {
     /// <summary>Message type — maps to a dialog icon in the concrete implementation.</summary>
@@ -56,5 +58,28 @@ namespace Odinsons.ValheimLauncher
         void SetInjectorPlan(InjectorPlan plan);
 
         void OnUpdateComplete(bool startAfter, bool canStartGame);
+
+        /// <summary>
+        /// Declares every step this run expects to go through, in order — replaces the old
+        /// two-bar model (<see cref="SetTotalProgress"/>/<see cref="SetFileProgress"/>), which
+        /// visibly reset to 0% every time FileDownloader moved to an unrelated phase (Steam
+        /// verification, then the client-file check, then the actual download). Called once,
+        /// before the first <see cref="StartStep"/>. Default no-op: an implementation that
+        /// doesn't care about step-by-step detail (the CLI, tests, WPF for now) simply ignores
+        /// it — FileDownloader still calls the old progress members exactly as before too.
+        /// </summary>
+        void SetSteps(IReadOnlyList<string> stepLabels) { }
+
+        /// <summary>Marks the step at this index as active (spinner, in a real UI).</summary>
+        void StartStep(int index) { }
+
+        /// <summary>Fine-grained progress (0..100) within the currently active step — purely
+        /// cosmetic, lets an overall bar move smoothly instead of jumping step to step.</summary>
+        void SetStepProgress(double percent) { }
+
+        /// <summary>Marks the step done — including a step that turned out unnecessary this
+        /// run (e.g. nothing to download), which should still complete instantly rather than
+        /// being skipped, so the step list and "X of Y" count stay stable across runs.</summary>
+        void FinishStep(int index) { }
     }
 }
