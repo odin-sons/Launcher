@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Odinsons.ValheimLauncher.Avalonia.Views.MessageBoxWindow"
+        Width="420" SizeToContent="Height" MaxHeight="400"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        WindowDecorations="None"
+        Background="Transparent"
+        FontFamily="avares://OdinsonsLauncher/Resources/Fonts#Montserrat"
+        FontWeight="Medium">
+    <Border Background="#FF2D2D2D" BorderBrush="Chocolate" BorderThickness="2">
+        <Grid RowDefinitions="Auto,Auto" Margin="20">
+            <ScrollViewer Grid.Row="0" MaxHeight="280" VerticalScrollBarVisibility="Auto">
+                <SelectableTextBlock x:Name="MessageText" Foreground="White" FontSize="14"
+                                     TextWrapping="Wrap"/>
+            </ScrollViewer>
+            <Button x:Name="OkButton" Grid.Row="1" Content="OK" Width="80" Height="30"
+                    Margin="0,16,0,0" HorizontalAlignment="Center"
+                    Background="Chocolate" Foreground="White" FontSize="14"
+                    CornerRadius="5" Click="OkButton_Click"/>
+        </Grid>
+    </Border>
+</Window>

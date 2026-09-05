@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <RootNamespace>Odinsons.ValheimLauncher.Avalonia</RootNamespace>
+        <AssemblyName>OdinsonsLauncher</AssemblyName>
+        <Nullable>enable</Nullable>
+        <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <ApplicationIcon>Resources\favicon.ico</ApplicationIcon>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Launcher.Core\Launcher.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AvaloniaResource Include="Resources\*.png" />
+        <AvaloniaResource Include="Resources\*.ico" />
+        <AvaloniaResource Include="Resources\Fonts\*.ttf" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Avalonia" Version="12.1.1" />
+      <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+      <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
+      <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+    </ItemGroup>
+
+</Project>

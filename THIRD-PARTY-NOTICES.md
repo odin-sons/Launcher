@@ -1,6 +1,19 @@
 # Third-Party Notices
 
-This project includes the following third-party component.
+This project includes the following third-party components.
+
+## Montserrat (font)
+
+Used by `Launcher.Avalonia` as the application's UI font, sourced from the
+[Google Fonts repository](https://github.com/google/fonts/tree/main/ofl/montserrat) as a
+single variable-weight file and then statically instanced (via fonttools'
+`varLib.instancer`) into `Launcher.Avalonia/Resources/Fonts/Montserrat-{Regular,Medium,
+SemiBold,Bold,Italic}.ttf`. Avalonia's bundled-font loader matches one static face per
+weight/style within a family, not a variable font's weight axis — the variable original
+registered every non-Regular/Bold weight as its own separate font family instead of a
+selectable weight of "Montserrat", so `FontWeight="Medium"` silently had no effect.
+Licensed under the SIL Open Font License 1.1 — full text in
+`Launcher.Avalonia/Resources/Fonts/OFL.txt`.
 
 ## SteamQuery.dll
 

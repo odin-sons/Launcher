@@ -1,0 +1,409 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Odinsons.ValheimLauncher.Avalonia.Views.MainWindow"
+        Title="OdinsonsLauncher"
+        Width="900" Height="610"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        WindowDecorations="None"
+        Background="Transparent"
+        Icon="avares://OdinsonsLauncher/Resources/favicon.ico"
+        FontFamily="avares://OdinsonsLauncher/Resources/Fonts#Montserrat"
+        FontWeight="Medium">
+
+    <Window.Transitions>
+        <Transitions>
+            <DoubleTransition Property="Opacity" Duration="0:0:0.8"/>
+        </Transitions>
+    </Window.Transitions>
+
+    <Window.Styles>
+        <!-- Hover-swap image buttons: two stacked images, hover toggles which one shows. -->
+        <Style Selector="Button Image.normalImg">
+            <Setter Property="IsVisible" Value="True"/>
+        </Style>
+        <Style Selector="Button Image.hoverImg">
+            <Setter Property="IsVisible" Value="False"/>
+        </Style>
+        <Style Selector="Button:pointerover Image.normalImg">
+            <Setter Property="IsVisible" Value="False"/>
+        </Style>
+        <Style Selector="Button:pointerover Image.hoverImg">
+            <Setter Property="IsVisible" Value="True"/>
+        </Style>
+        <!-- FluentTheme's own Button template paints a hover/pressed background regardless
+             of what Background is set to on the button itself — Background=Transparent
+             only covers the resting state. Replacing the template with a bare
+             ContentPresenter (same idea the WPF version used: a plain StackPanel, no
+             Border/chrome at all) means there's nothing left that could paint a background
+             in any pointer state. -->
+        <Style Selector="Button.iconButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <!-- Applied in code-behind to step rows built imperatively in MainWindow.axaml.cs
+             (InstallProgressGrid) — a class selector lets a plain code-created Ellipse pick
+             up the same rotating-dash animation ServerCheckSpinner uses, without having to
+             build the Animation/KeyFrame object graph by hand in C#. -->
+        <Style Selector="Ellipse.stepSpinner">
+            <Setter Property="Stroke" Value="White"/>
+            <Setter Property="StrokeThickness" Value="2"/>
+            <Setter Property="StrokeDashArray" Value="3,3.7"/>
+            <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+            <Style.Animations>
+                <Animation Duration="0:0:0.9" IterationCount="INFINITE">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="RotateTransform.Angle" Value="0"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="RotateTransform.Angle" Value="360"/>
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+    </Window.Styles>
+
+    <Grid Name="RootGrid">
+        <!-- Drag handler lives on the background image specifically, not the root Grid:
+             PointerPressed bubbles up from whatever was actually clicked, and attaching it
+             to the Grid meant every button/combobox click also triggered BeginMoveDrag on
+             the way up, hijacking the pointer before the control's own click could land. -->
+        <Image Source="avares://OdinsonsLauncher/Resources/background.png" Stretch="Fill"
+               PointerPressed="Background_PointerPressed"/>
+
+        <!-- Button panel background -->
+        <Border Name="MainButtons"
+                Width="334" Height="540"
+                VerticalAlignment="Top" HorizontalAlignment="Left"
+                Margin="10,10,0,0"
+                CornerRadius="20">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                    <GradientStop Offset="0" Color="#06151515"/>
+                    <GradientStop Offset="1" Color="#80373737"/>
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <!-- Logo -->
+        <Image Source="avares://OdinsonsLauncher/Resources/logo.png"
+               Width="298" Height="81"
+               VerticalAlignment="Top" HorizontalAlignment="Left"
+               Margin="28,27,0,0"/>
+
+        <!-- Discord button -->
+        <Button Classes="iconButton" Width="176" Height="52"
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                Margin="89,153,0,0" Click="DiscordButton_Click">
+            <Panel>
+                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/discord.png" Stretch="Fill"/>
+                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/discord_hover.png" Stretch="Fill"/>
+            </Panel>
+        </Button>
+
+        <!-- Telegram button -->
+        <Button Classes="iconButton" Width="176" Height="52"
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                Margin="89,235,0,0" Click="TelegramButton_Click">
+            <Panel>
+                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/telegram.png" Stretch="Fill"/>
+                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/telegram_hover.png" Stretch="Fill"/>
+            </Panel>
+        </Button>
+
+        <!-- Website button -->
+        <Button Classes="iconButton" Width="176" Height="52"
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                Margin="89,317,0,0" Click="WebsiteButton_Click">
+            <Panel>
+                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/website.png" Stretch="Fill"/>
+                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/website_hover.png" Stretch="Fill"/>
+            </Panel>
+        </Button>
+
+        <!-- Donate button -->
+        <Button Classes="iconButton" Width="176" Height="52"
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                Margin="89,399,0,0" Click="DonateButton_Click">
+            <Panel>
+                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/donate.png" Stretch="Fill"/>
+                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/donate_hover.png" Stretch="Fill"/>
+            </Panel>
+        </Button>
+
+        <!-- Start button -->
+        <Grid Name="StartButtonGrid">
+            <Button Name="StartGameBtn" Classes="iconButton" Width="226" Height="64"
+                    HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Margin="64,480,0,0" Click="StartGameBtn_Click">
+                <Panel>
+                    <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/start.png" Stretch="Fill"/>
+                    <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/start_hover.png" Stretch="Fill"/>
+                </Panel>
+            </Button>
+        </Grid>
+
+        <!-- How the game will actually launch — set once the update check decides
+             (see MainWindow.axaml.cs, SetInjectorPlan). Empty until the first check runs.
+             Sits in the gap between the Donate button (ends y=451) and the Start button
+             (begins y=480) — InstallProgressGrid covers the whole window once an update
+             is actually running, so there's no clash to worry about there anymore. NoWrap +
+             ellipsis instead of Wrap: this gap is only ~25px tall, one wrapped line would
+             already overflow it. -->
+        <TextBlock Name="InstallStatusText"
+                   Margin="64,458,0,0"
+                   HorizontalAlignment="Left" VerticalAlignment="Top" Width="226"
+                   TextAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                   FontSize="10" Foreground="#FFB0B0B0"/>
+
+        <!-- Server status indicator -->
+        <Ellipse Name="ServerStatusIndicator"
+                 Width="10" Height="10" Fill="Red"
+                 HorizontalAlignment="Left" VerticalAlignment="Top"
+                 Margin="384,22,0,0"/>
+
+        <!-- Shown instead of the dot while a status check is in flight (see
+             ShowServerChecking/ShowServerStatus in MainWindow.axaml.cs) — otherwise the
+             previous server's color just sits there, unchanged, for however long the
+             check takes, and looks like the switch did nothing. -->
+        <Ellipse Name="ServerCheckSpinner"
+                 Width="10" Height="10"
+                 Stroke="White" StrokeThickness="2" StrokeDashArray="3,3.7"
+                 IsVisible="False"
+                 HorizontalAlignment="Left" VerticalAlignment="Top"
+                 Margin="384,22,0,0"
+                 RenderTransformOrigin="50%,50%">
+            <Ellipse.RenderTransform>
+                <RotateTransform Angle="0"/>
+            </Ellipse.RenderTransform>
+            <Ellipse.Styles>
+                <Style Selector="Ellipse#ServerCheckSpinner">
+                    <Style.Animations>
+                        <Animation Duration="0:0:0.9" IterationCount="INFINITE">
+                            <KeyFrame Cue="0%">
+                                <Setter Property="RotateTransform.Angle" Value="0"/>
+                            </KeyFrame>
+                            <KeyFrame Cue="100%">
+                                <Setter Property="RotateTransform.Angle" Value="360"/>
+                            </KeyFrame>
+                        </Animation>
+                    </Style.Animations>
+                </Style>
+            </Ellipse.Styles>
+        </Ellipse>
+
+        <!-- Server picker — default FluentTheme styling for now, custom look is a follow-up -->
+        <ComboBox Name="ServerSelector"
+                  Width="160" Height="34"
+                  HorizontalAlignment="Left" VerticalAlignment="Top"
+                  Margin="403,10,0,0"
+                  SelectionChanged="ServerSelector_SelectionChanged"/>
+
+        <!-- Player count — a real ComboBox, same as ServerSelector, so the chrome (border,
+             arrow, height, hover/pressed states) matches exactly instead of being
+             hand-approximated. "Selecting" a row is meaningless here (nothing to select),
+             so PlayerCountSelector_SelectionChanged immediately snaps SelectedItem back to
+             the header row — which is what keeps showing "Vikings: N" as the closed-box
+             content, styled the same as ServerSelector's own real selection. -->
+        <ComboBox Name="PlayerCountSelector"
+                  Width="170" Height="34"
+                  HorizontalAlignment="Left" VerticalAlignment="Top"
+                  Margin="583,10,0,0"
+                  SelectionChanged="PlayerCountSelector_SelectionChanged">
+            <ComboBox.ItemTemplate>
+                <DataTemplate x:CompileBindings="False">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <!-- Three mutually-exclusive layers, one per PlayerListItem.ShowXxx flag —
+                             the header row hides this whole slot instead of leaving it empty. -->
+                        <Panel Width="24" Height="24" IsVisible="{Binding ShowSlot}">
+                            <Image Source="{Binding Avatar}" Width="24" Height="24" Stretch="UniformToFill"
+                                   IsVisible="{Binding ShowAvatar}"/>
+
+                            <!-- Loading skeleton: a softly pulsing circle standing in for an avatar
+                                 that hasn't downloaded yet. -->
+                            <Ellipse Width="24" Height="24" Fill="#FF4A4A4A" IsVisible="{Binding ShowSkeleton}">
+                                <Ellipse.Styles>
+                                    <Style Selector="Ellipse">
+                                        <Style.Animations>
+                                            <Animation Duration="0:0:0.9" IterationCount="INFINITE" PlaybackDirection="Alternate">
+                                                <KeyFrame Cue="0%">
+                                                    <Setter Property="Opacity" Value="0.35"/>
+                                                </KeyFrame>
+                                                <KeyFrame Cue="100%">
+                                                    <Setter Property="Opacity" Value="0.9"/>
+                                                </KeyFrame>
+                                            </Animation>
+                                        </Style.Animations>
+                                    </Style>
+                                </Ellipse.Styles>
+                            </Ellipse>
+
+                            <!-- "Nobody here" icon for the empty-server row: a plain circle-with-slash,
+                                 not an avatar shape, so it doesn't read as a broken/missing image. -->
+                            <Panel IsVisible="{Binding ShowEmptyIcon}">
+                                <Ellipse Width="24" Height="24" Stroke="#FF808080" StrokeThickness="1.5"/>
+                                <Line StartPoint="5,5" EndPoint="19,19" Stroke="#FF808080" StrokeThickness="1.5"/>
+                            </Panel>
+                        </Panel>
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <!-- Changelog button -->
+        <Button Name="ChangelogButton" Classes="iconButton"
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                Margin="799,17,0,0" Width="20" Height="20"
+                Click="ChangelogButton_Click" ZIndex="10">
+            <Panel>
+                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/settings.png" Stretch="Fill"/>
+                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/settings_hover.png" Stretch="Fill"/>
+            </Panel>
+        </Button>
+
+        <!-- Full check button -->
+        <Button Name="FullCheck" Classes="iconButton"
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                Margin="768,18,0,0" Width="20" Height="20"
+                Click="StartGameBtn_Click_Full">
+            <Panel>
+                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/service.png" Stretch="Fill"/>
+                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/service_green.png" Stretch="Fill"/>
+            </Panel>
+        </Button>
+
+        <!-- News block -->
+        <Grid Name="NewsGrid">
+            <Border Width="489" Height="390"
+                    VerticalAlignment="Top" HorizontalAlignment="Left"
+                    Margin="384,153,0,0" CornerRadius="20">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                        <GradientStop Offset="0" Color="#06151515"/>
+                        <GradientStop Offset="1" Color="#80373737"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+            <ScrollViewer Width="452" Height="365"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalAlignment="Left" VerticalAlignment="Top"
+                          Margin="402,170,0,0">
+                <TextBlock Name="News" TextWrapping="Wrap" Foreground="White" FontSize="16"/>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Launcher version — one flowing label instead of two independently-positioned
+             TextBlocks, so the version number can never visually drift away from its label
+             regardless of font metrics. -->
+        <TextBlock Name="CopyrightText"
+                   Margin="599,589,10,0"
+                   HorizontalAlignment="Left" VerticalAlignment="Top"
+                   FontSize="12" Foreground="White"/>
+
+        <!-- Install progress panel: a grouped step list (see FileDownloader.BuildStepList)
+             replacing the old two-bar strip, which used to visibly reset to 0% every time
+             the download moved from one unrelated phase to the next. -->
+        <Grid Name="InstallProgressGrid" IsVisible="False" ZIndex="1000">
+            <!-- Same drag handler as the window background: without it, this overlay's own
+                 Rectangle intercepts every click and the window can't be moved for the whole
+                 (often multi-minute) duration of an update. -->
+            <Rectangle Fill="#E6000000" Width="900" Height="610"
+                       PointerPressed="Background_PointerPressed"/>
+            <Border Width="520"
+                    VerticalAlignment="Center" HorizontalAlignment="Center"
+                    CornerRadius="16" Padding="28" Background="#FF232323">
+                <StackPanel Spacing="14">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Name="InstallStepLabel" Grid.Column="0"
+                                   Foreground="White" FontSize="16" FontWeight="Bold"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Name="InstallStepCounter" Grid.Column="1"
+                                   Foreground="#FFB0B0B0" FontSize="12"
+                                   VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    </Grid>
+                    <ProgressBar Name="InstallOverallProgress" Minimum="0" Maximum="100" Value="0" Height="8"/>
+                    <StackPanel Name="InstallStepsPanel" Spacing="6"/>
+                    <Button Name="InstallCancelButton" HorizontalAlignment="Right"
+                            Click="InstallCancelButton_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Minimize button -->
+        <Button Name="MinimizeButton" Classes="iconButton"
+                Height="20" Width="24"
+                Margin="834,20,0,0"
+                VerticalAlignment="Top" HorizontalAlignment="Left"
+                Click="Minimize">
+            <Panel>
+                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/minimaze.png" Stretch="Uniform"/>
+                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/minimaze_hover.png" Stretch="Uniform"/>
+            </Panel>
+        </Button>
+
+        <!-- Close button -->
+        <Button Name="CloseWindowButton" Classes="iconButton"
+                Margin="872,18,0,0"
+                VerticalAlignment="Top" HorizontalAlignment="Left"
+                Height="20" Width="20"
+                Click="CloseButton_Click">
+            <Panel>
+                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/close.png" Stretch="Fill"/>
+                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/close_hover.png" Stretch="Fill"/>
+            </Panel>
+        </Button>
+
+        <!-- Changelog panel -->
+        <Grid Name="ChangelogGrid" IsVisible="False" ZIndex="1000">
+            <Rectangle Fill="#E6000000" Width="900" Height="610"/>
+            <ScrollViewer Width="800" Height="500"
+                          VerticalScrollBarVisibility="Auto"
+                          Margin="22,20,22,60"
+                          VerticalAlignment="Center" HorizontalAlignment="Center">
+                <StackPanel Name="ChangelogContent"
+                            Margin="30,40,30,60"
+                            VerticalAlignment="Top" HorizontalAlignment="Left"/>
+            </ScrollViewer>
+            <Button Name="CloseChangelogButton" Classes="iconButton"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Width="20" Height="20" Margin="0,35,27,0"
+                    Click="CloseChangelogButton_Click">
+                <Panel>
+                    <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/close.png" Stretch="Fill"/>
+                    <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/close_hover.png" Stretch="Fill"/>
+                </Panel>
+            </Button>
+        </Grid>
+
+        <!-- Mods panel -->
+        <Grid Name="ModsGrid" IsVisible="False" ZIndex="1000">
+            <Rectangle Fill="#E6000000" Width="900" Height="610"/>
+            <ScrollViewer Width="800" Height="500"
+                          VerticalScrollBarVisibility="Auto"
+                          Margin="22,20,22,60"
+                          VerticalAlignment="Center" HorizontalAlignment="Center">
+                <StackPanel Name="ModsContent"
+                            Margin="30,40,30,60"
+                            VerticalAlignment="Top" HorizontalAlignment="Left"/>
+            </ScrollViewer>
+            <Button Name="CloseModsButton" Classes="iconButton"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Width="20" Height="20" Margin="0,35,27,0"
+                    Click="CloseModsButton_Click">
+                <Panel>
+                    <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/close.png" Stretch="Fill"/>
+                    <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/close_hover.png" Stretch="Fill"/>
+                </Panel>
+            </Button>
+        </Grid>
+    </Grid>
+</Window>

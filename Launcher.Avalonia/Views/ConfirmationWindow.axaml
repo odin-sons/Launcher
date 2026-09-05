@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Odinsons.ValheimLauncher.Avalonia.Views.ConfirmationWindow"
+        Width="440" SizeToContent="Height" MaxHeight="420"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        WindowDecorations="None"
+        Background="Transparent"
+        FontFamily="avares://OdinsonsLauncher/Resources/Fonts#Montserrat"
+        FontWeight="Medium">
+    <Border Background="#FF2D2D2D" BorderBrush="Chocolate" BorderThickness="2">
+        <Grid RowDefinitions="Auto,Auto,Auto" Margin="20">
+            <TextBlock x:Name="TitleText" Grid.Row="0" Foreground="White" FontSize="16"
+                       FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,10"/>
+            <ScrollViewer Grid.Row="1" MaxHeight="260" VerticalScrollBarVisibility="Auto">
+                <SelectableTextBlock x:Name="MessageText" Foreground="White" FontSize="14"
+                                     TextWrapping="Wrap"/>
+            </ScrollViewer>
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
+                        Margin="0,16,0,0" Spacing="12">
+                <Button x:Name="NoButton" Content="No" Width="110" Height="30"
+                        Background="#FF4A4A4A" Foreground="White" FontSize="14"
+                        CornerRadius="5" Click="NoButton_Click"/>
+                <Button x:Name="YesButton" Content="Yes" Width="150" Height="30"
+                        Background="Chocolate" Foreground="White" FontSize="14"
+                        CornerRadius="5" Click="YesButton_Click"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
