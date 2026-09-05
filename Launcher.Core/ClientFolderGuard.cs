@@ -33,7 +33,8 @@ namespace Odinsons.ValheimLauncher
             ClientLedger.FileName,
             "launcher_log.txt",
             "config.ini",
-            "admin"
+            "admin",
+            DefenderExclusion.PromptedMarkerName
         };
 
         static ClientFolderGuard()
