@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Odinsons.ValheimLauncher;
 
 namespace Launcher.Tests
@@ -57,6 +58,23 @@ namespace Launcher.Tests
             StartAfterAtComplete = startAfter;
             CanStartGameAtComplete = canStartGame;
             WatchedFileExistedAtComplete = File.Exists(_watchedFullPath);
+        }
+
+        /// <summary>Set by a test that wants to trigger a deterministic mid-run cancellation.</summary>
+        public BackgroundWorker Worker { get; set; }
+
+        /// <summary>When <see cref="StartStep"/> reaches the step with this label, cancels <see cref="Worker"/>.</summary>
+        public string CancelOnStepLabel { get; set; }
+
+        private IReadOnlyList<string> _stepLabels = Array.Empty<string>();
+
+        public void SetSteps(IReadOnlyList<string> stepLabels) => _stepLabels = stepLabels;
+
+        public void StartStep(int index)
+        {
+            if (CancelOnStepLabel is not null && index >= 0 && index < _stepLabels.Count &&
+                _stepLabels[index] == CancelOnStepLabel)
+                Worker?.CancelAsync();
         }
     }
 }

@@ -348,6 +348,89 @@ namespace Launcher.Tests
         }
 
         [Fact]
+        public async Task DeselectedOptionalMod_InstalledFile_GetsUninstalled()
+        {
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+            pack.AddFile("BepInEx/plugins/VNEI/VNEI.dll", "vnei contents");
+
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteEmptyManifest("game.info");
+            pack.WriteManifest("optional.info", "BepInEx/plugins/VNEI/VNEI.dll");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+            client.AddFile("BepInEx/plugins/VNEI/VNEI.dll", "vnei contents");
+            // The player turned the mod off in the mods panel — "-" prefix, not just absent.
+            client.AddFile(OptionalModSelection.FileName, "-VNEI\n");
+
+            var ui = new RecordingUpdateUi(client.Path);
+            await RunAsync(ui, server.BaseUrl, full: true);
+
+            Assert.False(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/VNEI/VNEI.dll")));
+            // The now-empty plugin folder is cleaned up along with the file.
+            Assert.False(Directory.Exists(Path.Combine(client.Path, "BepInEx/plugins/VNEI")));
+        }
+
+        [Fact]
+        public async Task NeverToggledOptionalMod_FoundInstalled_IsAdoptedAsSelected()
+        {
+            // A mod the player brought themselves before the mods panel existed — never
+            // mentioned in optional_selected.txt at all. Must not be deleted, and must stop
+            // being a mystery to the panel: found on disk -> recorded as selected, so the
+            // toggle shows it ON (matching reality) instead of lying that it's off.
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+            pack.AddFile("BepInEx/plugins/VNEI/VNEI.dll", "vnei contents");
+
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteEmptyManifest("game.info");
+            pack.WriteManifest("optional.info", "BepInEx/plugins/VNEI/VNEI.dll");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+            client.AddFile("BepInEx/plugins/VNEI/VNEI.dll", "vnei contents");
+            // No optional_selected.txt at all.
+
+            var ui = new RecordingUpdateUi(client.Path);
+            await RunAsync(ui, server.BaseUrl, full: true);
+
+            Assert.True(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/VNEI/VNEI.dll")));
+
+            OptionalModSelection adopted = OptionalModSelection.Load(client.Path);
+            Assert.True(adopted.IsSelected("VNEI"));
+        }
+
+        [Fact]
+        public async Task NeverInstalledOptionalMod_StaysUnknown_NoSelectionFileWritten()
+        {
+            // The flip side of adoption: a mod that was never installed and never toggled
+            // gets no entry at all — only presence-on-disk triggers adoption.
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+            pack.AddFile("BepInEx/plugins/VNEI/VNEI.dll", "vnei contents");
+
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteEmptyManifest("game.info");
+            pack.WriteManifest("optional.info", "BepInEx/plugins/VNEI/VNEI.dll");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+            // VNEI is neither on disk nor mentioned in optional_selected.txt.
+
+            var ui = new RecordingUpdateUi(client.Path);
+            await RunAsync(ui, server.BaseUrl, full: true);
+
+            Assert.False(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/VNEI/VNEI.dll")));
+
+            OptionalModSelection selection = OptionalModSelection.Load(client.Path);
+            Assert.False(selection.IsKnown("VNEI"));
+        }
+
+        [Fact]
         public async Task CorruptManifest_FailsClosed_DoesNotAllowGameToStart()
         {
             using var pack = new TestPack();
@@ -367,6 +450,38 @@ namespace Launcher.Tests
             await RunAsync(ui, server.BaseUrl, full: true);
 
             Assert.False(ui.CanStartGameAtComplete);
+        }
+
+        [Fact]
+        public async Task CancelledPartwayThrough_FailsClosed_DoesNotAllowGameToStart()
+        {
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteEmptyManifest("update_admin.info");
+            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyManifest("optional.info");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder(); // nothing installed yet — a download would be required
+
+            // Cancelling the instant the client-file check step starts is the earliest point a
+            // real "Прервать проверку" click could land — and, before the fix, was silently
+            // ignored: none of WorkAsync's cancellation early-exits touched CanStartGame, which
+            // defaults true, so a cancelled run could still let the (unchecked) game launch.
+            var worker = new BackgroundWorker { WorkerReportsProgress = true, WorkerSupportsCancellation = true };
+            var ui = new RecordingUpdateUi(client.Path)
+            {
+                Worker = worker,
+                CancelOnStepLabel = Loc.T("dl.step.clientCheck")
+            };
+
+            await FileDownloader.StartUpdateAsync(worker, ui, full: true, startGame: false, server.BaseUrl,
+                ownExecutableName: "test-launcher.exe", maxConcurrentDownloads: 3);
+
+            Assert.True(ui.CompleteCalled);
+            Assert.False(ui.CanStartGameAtComplete);
+            Assert.False(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/ReqMod/ReqMod.dll")));
         }
 
         /// <summary>A temporary client folder with a few files, for setting up an "already installed" state.</summary>
