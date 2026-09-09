@@ -466,6 +466,18 @@ namespace Odinsons.ValheimLauncher
 
             // ---------- FileDownloader: grouped step list ----------
 
+            ["dl.group.check"] = L(
+                "Checking files", "Dateien prüfen", "Comprobación de archivos", "Vérification des fichiers",
+                "Sprawdzanie plików", "Verificação de ficheiros", "Проверка файлов", "Kontrollerar filer", "检查文件"),
+
+            ["dl.group.download"] = L(
+                "Downloading content", "Inhalte herunterladen", "Descarga de contenido", "Téléchargement du contenu",
+                "Pobieranie zawartości", "Transferência de conteúdo", "Загрузка контента", "Laddar ner innehåll", "下载内容"),
+
+            ["dl.group.finalize"] = L(
+                "Finishing up", "Abschluss", "Finalización", "Finalisation",
+                "Kończenie", "Finalização", "Завершение", "Slutför", "正在完成"),
+
             ["dl.step.steamCheck"] = L(
                 "Verifying Steam install", "Steam-Installation wird geprüft", "Comprobando la instalación de Steam",
                 "Vérification de l'installation Steam", "Weryfikacja instalacji Steam", "A verificar a instalação Steam",
@@ -493,6 +505,22 @@ namespace Odinsons.ValheimLauncher
             ["dl.stepCounter"] = L(
                 "Step {0} of {1}", "Schritt {0} von {1}", "Paso {0} de {1}", "Étape {0} sur {1}",
                 "Krok {0} z {1}", "Passo {0} de {1}", "Шаг {0} из {1}", "Steg {0} av {1}", "第 {0} 步，共 {1} 步"),
+
+            // Download detail line: {0} groups done, {1} groups total, {2} MB done, {3} MB total, {4} speed.
+            ["dl.detail.headline"] = L(
+                "Mods: {0} / {1}   ·   {2} / {3}   ·   {4}",
+                "Mods: {0} / {1}   ·   {2} / {3}   ·   {4}",
+                "Mods: {0} / {1}   ·   {2} / {3}   ·   {4}",
+                "Mods : {0} / {1}   ·   {2} / {3}   ·   {4}",
+                "Mody: {0} / {1}   ·   {2} / {3}   ·   {4}",
+                "Mods: {0} / {1}   ·   {2} / {3}   ·   {4}",
+                "Моды: {0} / {1}   ·   {2} / {3}   ·   {4}",
+                "Mods: {0} / {1}   ·   {2} / {3}   ·   {4}",
+                "模组：{0} / {1}   ·   {2} / {3}   ·   {4}"),
+
+            ["dl.detail.misc"] = L(
+                "Other files", "Weitere Dateien", "Otros archivos", "Autres fichiers",
+                "Inne pliki", "Outros ficheiros", "Прочие файлы", "Övriga filer", "其他文件"),
 
             // "Interrupt", not "Cancel": clicking this does NOT roll back whatever already
             // installed/downloaded — it only stops the run where it stands (see FileDownloader's
@@ -823,6 +851,17 @@ namespace Odinsons.ValheimLauncher
                 "не найден preloader BepInEx: {0}",
                 "BepInEx-preloader hittades inte: {0}",
                 "未找到 BepInEx 预加载器：{0}"),
+
+            ["injector.noDoorstopLibrary"] = L(
+                "Doorstop library not found: {0}",
+                "Doorstop-Bibliothek nicht gefunden: {0}",
+                "No se encontró la biblioteca de Doorstop: {0}",
+                "Bibliothèque Doorstop introuvable : {0}",
+                "Nie znaleziono biblioteki Doorstop: {0}",
+                "Biblioteca do Doorstop não encontrada: {0}",
+                "не найдена библиотека Doorstop: {0}",
+                "Doorstop-biblioteket hittades inte: {0}",
+                "未找到 Doorstop 库：{0}"),
 
             ["injector.noProxy"] = L(
                 "the injector library is missing from the profile: {0}",

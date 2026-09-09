@@ -21,6 +21,11 @@ namespace Odinsons.ValheimLauncher
         private static long _totalBytesDownloaded;
         private static long _totalBytesToDownload;
 
+        // Per-mod/-data-folder breakdown of the current download, for the install window's
+        // "N of M mods" line and its short live list. Null until the download loop starts.
+        private static DownloadProgressTracker _downloadTracker;
+        private static DateTime _lastDetailPush;
+
         private static readonly HashSet<string> ExcludeFiles = new(StringComparer.OrdinalIgnoreCase)
         {
             "update.info", "update_admin.info", "Indexer.exe", "full.info", "version.info", "news.info",
@@ -121,6 +126,19 @@ namespace Odinsons.ValheimLauncher
         private static readonly HashSet<string> GameFiles = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// The game manifest name(s) to try, most specific first. Per-OS because the file
+        /// layouts don't overlap; on non-Windows there is deliberately no Windows fallback —
+        /// a Windows manifest would never match a macOS/Linux Steam install and would drag the
+        /// whole (unusable) Windows build down as an ordinary download.
+        /// </summary>
+        private static IEnumerable<string> GameManifestCandidates()
+        {
+            if (RuntimePlatform.IsMacOS) return new[] { "game_macos.info" };
+            if (RuntimePlatform.IsLinux) return new[] { "game_linux.info" };
+            return new[] { "game.info" };
+        }
+
+        /// <summary>
         /// The full game.info entries. Kept separate from GameFiles because the two sets serve
         /// different purposes: the set of paths answers "should we try taking this file from the
         /// Steam install", while actually installing the file also needs its hash and size.
@@ -157,27 +175,33 @@ namespace Odinsons.ValheimLauncher
         private static int _stepIndexDownload;
         private static int _stepIndexFinalize;
 
-        /// <summary>Builds and announces this run's step list. Call once _steamGameFolder is known.</summary>
+        /// <summary>Builds and announces this run's step list. Call once _steamGameFolder is known.
+        /// Steps are tagged with a collapsible group: the three checks fold into one row once the
+        /// download starts, the download folds once finalizing starts (see InstallStepModel).</summary>
         private static void BuildStepList()
         {
-            var labels = new List<string>();
+            string checkGroup = Loc.T("dl.group.check");
+            string downloadGroup = Loc.T("dl.group.download");
+            string finalizeGroup = Loc.T("dl.group.finalize");
 
-            _stepIndexSteamCheck = _steamGameFolder is not null ? labels.Count : -1;
-            if (_steamGameFolder is not null) labels.Add(Loc.T("dl.step.steamCheck"));
+            var steps = new List<InstallStep>();
 
-            _stepIndexClientCheck = labels.Count;
-            labels.Add(Loc.T("dl.step.clientCheck"));
+            _stepIndexSteamCheck = _steamGameFolder is not null ? steps.Count : -1;
+            if (_steamGameFolder is not null) steps.Add(new InstallStep(checkGroup, Loc.T("dl.step.steamCheck")));
 
-            _stepIndexOptionalCheck = labels.Count;
-            labels.Add(Loc.T("dl.step.optionalCheck"));
+            _stepIndexClientCheck = steps.Count;
+            steps.Add(new InstallStep(checkGroup, Loc.T("dl.step.clientCheck")));
 
-            _stepIndexDownload = labels.Count;
-            labels.Add(Loc.T("dl.step.download"));
+            _stepIndexOptionalCheck = steps.Count;
+            steps.Add(new InstallStep(checkGroup, Loc.T("dl.step.optionalCheck")));
 
-            _stepIndexFinalize = labels.Count;
-            labels.Add(Loc.T("dl.step.finalize"));
+            _stepIndexDownload = steps.Count;
+            steps.Add(new InstallStep(downloadGroup, Loc.T("dl.step.download")));
 
-            _ui.SetSteps(labels);
+            _stepIndexFinalize = steps.Count;
+            steps.Add(new InstallStep(finalizeGroup, Loc.T("dl.step.finalize")));
+
+            _ui.SetSteps(steps);
         }
 
         /// <param name="session">
@@ -287,34 +311,43 @@ namespace Odinsons.ValheimLauncher
                     SafeDeleteFile(optionalListFullPath);
                 }
 
-                // === Downloading game.info (optional) ===
+                // === Downloading the game manifest (optional) ===
                 //
                 // A separate manifest of original-game files. It may not exist: a server
                 // running the old HashCreator doesn't publish it, and game files just sit
                 // inside update.info as before.
+                //
+                // The manifest is per-OS: game.info describes the Windows build, game_macos.info
+                // the macOS build, game_linux.info the Linux one. They can't share a file — the
+                // path layouts differ completely (valheim.exe vs valheim.app/Contents/...). The
+                // Windows name is the fallback so an older server keeps working on Windows.
                 string gameListPath = Path.Combine(clientFolder, "game.info");
-                try
+                foreach (string remoteName in GameManifestCandidates())
                 {
-                    LauncherLog.Debug($"downloading game.info from {selectedServerDirectory}");
-                    await DownloadFileAsync(new Uri(selectedServerDirectory + "game.info"), gameListPath);
-
-                    foreach (Manifest.Entry entry in Manifest.ReadFile(gameListPath))
+                    try
                     {
-                        GameFiles.Add(entry.Path);
-                        GameEntries.Add(entry);
-                    }
+                        LauncherLog.Debug($"downloading {remoteName} from {selectedServerDirectory}");
+                        await DownloadFileAsync(new Uri(selectedServerDirectory + remoteName), gameListPath);
 
-                    LauncherLog.Info($"game.info: {GameFiles.Count} game file(s) listed separately");
+                        foreach (Manifest.Entry entry in Manifest.ReadFile(gameListPath))
+                        {
+                            GameFiles.Add(entry.Path);
+                            GameEntries.Add(entry);
+                        }
+
+                        LauncherLog.Info($"{remoteName}: {GameFiles.Count} game file(s) listed separately");
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        LauncherLog.Info($"{remoteName} not available ({ex.Message})");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    LauncherLog.Info($"game.info not available ({ex.Message}); " +
-                                     "game files, if any, are handled as ordinary entries");
-                }
-                finally
-                {
-                    SafeDeleteFile(gameListPath);
-                }
+
+                if (GameFiles.Count == 0)
+                    LauncherLog.Info("no game manifest for this OS; game files, if any, are handled as ordinary entries");
+
+                SafeDeleteFile(gameListPath);
             }
             catch (Exception ex)
             {
@@ -359,7 +392,13 @@ namespace Odinsons.ValheimLauncher
         private static IEnumerable<string> InjectorPrerequisiteRelativePaths()
         {
             yield return "BepInEx/core/BepInEx.Preloader.dll";
-            if (OperatingSystem.IsWindows()) yield return "winhttp.dll";
+            if (RuntimePlatform.IsWindows)
+                yield return "winhttp.dll";
+            else
+                // The native Doorstop library dyld/ld preloads into the game process — without
+                // it in the client folder ahead of time, a first run can't decide it's eligible
+                // for injector mode and would duplicate the game files instead.
+                yield return InjectorLauncher.DoorstopLibraryRelativePath;
         }
 
         /// <summary>
@@ -487,6 +526,9 @@ namespace Odinsons.ValheimLauncher
             public string LocalDir { get; init; }
             public long FileSize { get; init; }
             public long LastBytesReceived { get; set; }
+
+            /// <summary>Which mod/data bucket this file counts toward in the download list.</summary>
+            public string GroupKey { get; init; }
         }
 
         /// <summary>
@@ -545,6 +587,7 @@ namespace Odinsons.ValheimLauncher
 
                 _totalBytesDownloaded = 0;
                 _totalBytesToDownload = 0;
+                _downloadTracker = null;
 
                 foreach (Manifest.Entry entry in fileList) allFiles.Add(entry.Path);
 
@@ -679,7 +722,8 @@ namespace Odinsons.ValheimLauncher
                                     WebDir = fileDir,
                                     LocalDir = fileDirFull,
                                     FileSize = fileSize,
-                                    LastBytesReceived = 0
+                                    LastBytesReceived = 0,
+                                    GroupKey = DownloadGrouping.GroupKeyFor(fileDir)
                                 });
                                 Interlocked.Add(ref _totalBytesToDownload, fileSize);
                             }
@@ -820,7 +864,8 @@ namespace Odinsons.ValheimLauncher
                                     WebDir = fileDir,
                                     LocalDir = fileDirFull,
                                     FileSize = fileSize,
-                                    LastBytesReceived = 0
+                                    LastBytesReceived = 0,
+                                    GroupKey = DownloadGrouping.GroupKeyFor(fileDir)
                                 });
                                 Interlocked.Add(ref _totalBytesToDownload, fileSize);
                             }
@@ -866,7 +911,10 @@ namespace Odinsons.ValheimLauncher
                 LauncherLog.Info($"check finished: {filesToDownload.Count} file(s) to download, " +
                                  $"{_totalBytesToDownload / 1024.0 / 1024.0:0.0} MB, differences={differencesFound}");
 
-                if (_takenLocally > 0)
+                if (_injectorPlan is not null)
+                    LauncherLog.Info($"injector mode: the {GameEntries.Count} game file(s) run in place from the " +
+                                     "Steam install and were never on the download list");
+                else if (_takenLocally > 0)
                     LauncherLog.Info($"taken from the Steam install: {_takenLocally} file(s), " +
                                      $"{_bytesTakenLocally / 1024.0 / 1024.0:0.0} MB not downloaded");
                 else if (_steamGameFolder is not null && GameFiles.Count > 0)
@@ -951,13 +999,18 @@ namespace Odinsons.ValheimLauncher
 
                     _lastBytesDownloaded = 0;
                     _lastSpeedUpdate = DateTime.Now;
+                    _lastDetailPush = DateTime.MinValue;
+                    _downloadTracker = new DownloadProgressTracker(
+                        filesToDownload.Select(f => (f.GroupKey, f.FileSize)));
 
                     var downloadTasks = filesToDownload.Select((file, index) =>
                         DownloadFileAsyncWithProgress(file, index, filesToDownload.Count, worker, selectedServerDirectory)).ToArray();
 
                     _ui.StartStep(_stepIndexDownload);
                     SetStateLabel(Loc.T("dl.startingDownload"), 0, 0);
+                    PushDownloadDetail(force: true);
                     await Task.WhenAll(downloadTasks);
+                    PushDownloadDetail(force: true);
 
                     if (worker.CancellationPending)
                     {
@@ -1012,6 +1065,7 @@ namespace Odinsons.ValheimLauncher
                     {
                         LauncherLog.Debug($"retry rollback: {file.WebDir} discarding {file.LastBytesReceived} B counted earlier");
                         Interlocked.Add(ref _totalBytesDownloaded, -file.LastBytesReceived);
+                        _downloadTracker?.AddBytes(file.GroupKey, -file.LastBytesReceived);
                         file.LastBytesReceived = 0;
                     }
 
@@ -1021,6 +1075,8 @@ namespace Odinsons.ValheimLauncher
                     if (done)
                     {
                         LauncherLog.Trace($"downloaded {file.WebDir} on attempt {attempt}/{MaxAttempts}");
+                        _downloadTracker?.CompleteFile(file.GroupKey);
+                        MaybePushDownloadDetail();
                         return;
                     }
 
@@ -1114,6 +1170,7 @@ namespace Odinsons.ValheimLauncher
                         long delta = bytesReceived - file.LastBytesReceived;
                         file.LastBytesReceived = bytesReceived;
                         Interlocked.Add(ref _totalBytesDownloaded, delta);
+                        _downloadTracker?.AddBytes(file.GroupKey, delta);
 
                         UpdateSpeed();
 
@@ -1121,6 +1178,7 @@ namespace Odinsons.ValheimLauncher
                         SetTotalPercent((double)_totalBytesDownloaded / _totalBytesToDownload * 100, _totalBytesDownloaded, _totalBytesToDownload);
                         _ui.SetStepProgress((double)_totalBytesDownloaded / _totalBytesToDownload * 100);
                         SetStateLabel(Loc.T("dl.downloading"), _totalBytesDownloaded, _totalBytesToDownload);
+                        MaybePushDownloadDetail();
                     }
                 }
                 finally
@@ -1173,6 +1231,51 @@ namespace Odinsons.ValheimLauncher
                 _lastSpeedUpdate = now;
             }
         }
+
+        // Called from every download worker on every buffer read — throttled so the UI gets
+        // ~4 refreshes a second, not thousands.
+        private const int DetailPushIntervalMs = 250;
+        private const int DetailActiveListMax = 8;
+
+        private static void MaybePushDownloadDetail()
+        {
+            DateTime now = DateTime.Now;
+            if ((now - _lastDetailPush).TotalMilliseconds < DetailPushIntervalMs) return;
+            _lastDetailPush = now;
+            PushDownloadDetail();
+        }
+
+        private static void PushDownloadDetail(bool force = false)
+        {
+            DownloadProgressTracker tracker = _downloadTracker;
+            if (tracker is null) return;
+            if (force) _lastDetailPush = DateTime.Now;
+
+            long done = tracker.BytesDone;
+            long total = tracker.BytesTotal;
+
+            var active = tracker.ActiveGroups(DetailActiveListMax)
+                .Select(g => new DownloadDetailItem
+                {
+                    Title = DownloadGroupTitle(g.Key),
+                    SizeText = $"{FormatBytes(g.BytesDone)} / {FormatBytes(g.BytesTotal)}",
+                    Fraction = g.BytesTotal > 0 ? Math.Clamp((double)g.BytesDone / g.BytesTotal, 0, 1) : 0,
+                })
+                .ToList();
+
+            _ui.SetDownloadDetail(new DownloadDetail
+            {
+                HeadlineText = Loc.T("dl.detail.headline",
+                    tracker.GroupsDone, tracker.GroupsTotal,
+                    FormatBytes(done), FormatBytes(total),
+                    FormatSpeed(_currentSpeed)),
+                OverallFraction = total > 0 ? Math.Clamp((double)done / total, 0, 1) : 0,
+                Active = active,
+            });
+        }
+
+        private static string DownloadGroupTitle(string key) =>
+            key == DownloadGrouping.MiscKey ? Loc.T("dl.detail.misc") : key;
 
         private static void SafeDeleteFile(string path)
         {

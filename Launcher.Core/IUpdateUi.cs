@@ -67,8 +67,9 @@ namespace Odinsons.ValheimLauncher
         /// before the first <see cref="StartStep"/>. Default no-op: an implementation that
         /// doesn't care about step-by-step detail (the CLI, tests, WPF for now) simply ignores
         /// it — FileDownloader still calls the old progress members exactly as before too.
+        /// Each step carries the collapsible group it belongs to (see <see cref="InstallStep"/>).
         /// </summary>
-        void SetSteps(IReadOnlyList<string> stepLabels) { }
+        void SetSteps(IReadOnlyList<InstallStep> steps) { }
 
         /// <summary>Marks the step at this index as active (spinner, in a real UI).</summary>
         void StartStep(int index) { }
@@ -81,5 +82,13 @@ namespace Odinsons.ValheimLauncher
         /// run (e.g. nothing to download), which should still complete instantly rather than
         /// being skipped, so the step list and "X of Y" count stay stable across runs.</summary>
         void FinishStep(int index) { }
+
+        /// <summary>
+        /// Live detail for the download step: how many mod/data groups are done, how many MB,
+        /// transfer rate, and the handful transferring right now (see <see cref="DownloadDetail"/>).
+        /// Pushed on a throttle while the download step is active. Default no-op — the CLI,
+        /// tests and WPF ignore it and keep using the plain progress members.
+        /// </summary>
+        void SetDownloadDetail(DownloadDetail detail) { }
     }
 }

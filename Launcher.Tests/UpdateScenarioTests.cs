@@ -34,7 +34,7 @@ namespace Launcher.Tests
             pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
             pack.WriteManifest("update_admin.info",
                 "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/plugins/AdminMod/EasySpawner.dll");
-            pack.WriteManifest("game.info", "valheim.exe", "valheim_Data/data.bin");
+            pack.WriteGameManifest("valheim.exe", "valheim_Data/data.bin");
             pack.WriteEmptyManifest("optional.info");
 
             using var server = new TestServer(pack.Root);
@@ -68,7 +68,7 @@ namespace Launcher.Tests
 
             pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
             pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
-            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyGameManifest();
             pack.WriteManifest("optional.info", "BepInEx/plugins/OptMod/OptMod.dll");
 
             using var server = new TestServer(pack.Root);
@@ -101,7 +101,7 @@ namespace Launcher.Tests
             pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
             pack.WriteManifest("update_admin.info",
                 "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/plugins/AdminMod/EasySpawner.dll");
-            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyGameManifest();
             pack.WriteEmptyManifest("optional.info");
 
             using var server = new TestServer(pack.Root);
@@ -126,7 +126,7 @@ namespace Launcher.Tests
                 "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/config/server.cfg", "BepInEx/config/player.cfg");
             pack.WriteManifest("update_admin.info",
                 "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/config/server.cfg", "BepInEx/config/player.cfg");
-            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyGameManifest();
             pack.WriteEmptyManifest("optional.info");
             pack.WriteForceCheck("BepInEx/config/server.cfg");
 
@@ -156,7 +156,7 @@ namespace Launcher.Tests
             pack.AddFile("valheim.exe", "GAME EXE");
             pack.WriteManifest("update.info");
             pack.WriteManifest("update_admin.info");
-            pack.WriteManifest("game.info", "valheim.exe");
+            pack.WriteGameManifest("valheim.exe");
             pack.WriteEmptyManifest("optional.info");
 
             using var server = new TestServer(pack.Root);
@@ -191,7 +191,7 @@ namespace Launcher.Tests
             pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
             pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
             pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
-            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyGameManifest();
             pack.WriteEmptyManifest("optional.info");
 
             using var server = new TestServer(pack.Root);
@@ -217,21 +217,24 @@ namespace Launcher.Tests
             Assert.NotNull(secondRun.LastDegradationWarning);
         }
 
-        [Fact]
-        public async Task InjectorMode_ActivatesOnTheVeryFirstRun_NeverDuplicatesGameFiles()
+        public static readonly TheoryData<TargetOs> AllOs = new() { TargetOs.Windows, TargetOs.MacOS, TargetOs.Linux };
+
+        [Theory, MemberData(nameof(AllOs))]
+        public async Task InjectorMode_ActivatesOnTheVeryFirstRun_NeverDuplicatesGameFiles(TargetOs os)
         {
+            using var _ = RuntimePlatform.Pretend(os);
             using var pack = new TestPack();
             pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
             pack.AddFile("BepInEx/core/BepInEx.Preloader.dll", "preloader");
-            pack.AddFile("winhttp.dll", "doorstop proxy");
-            pack.AddFile("valheim.exe", "GAME EXE");
+            string doorstopPrereq = pack.AddDoorstopPrereq();
+            string[] gamePaths = pack.AddGameExecutable("GAME EXE");
             pack.AddFile("valheim_Data/data.bin", "game data");
 
             pack.WriteManifest("update.info",
-                "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/core/BepInEx.Preloader.dll", "winhttp.dll");
+                "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/core/BepInEx.Preloader.dll", doorstopPrereq);
             pack.WriteManifest("update_admin.info",
-                "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/core/BepInEx.Preloader.dll", "winhttp.dll");
-            pack.WriteManifest("game.info", "valheim.exe", "valheim_Data/data.bin");
+                "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/core/BepInEx.Preloader.dll", doorstopPrereq);
+            pack.WriteGameManifest(gamePaths.Append("valheim_Data/data.bin").ToArray());
             pack.WriteEmptyManifest("optional.info");
 
             using var server = new TestServer(pack.Root);
@@ -239,7 +242,7 @@ namespace Launcher.Tests
 
             // Plays the role of the Steam install — the same game files as the build.
             using var steam = new TestPack();
-            steam.AddFile("valheim.exe", "GAME EXE");
+            steam.AddGameExecutable("GAME EXE");
             steam.AddFile("valheim_Data/data.bin", "game data");
 
             // Regression: injector mode used to require BepInEx.Preloader.dll to already be
@@ -252,31 +255,33 @@ namespace Launcher.Tests
             await RunAsync(firstRun, server.BaseUrl, full: true, steamGameFolder: steam.Root);
 
             Assert.NotNull(firstRun.LastInjectorPlan);
-            Assert.Equal(Path.Combine(steam.Root, "valheim.exe"), firstRun.LastInjectorPlan.Executable);
-            Assert.False(File.Exists(Path.Combine(client.Path, "valheim.exe")));
+            Assert.Equal(TestPack.GameExecutablePath(steam.Root), firstRun.LastInjectorPlan.Executable);
+            foreach (string p in gamePaths)
+                Assert.False(File.Exists(Path.Combine(client.Path, p.Replace('/', Path.DirectorySeparatorChar))));
             Assert.False(File.Exists(Path.Combine(client.Path, "valheim_Data/data.bin")));
 
-            // The mod's own files (preloader, winhttp.dll) still needed to be downloaded —
-            // without them the injector itself has no DOORSTOP_TARGET_ASSEMBLY to point at.
+            // The mod's own files (preloader + the native doorstop bits) still needed to be
+            // downloaded — without them the injector itself has nothing to preload.
             Assert.True(File.Exists(Path.Combine(client.Path, "BepInEx/core/BepInEx.Preloader.dll")));
-            Assert.True(File.Exists(Path.Combine(client.Path, "winhttp.dll")));
+            Assert.True(File.Exists(Path.Combine(client.Path, doorstopPrereq.Replace('/', Path.DirectorySeparatorChar))));
         }
 
-        [Fact]
-        public async Task InjectorMode_SteamBuildDoesNotMatchServer_FallsBackAndDownloadsCorrectFiles()
+        [Theory, MemberData(nameof(AllOs))]
+        public async Task InjectorMode_SteamBuildDoesNotMatchServer_FallsBackAndDownloadsCorrectFiles(TargetOs os)
         {
+            using var _ = RuntimePlatform.Pretend(os);
             using var pack = new TestPack();
             pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
             pack.AddFile("BepInEx/core/BepInEx.Preloader.dll", "preloader");
-            pack.AddFile("winhttp.dll", "doorstop proxy");
-            pack.AddFile("valheim.exe", "GAME EXE v2");
+            string doorstopPrereq = pack.AddDoorstopPrereq();
+            string[] gamePaths = pack.AddGameExecutable("GAME EXE v2");
             pack.AddFile("valheim_Data/data.bin", "game data v2");
 
             pack.WriteManifest("update.info",
-                "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/core/BepInEx.Preloader.dll", "winhttp.dll");
+                "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/core/BepInEx.Preloader.dll", doorstopPrereq);
             pack.WriteManifest("update_admin.info",
-                "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/core/BepInEx.Preloader.dll", "winhttp.dll");
-            pack.WriteManifest("game.info", "valheim.exe", "valheim_Data/data.bin");
+                "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/core/BepInEx.Preloader.dll", doorstopPrereq);
+            pack.WriteGameManifest(gamePaths.Append("valheim_Data/data.bin").ToArray());
             pack.WriteEmptyManifest("optional.info");
 
             using var server = new TestServer(pack.Root);
@@ -287,15 +292,17 @@ namespace Launcher.Tests
             // files, but falls back to the ordinary check and downloads exactly what the
             // server expects.
             using var steam = new TestPack();
-            steam.AddFile("valheim.exe", "GAME EXE v1 (stale build)");
+            steam.AddGameExecutable("GAME EXE v1 (stale build)");
             steam.AddFile("valheim_Data/data.bin", "game data v1 (stale build)");
 
             var ui = new RecordingUpdateUi(client.Path);
             await RunAsync(ui, server.BaseUrl, full: true, steamGameFolder: steam.Root);
 
             Assert.Null(ui.LastInjectorPlan);
-            Assert.Equal("GAME EXE v2", File.ReadAllText(Path.Combine(client.Path, "valheim.exe")));
             Assert.Equal("game data v2", File.ReadAllText(Path.Combine(client.Path, "valheim_Data/data.bin")));
+            foreach (string p in gamePaths.Where(p => !p.EndsWith(".plist")))
+                Assert.Equal("GAME EXE v2", File.ReadAllText(
+                    Path.Combine(client.Path, p.Replace('/', Path.DirectorySeparatorChar))));
         }
 
         [Fact]
@@ -307,7 +314,7 @@ namespace Launcher.Tests
 
             pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
             pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
-            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyGameManifest();
             pack.WriteManifest("optional.info", "BepInEx/plugins/VNEI/VNEI.dll");
 
             using var server = new TestServer(pack.Root);
@@ -334,7 +341,7 @@ namespace Launcher.Tests
 
             pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
             pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
-            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyGameManifest();
             pack.WriteManifest("optional.info", "BepInEx/plugins/VNEI/VNEI.dll");
 
             using var server = new TestServer(pack.Root);
@@ -356,7 +363,7 @@ namespace Launcher.Tests
 
             pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
             pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
-            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyGameManifest();
             pack.WriteManifest("optional.info", "BepInEx/plugins/VNEI/VNEI.dll");
 
             using var server = new TestServer(pack.Root);
@@ -386,7 +393,7 @@ namespace Launcher.Tests
 
             pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
             pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
-            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyGameManifest();
             pack.WriteManifest("optional.info", "BepInEx/plugins/VNEI/VNEI.dll");
 
             using var server = new TestServer(pack.Root);
@@ -414,7 +421,7 @@ namespace Launcher.Tests
 
             pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
             pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
-            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyGameManifest();
             pack.WriteManifest("optional.info", "BepInEx/plugins/VNEI/VNEI.dll");
 
             using var server = new TestServer(pack.Root);
@@ -437,7 +444,7 @@ namespace Launcher.Tests
             pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "req-mod-content");
             pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
             pack.WriteEmptyManifest("update_admin.info");
-            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyGameManifest();
             pack.WriteEmptyManifest("optional.info");
             // Overwrite with a file that isn't a manifest at all, simulating the
             // stale pre-1.3.0 binary format (or any other unreadable update.info).
@@ -459,7 +466,7 @@ namespace Launcher.Tests
             pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
             pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
             pack.WriteEmptyManifest("update_admin.info");
-            pack.WriteEmptyManifest("game.info");
+            pack.WriteEmptyGameManifest();
             pack.WriteEmptyManifest("optional.info");
 
             using var server = new TestServer(pack.Root);

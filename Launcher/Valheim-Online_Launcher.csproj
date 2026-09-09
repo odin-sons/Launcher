@@ -7,8 +7,15 @@
         <FileAlignment>512</FileAlignment>
         <ApplicationIcon>Resources\favicon.ico</ApplicationIcon>
         <ApplicationManifest>app.manifest</ApplicationManifest>
-        <SignAssembly>true</SignAssembly>
+
+        <!-- The WPF launcher is Windows-only at runtime, but it should still compile on
+             macOS/Linux so the whole solution (and its tests) builds anywhere. -->
+        <EnableWindowsTargeting Condition="'$(OS)' != 'Windows_NT'">true</EnableWindowsTargeting>
+
+        <!-- Sign only when the production key is present (it isn't in the repo); a keyless
+             build on macOS/Linux CI just goes unsigned. -->
         <AssemblyOriginatorKeyFile>MyNewKey.snk</AssemblyOriginatorKeyFile>
+        <SignAssembly Condition="Exists('$(AssemblyOriginatorKeyFile)')">true</SignAssembly>
         <UseWPF>true</UseWPF>
         <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
         <WarningLevel>4</WarningLevel>

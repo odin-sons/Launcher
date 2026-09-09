@@ -68,7 +68,8 @@ namespace Launcher.Tests
 
         private IReadOnlyList<string> _stepLabels = Array.Empty<string>();
 
-        public void SetSteps(IReadOnlyList<string> stepLabels) => _stepLabels = stepLabels;
+        public void SetSteps(IReadOnlyList<InstallStep> steps) =>
+            _stepLabels = steps.Select(s => s.Label).ToList();
 
         public void StartStep(int index)
         {

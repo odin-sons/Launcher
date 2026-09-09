@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Odinsons.ValheimLauncher
 {
@@ -37,13 +39,77 @@ namespace Odinsons.ValheimLauncher
         /// <summary>Game executables in order of preference for the current OS.</summary>
         private static IEnumerable<string> ExecutableCandidates()
         {
-            if (OperatingSystem.IsWindows()) return new[] { "valheim.exe" };
-            if (OperatingSystem.IsMacOS()) return new[] { "valheim.app", "valheim" };
+            if (RuntimePlatform.IsWindows) return new[] { "valheim.exe" };
+            if (RuntimePlatform.IsMacOS) return new[] { "valheim.app", "valheim" };
             return new[] { "valheim.x86_64", "valheim.x86" };
         }
 
+        /// <summary>
+        /// The primary game-executable name this OS launches (valheim.exe / valheim.app /
+        /// valheim.x86_64). Exposed so tests and diagnostics don't hard-code the Windows name.
+        /// </summary>
+        public static string PrimaryExecutableName => ExecutableCandidates().First();
+
         private static string DoorstopLibraryName() =>
-            OperatingSystem.IsMacOS() ? "libdoorstop_x64.dylib" : "libdoorstop_x64.so";
+            RuntimePlatform.IsMacOS ? "libdoorstop_x64.dylib" : "libdoorstop_x64.so";
+
+        /// <summary>
+        /// Client-folder-relative path to the native Doorstop library for this OS
+        /// (empty on Windows, which injects through a winhttp.dll proxy instead).
+        /// </summary>
+        public static string DoorstopLibraryRelativePath =>
+            RuntimePlatform.IsWindows ? "" : $"{DoorstopLibsFolder}/{DoorstopLibraryName()}";
+
+        /// <summary>
+        /// Resolves what <see cref="Process.Start"/> can actually run. On macOS the Steam
+        /// executable is a <c>.app</c> bundle directory — the real binary lives at
+        /// <c>Contents/MacOS/&lt;CFBundleExecutable&gt;</c>. Elsewhere the candidate is already
+        /// a plain file.
+        /// </summary>
+        public static string ResolveGameExecutable(string gameFolder)
+        {
+            foreach (string name in ExecutableCandidates())
+            {
+                string candidate = Path.Combine(gameFolder, name);
+
+                if (RuntimePlatform.IsMacOS && Directory.Exists(candidate) &&
+                    candidate.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
+                {
+                    string inner = MacBundleExecutable(candidate);
+                    if (inner is not null) return inner;
+                    continue;
+                }
+
+                if (File.Exists(candidate)) return candidate;
+            }
+            return null;
+        }
+
+        private static string MacBundleExecutable(string appPath)
+        {
+            string macOsDir = Path.Combine(appPath, "Contents", "MacOS");
+            if (!Directory.Exists(macOsDir)) return null;
+
+            string plist = Path.Combine(appPath, "Contents", "Info.plist");
+            if (File.Exists(plist))
+            {
+                try
+                {
+                    Match m = Regex.Match(File.ReadAllText(plist),
+                        @"<key>\s*CFBundleExecutable\s*</key>\s*<string>\s*(.*?)\s*</string>",
+                        RegexOptions.Singleline);
+                    if (m.Success)
+                    {
+                        string p = Path.Combine(macOsDir, m.Groups[1].Value.Trim());
+                        if (File.Exists(p)) return p;
+                    }
+                }
+                catch { /* fall through to the directory scan */ }
+            }
+
+            string[] files = Directory.GetFiles(macOsDir);
+            return files.Length == 1 ? files[0] : null;
+        }
 
         /// <summary>
         /// Builds the launch command. Changes nothing on disk — a pure function of paths,
@@ -61,9 +127,7 @@ namespace Odinsons.ValheimLauncher
                 return null;
             }
 
-            string executable = ExecutableCandidates()
-                .Select(name => Path.Combine(gameFolder, name))
-                .FirstOrDefault(p => File.Exists(p) || Directory.Exists(p));
+            string executable = ResolveGameExecutable(gameFolder);
 
             if (executable is null)
             {
@@ -87,20 +151,29 @@ namespace Odinsons.ValheimLauncher
                 ["DOORSTOP_IGNORE_DISABLED_ENV"] = "0"
             };
 
-            if (!OperatingSystem.IsWindows())
+            if (!RuntimePlatform.IsWindows)
             {
                 string libs = Path.GetFullPath(Path.Combine(profileFolder, DoorstopLibsFolder));
-                string library = DoorstopLibraryName();
+                string libraryPath = Path.Combine(libs, DoorstopLibraryName());
 
-                if (OperatingSystem.IsMacOS())
+                if (!File.Exists(libraryPath))
                 {
+                    reason = Loc.T("injector.noDoorstopLibrary", libraryPath);
+                    return null;
+                }
+
+                if (RuntimePlatform.IsMacOS)
+                {
+                    // Absolute path in DYLD_INSERT_LIBRARIES — a bare name only resolves if the
+                    // lib also happens to sit on the default search path. Matches the launch
+                    // scripts that ship with the BepInEx pack (start_game_bepinex.sh / Vortex).
                     environment["DYLD_LIBRARY_PATH"] = libs;
-                    environment["DYLD_INSERT_LIBRARIES"] = library;
+                    environment["DYLD_INSERT_LIBRARIES"] = libraryPath;
                 }
                 else
                 {
                     environment["LD_LIBRARY_PATH"] = libs;
-                    environment["LD_PRELOAD"] = library;
+                    environment["LD_PRELOAD"] = libraryPath;
                 }
             }
 
@@ -131,7 +204,7 @@ namespace Odinsons.ValheimLauncher
         public static bool PrepareGameFolder(string gameFolder, string profileFolder, out string reason)
         {
             reason = null;
-            if (!OperatingSystem.IsWindows()) return true;
+            if (!RuntimePlatform.IsWindows) return true;
 
             string ourProxy = Path.Combine(profileFolder, WindowsProxyName);
             if (!File.Exists(ourProxy))
@@ -208,19 +281,75 @@ namespace Odinsons.ValheimLauncher
         }
 
         /// <summary>Actually launches the game according to the built plan.</summary>
-        public static System.Diagnostics.Process Launch(InjectorPlan plan)
+        public static Process Launch(InjectorPlan plan)
         {
-            var startInfo = new System.Diagnostics.ProcessStartInfo
+            if (RuntimePlatform.IsMacOS) EnsureSteamRunning();
+            return Process.Start(BuildStartInfo(plan));
+        }
+
+        /// <summary>
+        /// Turns a plan into the exact process invocation, without starting it — the seam the
+        /// tests use to check the macOS launch shape.
+        /// </summary>
+        public static ProcessStartInfo BuildStartInfo(InjectorPlan plan)
+        {
+            var startInfo = new ProcessStartInfo
             {
-                FileName = plan.Executable,
                 WorkingDirectory = plan.WorkingDirectory,
                 UseShellExecute = false
             };
 
-            foreach (string argument in plan.Arguments) startInfo.ArgumentList.Add(argument);
-            foreach ((string key, string value) in plan.Environment) startInfo.EnvironmentVariables[key] = value;
+            if (RuntimePlatform.IsMacOS)
+            {
+                // Two macOS-specific hoops, both taken straight from the launch scripts that ship
+                // with the BepInEx pack (start_game_bepinex.sh / Vortex's .vmm_launch.sh):
+                //
+                //  * `arch -x86_64` — Valheim's macOS build is a universal binary, but the shipped
+                //    doorstop library is x86_64 only, so the game must run as x86_64 (Rosetta).
+                //
+                //  * the DOORSTOP_*/DYLD_* variables are passed as arguments to `env`, NOT through
+                //    ProcessStartInfo.Environment. The launcher host (dotnet) runs without the
+                //    `allow-dyld-environment-variables` entitlement, so the kernel strips inherited
+                //    DYLD_* on the way down; `env` sets them fresh right before exec'ing the game,
+                //    which does carry that entitlement.
+                startInfo.FileName = "/usr/bin/arch";
+                startInfo.ArgumentList.Add("-x86_64");
+                startInfo.ArgumentList.Add("/usr/bin/env");
+                foreach ((string key, string value) in plan.Environment)
+                    startInfo.ArgumentList.Add($"{key}={value}");
+                startInfo.ArgumentList.Add(plan.Executable);
+                foreach (string argument in plan.Arguments) startInfo.ArgumentList.Add(argument);
+            }
+            else
+            {
+                startInfo.FileName = plan.Executable;
+                foreach (string argument in plan.Arguments) startInfo.ArgumentList.Add(argument);
+                foreach ((string key, string value) in plan.Environment)
+                    startInfo.EnvironmentVariables[key] = value;
+            }
 
-            return System.Diagnostics.Process.Start(startInfo);
+            return startInfo;
+        }
+
+        /// <summary>
+        /// Valheim needs the Steam client running for the Steamworks API. Best-effort, in the
+        /// background — if Steam is already up this is a no-op, and a failure here isn't fatal.
+        /// </summary>
+        private static void EnsureSteamRunning()
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "/usr/bin/open",
+                    ArgumentList = { "-g", "-b", "com.valvesoftware.steam" },
+                    UseShellExecute = false
+                });
+            }
+            catch (Exception ex)
+            {
+                LauncherLog.Debug($"could not nudge Steam to start: {ex.Message}");
+            }
         }
 
         private static bool SameContent(string a, string b)
