@@ -7,6 +7,7 @@
         WindowStartupLocation="CenterScreen"
         WindowDecorations="None"
         Background="Transparent"
+        TransparencyLevelHint="Transparent"
         Icon="avares://OdinsonsLauncher/Resources/favicon.ico"
         FontFamily="avares://OdinsonsLauncher/Resources/Fonts#Montserrat"
         FontWeight="Medium">
@@ -31,21 +32,31 @@
         <Style Selector="Button:pointerover Image.hoverImg">
             <Setter Property="IsVisible" Value="True"/>
         </Style>
+        <!-- The images themselves never take part in hit-testing: only the button's own
+             transparent fill (below) does. Otherwise swapping which image is visible could
+             move the hit target out from under a stationary cursor when the two PNGs have
+             different opaque shapes — :pointerover flips off, the image swaps back, and the
+             button flickers between states while the cursor just sits there. -->
+        <Style Selector="Button.iconButton Image">
+            <Setter Property="IsHitTestVisible" Value="False"/>
+        </Style>
         <!-- FluentTheme's own Button template paints a hover/pressed background regardless
              of what Background is set to on the button itself — Background=Transparent
-             only covers the resting state. Replacing the template with a bare
-             ContentPresenter (same idea the WPF version used: a plain StackPanel, no
-             Border/chrome at all) means there's nothing left that could paint a background
-             in any pointer state. -->
+             only covers the resting state. Our own template is a single transparent Panel
+             (a stable, full-bounds hit surface) wrapping the content, so nothing paints a
+             background in any pointer state and the hover target never changes size. -->
         <Style Selector="Button.iconButton">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <ControlTemplate>
-                    <ContentPresenter Content="{TemplateBinding Content}"
-                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    <Panel Background="{TemplateBinding Background}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Panel>
                 </ControlTemplate>
             </Setter>
         </Style>
@@ -69,9 +80,48 @@
                 </Animation>
             </Style.Animations>
         </Style>
+
+        <!-- Loading skeleton for the news panel: rounded placeholder bars with a light
+             band sweeping across, instead of blanking the whole panel while news.info loads. -->
+        <Style Selector="Border.skeletonBar">
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Height" Value="15"/>
+            <Setter Property="Margin" Value="0,0,0,14"/>
+            <Setter Property="Background" Value="#26FFFFFF"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        <Style Selector="Border.skeletonBar > Rectangle">
+            <Setter Property="Width" Value="150"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+            <Setter Property="RenderTransform">
+                <TranslateTransform X="-170"/>
+            </Setter>
+            <Setter Property="Fill">
+                <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                    <GradientStop Offset="0"   Color="#00FFFFFF"/>
+                    <GradientStop Offset="0.5" Color="#55FFFFFF"/>
+                    <GradientStop Offset="1"   Color="#00FFFFFF"/>
+                </LinearGradientBrush>
+            </Setter>
+            <Style.Animations>
+                <Animation Duration="0:0:1.4" IterationCount="INFINITE" Easing="CubicEaseInOut">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="TranslateTransform.X" Value="-170"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="TranslateTransform.X" Value="470"/>
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
     </Window.Styles>
 
-    <Grid Name="RootGrid">
+    <!-- HighQuality resampling everywhere: the button/background PNGs are authored at 1x,
+         so on a HiDPI display they're being scaled up — bicubic hides that far better than
+         the default. A proper fix still needs 2x assets (or vector). -->
+    <Grid Name="RootGrid" RenderOptions.BitmapInterpolationMode="HighQuality">
         <!-- Drag handler lives on the background image specifically, not the root Grid:
              PointerPressed bubbles up from whatever was actually clicked, and attaching it
              to the Grid meant every button/combobox click also triggered BeginMoveDrag on
@@ -281,7 +331,8 @@
             </Panel>
         </Button>
 
-        <!-- News block -->
+        <!-- News block. The panel background stays put — only its content swaps between
+             a loading skeleton and the text, so nothing blinks while news.info loads. -->
         <Grid Name="NewsGrid">
             <Border Width="489" Height="390"
                     VerticalAlignment="Top" HorizontalAlignment="Left"
@@ -293,12 +344,27 @@
                     </LinearGradientBrush>
                 </Border.Background>
             </Border>
+
             <ScrollViewer Width="452" Height="365"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalAlignment="Left" VerticalAlignment="Top"
                           Margin="402,170,0,0">
                 <TextBlock Name="News" TextWrapping="Wrap" Foreground="White" FontSize="16"/>
             </ScrollViewer>
+
+            <StackPanel Name="NewsSkeleton"
+                        Width="452"
+                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                        Margin="402,178,0,0">
+                <Border Classes="skeletonBar" Width="430"><Rectangle/></Border>
+                <Border Classes="skeletonBar" Width="392"><Rectangle/></Border>
+                <Border Classes="skeletonBar" Width="418"><Rectangle/></Border>
+                <Border Classes="skeletonBar" Width="286"><Rectangle/></Border>
+                <Border Classes="skeletonBar" Width="60" Margin="0,0,0,30"><Rectangle/></Border>
+                <Border Classes="skeletonBar" Width="404"><Rectangle/></Border>
+                <Border Classes="skeletonBar" Width="370"><Rectangle/></Border>
+                <Border Classes="skeletonBar" Width="228"><Rectangle/></Border>
+            </StackPanel>
         </Grid>
 
         <!-- Launcher version — one flowing label instead of two independently-positioned
@@ -332,6 +398,11 @@
                     </Grid>
                     <ProgressBar Name="InstallOverallProgress" Minimum="0" Maximum="100" Value="0" Height="8"/>
                     <StackPanel Name="InstallStepsPanel" Spacing="6"/>
+                    <StackPanel Name="DownloadDetailPanel" Spacing="7" IsVisible="False">
+                        <Border Height="1" Background="#1FFFFFFF"/>
+                        <TextBlock Name="DownloadDetailHeadline" Foreground="#FFD8D8D8" FontSize="12"/>
+                        <StackPanel Name="DownloadDetailList" Spacing="5"/>
+                    </StackPanel>
                     <Button Name="InstallCancelButton" HorizontalAlignment="Right"
                             Click="InstallCancelButton_Click"/>
                 </StackPanel>

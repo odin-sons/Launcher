@@ -6,6 +6,7 @@
         WindowStartupLocation="CenterScreen"
         WindowDecorations="None"
         Background="Transparent"
+        TransparencyLevelHint="Transparent"
         FontFamily="avares://OdinsonsLauncher/Resources/Fonts#Montserrat"
         FontWeight="Medium">
     <Border Background="#FF2D2D2D" BorderBrush="Chocolate" BorderThickness="2">

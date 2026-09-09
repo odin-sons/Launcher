@@ -147,119 +147,252 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             });
         }
 
-        private enum InstallStepState { Pending, Active, Done }
+        // State + fold-away behaviour live in InstallStepModel (Launcher.Core, unit-tested);
+        // this class only renders it and keeps the per-step wall-clock timings, which are
+        // cosmetic and don't belong in the model.
+        private InstallStepModel _stepModel;
+        private readonly List<Stopwatch> _stepStopwatches = new();
+        private readonly List<TimeSpan?> _stepElapsed = new();
 
-        private sealed class InstallStepRow
+        public void SetSteps(IReadOnlyList<InstallStep> steps) => Dispatcher.UIThread.Invoke(() =>
         {
-            public string Label;
-            public InstallStepState State = InstallStepState.Pending;
-            public double Progress;
-            public Stopwatch Stopwatch;
-            public TimeSpan? Elapsed;
-        }
+            _stepModel = new InstallStepModel(steps);
+            _stepStopwatches.Clear();
+            _stepElapsed.Clear();
+            for (int i = 0; i < steps.Count; i++) { _stepStopwatches.Add(null); _stepElapsed.Add(null); }
 
-        private List<InstallStepRow> _installSteps = new();
-        private int _activeInstallStepIndex = -1;
-
-        public void SetSteps(IReadOnlyList<string> stepLabels) => Dispatcher.UIThread.Invoke(() =>
-        {
-            _installSteps = stepLabels.Select(label => new InstallStepRow { Label = label }).ToList();
-            _activeInstallStepIndex = -1;
             InstallOverallProgress.Value = 0;
+            DownloadDetailPanel.IsVisible = false;
+            DownloadDetailList.Children.Clear();
             RenderInstallSteps();
             UpdateInstallHeader();
         });
 
         public void StartStep(int index) => Dispatcher.UIThread.Invoke(() =>
         {
-            if (index < 0 || index >= _installSteps.Count) return;
+            if (_stepModel is null) return;
 
-            _activeInstallStepIndex = index;
-            InstallStepRow step = _installSteps[index];
-            step.State = InstallStepState.Active;
-            step.Progress = 0;
-            step.Stopwatch = Stopwatch.StartNew();
+            _stepModel.Start(index);
+            if (index >= 0 && index < _stepStopwatches.Count) _stepStopwatches[index] = Stopwatch.StartNew();
 
             RenderInstallSteps();
-            UpdateInstallOverallProgress();
+            SyncOverallBar();
             UpdateInstallHeader();
         });
 
         public void SetStepProgress(double percent) => Dispatcher.UIThread.Invoke(() =>
         {
-            if (_activeInstallStepIndex < 0 || _activeInstallStepIndex >= _installSteps.Count) return;
+            if (_stepModel is null) return;
 
-            _installSteps[_activeInstallStepIndex].Progress = Math.Clamp(percent, 0, 100);
-            UpdateInstallOverallProgress();
+            _stepModel.SetProgress(percent);
+            SyncOverallBar();
         });
 
         public void FinishStep(int index) => Dispatcher.UIThread.Invoke(() =>
         {
-            if (index < 0 || index >= _installSteps.Count) return;
+            if (_stepModel is null) return;
 
-            InstallStepRow step = _installSteps[index];
-            step.State = InstallStepState.Done;
-            step.Progress = 100;
-            step.Elapsed = step.Stopwatch?.Elapsed;
-            if (_activeInstallStepIndex == index) _activeInstallStepIndex = -1;
+            _stepModel.Finish(index);
+            if (index >= 0 && index < _stepStopwatches.Count && _stepStopwatches[index] is { } sw)
+                _stepElapsed[index] = sw.Elapsed;
 
             RenderInstallSteps();
-            UpdateInstallOverallProgress();
+            SyncOverallBar();
             UpdateInstallHeader();
         });
 
-        /// <summary>The one bar that must never move backwards within a run: completed steps
-        /// count as a whole unit each, the active step contributes its own fractional progress.</summary>
-        private void UpdateInstallOverallProgress()
+        private void SyncOverallBar() =>
+            InstallOverallProgress.Value = _stepModel?.OverallPercent ?? 0;
+
+        private bool OnDownloadStep =>
+            _stepModel is not null && _stepModel.CurrentLabel == Loc.T("dl.step.download");
+
+        public void SetDownloadDetail(DownloadDetail detail) => Dispatcher.UIThread.Invoke(() =>
         {
-            if (_installSteps.Count == 0) { InstallOverallProgress.Value = 0; return; }
+            if (!OnDownloadStep) { DownloadDetailPanel.IsVisible = false; return; }
 
-            double completed = _installSteps.Count(step => step.State == InstallStepState.Done);
-            double activeFraction = _activeInstallStepIndex >= 0
-                ? _installSteps[_activeInstallStepIndex].Progress / 100.0
-                : 0;
+            DownloadDetailPanel.IsVisible = true;
+            DownloadDetailHeadline.Text = detail.HeadlineText;
 
-            InstallOverallProgress.Value = Math.Clamp((completed + activeFraction) / _installSteps.Count * 100, 0, 100);
+            DownloadDetailList.Children.Clear();
+            foreach (DownloadDetailItem item in detail.Active)
+                DownloadDetailList.Children.Add(BuildDownloadDetailRow(item));
+        });
+
+        private static Control BuildDownloadDetailRow(DownloadDetailItem item)
+        {
+            var top = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+
+            var title = new TextBlock
+            {
+                Text = item.Title,
+                Foreground = Brushes.White,
+                FontSize = 12,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(title, 0);
+
+            var size = new TextBlock
+            {
+                Text = item.SizeText,
+                Foreground = new SolidColorBrush(Color.Parse("#FFA8A8A8")),
+                FontSize = 11,
+                Margin = new Thickness(10, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(size, 1);
+
+            top.Children.Add(title);
+            top.Children.Add(size);
+
+            var bar = new ProgressBar
+            {
+                Minimum = 0,
+                Maximum = 1,
+                Value = item.Fraction,
+                Height = 3,
+                Margin = new Thickness(0, 3, 0, 0)
+            };
+
+            return new StackPanel { Spacing = 0, Children = { top, bar } };
         }
 
         private void UpdateInstallHeader()
         {
-            int total = _installSteps.Count;
-            int current = _activeInstallStepIndex >= 0
-                ? _activeInstallStepIndex + 1
-                : Math.Min(_installSteps.Count(step => step.State == InstallStepState.Done), total);
+            if (_stepModel is null || _stepModel.Steps.Count == 0)
+            {
+                InstallStepLabel.Text = string.Empty;
+                InstallStepCounter.Text = string.Empty;
+                return;
+            }
 
-            InstallStepLabel.Text = _activeInstallStepIndex >= 0
-                ? _installSteps[_activeInstallStepIndex].Label
-                : _installSteps.Count > 0 ? _installSteps[^1].Label : string.Empty;
+            InstallStepLabel.Text = _stepModel.CurrentLabel;
+            InstallStepCounter.Text = Loc.T("dl.stepCounter", _stepModel.CurrentOrdinal, _stepModel.Steps.Count);
 
-            InstallStepCounter.Text = total > 0 ? Loc.T("dl.stepCounter", current, total) : string.Empty;
-
-            bool isDownloading = _activeInstallStepIndex >= 0 &&
-                _installSteps[_activeInstallStepIndex].Label == Loc.T("dl.step.download");
+            bool isDownloading = _stepModel.CurrentLabel == Loc.T("dl.step.download");
             InstallCancelButton.Content = isDownloading ? Loc.T("dl.cancelDownloading") : Loc.T("dl.cancelChecking");
+            if (!isDownloading) DownloadDetailPanel.IsVisible = false;
         }
 
         private void RenderInstallSteps()
         {
             InstallStepsPanel.Children.Clear();
-            foreach (InstallStepRow step in _installSteps)
-                InstallStepsPanel.Children.Add(BuildInstallStepRow(step));
+            if (_stepModel is null) return;
+
+            int stepIndex = 0;
+            for (int g = 0; g < _stepModel.Groups.Count; g++)
+            {
+                InstallStepModel.GroupView group = _stepModel.Groups[g];
+                int firstStep = stepIndex;
+                int stepCount = group.Steps.Count;
+                stepIndex += stepCount;
+
+                bool singleStep = stepCount == 1;
+                // A one-step group (Downloading, Finishing up) has nothing to fold — draw it
+                // as a plain step row, no chevron, no header/child duplication.
+                if (singleStep)
+                {
+                    InstallStepsPanel.Children.Add(BuildStepRow(group.Steps[0], _stepElapsed[firstStep], indent: false));
+                    continue;
+                }
+
+                TimeSpan? groupElapsed = GroupElapsed(firstStep, stepCount);
+                InstallStepsPanel.Children.Add(BuildGroupHeader(group, g, groupElapsed));
+
+                if (!group.Collapsed)
+                    for (int s = 0; s < stepCount; s++)
+                        InstallStepsPanel.Children.Add(BuildStepRow(group.Steps[s], _stepElapsed[firstStep + s], indent: true));
+            }
         }
 
-        private static Control BuildInstallStepRow(InstallStepRow step)
+        private TimeSpan? GroupElapsed(int firstStep, int count)
+        {
+            TimeSpan sum = TimeSpan.Zero;
+            bool any = false;
+            for (int i = firstStep; i < firstStep + count && i < _stepElapsed.Count; i++)
+                if (_stepElapsed[i] is { } e) { sum += e; any = true; }
+            return any ? sum : null;
+        }
+
+        private void GroupHeader_Click(object? sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: int groupIndex })
+            {
+                _stepModel?.ToggleGroup(groupIndex);
+                RenderInstallSteps();
+            }
+        }
+
+        private Control BuildGroupHeader(InstallStepModel.GroupView group, int groupIndex, TimeSpan? elapsed)
         {
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("20,*,Auto") };
 
-            Control icon = step.State switch
+            Control icon = group.State switch
             {
-                InstallStepState.Done => new TextBlock
+                InstallStepModel.ItemState.Done => new TextBlock
                 {
                     Text = "✓", FontWeight = FontWeight.Bold,
                     Foreground = new SolidColorBrush(Color.Parse("#FF6FCF6F")),
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 },
-                InstallStepState.Active => BuildInstallStepSpinner(),
+                InstallStepModel.ItemState.Active => BuildInstallStepSpinner(),
+                _ => new Ellipse
+                {
+                    Width = 8, Height = 8,
+                    Fill = new SolidColorBrush(Color.Parse("#FF808080")),
+                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+            Grid.SetColumn(icon, 0);
+
+            var toggle = new Button
+            {
+                Tag = groupIndex,
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(0),
+                Cursor = new Cursor(StandardCursorType.Hand),
+                VerticalAlignment = VerticalAlignment.Center,
+                Content = new TextBlock
+                {
+                    Text = (group.Collapsed ? "▸  " : "▾  ") + group.Label,
+                    FontWeight = FontWeight.SemiBold,
+                    Foreground = Brushes.White
+                }
+            };
+            toggle.Click += GroupHeader_Click;
+            Grid.SetColumn(toggle, 1);
+
+            var time = new TextBlock
+            {
+                Text = elapsed is { } e ? $"{e.TotalSeconds:0.0}s" : string.Empty,
+                Foreground = new SolidColorBrush(Color.Parse("#FFB0B0B0")),
+                FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(time, 2);
+
+            row.Children.Add(icon);
+            row.Children.Add(toggle);
+            row.Children.Add(time);
+            return row;
+        }
+
+        private static Control BuildStepRow(InstallStepModel.StepView step, TimeSpan? elapsed, bool indent)
+        {
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("20,*,Auto") };
+            if (indent) row.Margin = new Thickness(18, 0, 0, 0);
+
+            Control icon = step.State switch
+            {
+                InstallStepModel.ItemState.Done => new TextBlock
+                {
+                    Text = "✓", FontWeight = FontWeight.Bold,
+                    Foreground = new SolidColorBrush(Color.Parse("#FF6FCF6F")),
+                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+                },
+                InstallStepModel.ItemState.Active => BuildInstallStepSpinner(),
                 _ => new Ellipse
                 {
                     Width = 8, Height = 8,
@@ -272,7 +405,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             var label = new TextBlock
             {
                 Text = step.Label,
-                Foreground = new SolidColorBrush(step.State == InstallStepState.Pending ? Color.Parse("#FF808080") : Colors.White),
+                Foreground = new SolidColorBrush(step.State == InstallStepModel.ItemState.Pending ? Color.Parse("#FF808080") : Colors.White),
                 Margin = new Thickness(8, 0, 8, 0),
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -280,7 +413,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
             var time = new TextBlock
             {
-                Text = step.Elapsed is { } elapsed ? $"{elapsed.TotalSeconds:0.0}s" : string.Empty,
+                Text = elapsed is { } e ? $"{e.TotalSeconds:0.0}s" : string.Empty,
                 Foreground = new SolidColorBrush(Color.Parse("#FFB0B0B0")),
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center
@@ -367,95 +500,14 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     return;
                 }
 
-                string baseDir = Environment.CurrentDirectory;
-                string configPath = Path.Combine(baseDir, "config.ini");
-
-                if (!File.Exists(configPath))
-                {
-                    try
-                    {
-                        await LoadServersAsync();
-                        if (_serverDirectories?.Count > 0)
-                        {
-                            if (_serverDirectories.Count == 1)
-                            {
-                                SelectedServer = _serverDirectories.Keys.First();
-                                if (!await SaveSelectedServerAsync(configPath)) return;
-
-                                SelectComboBoxItem(SelectedServer);
-                                await CheckAndUpdateLauncherAsync();
-                                await InitializeAsync();
-                            }
-                            else
-                            {
-                                var serverSelectionWindow = new ServerSelectionWindow(_serverDirectories);
-                                bool confirmed = await serverSelectionWindow.ShowDialog<bool>(this);
-                                if (confirmed && !string.IsNullOrEmpty(serverSelectionWindow.SelectedServer))
-                                {
-                                    SelectedServer = serverSelectionWindow.SelectedServer;
-                                    if (!await SaveSelectedServerAsync(configPath)) return;
-
-                                    SelectComboBoxItem(SelectedServer);
-                                    await CheckAndUpdateLauncherAsync();
-                                    await InitializeAsync();
-                                }
-                                else
-                                {
-                                    await MessageBoxWindow.ShowAsync(this, Loc.T("gui.noServerSelected"));
-                                    Log("No server selected, closing the launcher");
-                                    Close();
-                                    return;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            await MessageBoxWindow.ShowAsync(this, Loc.T("gui.noServersToChoose"));
-                            Log("No servers available to choose from, closing the launcher");
-                            Close();
-                            return;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        await MessageBoxWindow.ShowAsync(this, Loc.T("gui.initError", ex.Message));
-                        Log($"Initialization error: {ex.Message}");
-                        Close();
-                    }
-                }
-                else
-                {
-                    await MainWindowLoadedAsync();
-                    await CheckAndUpdateLauncherAsync();
-                }
+                // Server choice comes only from the top selector or config.ini (the CLI passes
+                // it the same way). LoadServersAsync reads config.ini, falls back to the first
+                // server, and persists that choice on first run — no separate picker dialog.
+                await MainWindowLoadedAsync();
+                await CheckAndUpdateLauncherAsync();
             };
 
             _isInitializing = false;
-        }
-
-        private async Task<bool> SaveSelectedServerAsync(string configPath)
-        {
-            var config = new IniFile(configPath);
-            try
-            {
-                await config.WriteAsync("SelectedServer", SelectedServer, "Settings");
-                Log($"Saved server {SelectedServer} to config.ini");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                await MessageBoxWindow.ShowAsync(this, Loc.T("gui.configWriteFailed", ex.Message, configPath));
-                Log($"Error writing config.ini: {ex.Message}");
-                Close();
-                return false;
-            }
-        }
-
-        private void SelectComboBoxItem(string server)
-        {
-            var selectedItem = ServerSelector.Items.OfType<ComboBoxItem>()
-                .FirstOrDefault(item => item.Tag?.ToString() == server);
-            if (selectedItem != null) ServerSelector.SelectedItem = selectedItem;
         }
 
         private async Task InitializeLauncherUrlAsync()
@@ -622,6 +674,21 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     ClientFolder = Path.Combine("clients", SelectedServer);
                     Directory.CreateDirectory(ClientFolder);
 
+                    // First run (or the stored server disappeared): persist the effective choice
+                    // so config.ini always reflects what the launcher is using.
+                    if (selectedServerFromConfig != SelectedServer)
+                    {
+                        try
+                        {
+                            await config.WriteAsync("SelectedServer", SelectedServer, "Settings");
+                            Log($"Persisted selected server {SelectedServer} to config.ini");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"Could not persist server selection to config.ini: {ex.Message}");
+                        }
+                    }
+
                     // Fire-and-forget: must not block the update/launch flow below on a UAC
                     // prompt the player might not even answer right away.
                     _ = MaybeOfferDefenderExclusionAsync(ClientFolder);
@@ -666,6 +733,21 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             Log("Skipping self-update check (Debug build)");
             return;
 #else
+            // The self-update swaps a running .exe via a .bat helper — Windows only. On
+            // macOS/Linux the launcher is distributed as a bundle/package and updates through
+            // that channel, so just note a newer build exists and carry on.
+            if (!OperatingSystem.IsWindows())
+            {
+                try
+                {
+                    string serverVer = (await HttpClient.GetStringAsync(ActiveLauncherUrl + "version.txt")).Trim();
+                    if (CompareVersions(serverVer, _currentVersion) == VersionComparison.Older)
+                        Log($"A newer launcher build is available ({serverVer}); self-update is Windows-only, skipping");
+                }
+                catch (Exception ex) { Log($"Launcher version check skipped: {ex.Message}"); }
+                return;
+            }
+
             try
             {
                 string baseDir = Environment.CurrentDirectory;
@@ -822,7 +904,9 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 Dispatcher.UIThread.Invoke(() =>
                 {
                     InstallProgressGrid.IsVisible = false;
-                    NewsGrid.Opacity = 0;
+                    // Panel stays visible; the skeleton stands in for the text while it loads.
+                    News.Text = string.Empty;
+                    NewsSkeleton.IsVisible = true;
                 });
 
                 try
@@ -832,12 +916,16 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     Dispatcher.UIThread.Invoke(() =>
                     {
                         News.Text = news;
-                        NewsGrid.Opacity = 1;
+                        NewsSkeleton.IsVisible = false;
                     });
                 }
                 catch (Exception ex)
                 {
-                    Dispatcher.UIThread.Invoke(() => News.Text = Loc.T("gui.newsLoadFailed", ex.Message));
+                    Dispatcher.UIThread.Invoke(() =>
+                    {
+                        News.Text = Loc.T("gui.newsLoadFailed", ex.Message);
+                        NewsSkeleton.IsVisible = false;
+                    });
                     Log($"Error loading news: {ex.Message}");
                 }
             }
@@ -1367,14 +1455,25 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
         }
 
+        private bool _closing;
+
         private async void CloseButton_Click(object? sender, RoutedEventArgs e)
         {
-            _worker?.CancelAsync();
-            _worker?.Dispose();
+            if (_closing) return;
+            _closing = true;
+
+            try { _worker?.CancelAsync(); } catch { /* not running */ }
 
             Opacity = 0;
-            await Task.Delay(800);
-            Environment.Exit(0);
+            await Task.Delay(250);
+
+            // Not Environment.Exit(0): calling it from inside the UI loop tears the native
+            // layer down under the render thread, and macOS reports that as a crash.
+            if (global::Avalonia.Application.Current?.ApplicationLifetime
+                is global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+                desktop.Shutdown(0);
+            else
+                Close();
         }
 
         private void Minimize(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
@@ -1548,48 +1647,62 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         public void OnUpdateComplete(bool startAfter, bool canStartGame)
         {
             IsLoading = false;
-            if (startAfter && canStartGame)
-            {
-                if (_readyInjectorPlan is not null)
-                {
-                    Dispatcher.UIThread.Invoke(() =>
-                    {
-                        HideProgress();
-                        Close();
-                    });
-                    InjectorLauncher.Launch(_readyInjectorPlan);
-                    return;
-                }
 
-                string gamePath = Path.Combine(ClientFolder, "valheim.exe");
-                if (File.Exists(gamePath))
-                {
-                    Dispatcher.UIThread.Invoke(() =>
-                    {
-                        HideProgress();
-                        Close();
-                    });
-                    Process.Start(new ProcessStartInfo { FileName = gamePath, UseShellExecute = true });
-                }
-                else
-                {
-                    Dispatcher.UIThread.Invoke(() =>
-                    {
-                        _ = MessageBoxWindow.ShowAsync(this, Loc.T("gui.valheimExeNotFound", ClientFolder), Loc.T("gui.title.launchError"));
-                        HideProgress();
-                        StartButtonGrid.Opacity = 1;
-                    });
-                    Log($"Launch error: valheim.exe not found in {ClientFolder}");
-                }
-            }
-            else
+            if (!startAfter || !canStartGame)
             {
                 Dispatcher.UIThread.Invoke(() =>
                 {
                     HideProgress();
                     StartButtonGrid.Opacity = 1;
                 });
+                return;
             }
+
+            // Start the game first, close the launcher second — so a launch failure is still shown.
+            try
+            {
+                if (_readyInjectorPlan is not null)
+                {
+                    InjectorLauncher.Launch(_readyInjectorPlan);
+                    Log($"Injector mode: launched from '{_readyInjectorPlan.WorkingDirectory}', closing the launcher");
+                }
+                else
+                {
+                    string gamePath = InjectorLauncher.ResolveGameExecutable(ClientFolder);
+                    if (gamePath is null)
+                    {
+                        Dispatcher.UIThread.Invoke(() =>
+                        {
+                            _ = MessageBoxWindow.ShowAsync(this,
+                                Loc.T("gui.valheimExeNotFound", ClientFolder), Loc.T("gui.title.launchError"));
+                            HideProgress();
+                            StartButtonGrid.Opacity = 1;
+                        });
+                        Log($"Launch error: no runnable game executable in {ClientFolder}");
+                        return;
+                    }
+
+                    Process.Start(new ProcessStartInfo { FileName = gamePath, UseShellExecute = true });
+                    Log($"Launched {gamePath}, closing the launcher");
+                }
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.UIThread.Invoke(() =>
+                {
+                    _ = MessageBoxWindow.ShowAsync(this, ex.Message, Loc.T("gui.title.launchError"));
+                    HideProgress();
+                    StartButtonGrid.Opacity = 1;
+                });
+                Log($"Launch failed: {ex}");
+                return;
+            }
+
+            Dispatcher.UIThread.Invoke(() =>
+            {
+                HideProgress();
+                CloseButton_Click(null, null);
+            });
         }
 
         private void CreateUpdateScript(string oldExePath, string tempExePath, string baseDir)
