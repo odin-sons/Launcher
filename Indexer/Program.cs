@@ -45,12 +45,26 @@ namespace Indexer
         private static readonly ParallelOptions HashOptions =
             new ParallelOptions { MaxDegreeOfParallelism = Math.Min(4, Environment.ProcessorCount) };
 
+        /// <summary>
+        /// The game-file manifest is per-OS: <c>game.info</c> for a Windows build folder,
+        /// <c>game_macos.info</c> for a macOS one, <c>game_linux.info</c> for Linux. The file
+        /// layouts don't overlap, so the launcher fetches the one that matches the player's OS.
+        /// Everything else (update.info, optional.info, …) is shared and keeps its name.
+        /// Chosen with <c>--game-manifest &lt;name&gt;</c>; defaults to <c>game.info</c>.
+        /// </summary>
+        internal static string ParseGameManifestName(string[] args)
+        {
+            for (int i = 0; i + 1 < args.Length; i++)
+                if (string.Equals(args[i], "--game-manifest", StringComparison.OrdinalIgnoreCase))
+                    return args[i + 1];
+
+            return "game.info";
+        }
+
         public static int Main(string[] args)
         {
-            bool useCache = true;
-            foreach (string arg in args)
-                if (string.Equals(arg, "--no-cache", StringComparison.OrdinalIgnoreCase))
-                    useCache = false;
+            bool useCache = !args.Any(a => string.Equals(a, "--no-cache", StringComparison.OrdinalIgnoreCase));
+            string gameManifestName = ParseGameManifestName(args);
 
             LoadRuleLists();
 
@@ -59,7 +73,7 @@ namespace Indexer
             List<Odinsons.ValheimLauncher.Manifest.Entry> previousPlayer = TryReadManifest("update.info");
             List<Odinsons.ValheimLauncher.Manifest.Entry> previousAdmin = TryReadManifest("update_admin.info");
             List<Odinsons.ValheimLauncher.Manifest.Entry> previousOptional = TryReadManifest("optional.info");
-            List<Odinsons.ValheimLauncher.Manifest.Entry> previousGame = TryReadManifest("game.info");
+            List<Odinsons.ValheimLauncher.Manifest.Entry> previousGame = TryReadManifest(gameManifestName);
 
             string currentDir = Environment.CurrentDirectory;
             var allFiles = Directory.GetFiles(currentDir, "*.*", SearchOption.AllDirectories);
@@ -118,7 +132,7 @@ namespace Indexer
             WriteToFile("update.info", files, hashes);
             WriteToFile("update_admin.info", filesAdmin, hashes);
             WriteToFile("optional.info", optionalFiles, hashes);
-            WriteToFile("game.info", gameFiles, hashes);
+            WriteToFile(gameManifestName, gameFiles, hashes);
 
             long gameBytes = gameFiles.Sum(f => hashes[f].Size);
 
@@ -126,7 +140,7 @@ namespace Indexer
             Console.WriteLine($"update.info:       {files.Count} files");
             Console.WriteLine($"update_admin.info: {filesAdmin.Count} files");
             Console.WriteLine($"optional.info:     {optionalFiles.Count} files");
-            Console.WriteLine($"game.info:         {gameFiles.Count} files, {gameBytes / 1024.0 / 1024.0:0.0} MB");
+            Console.WriteLine($"{gameManifestName,-17} {gameFiles.Count} files, {gameBytes / 1024.0 / 1024.0:0.0} MB");
 
             if (GameFileRules.Count == 0)
                 Console.WriteLine("WARNING: no game-file rules — game.info is empty.");

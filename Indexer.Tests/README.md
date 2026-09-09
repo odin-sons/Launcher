@@ -29,6 +29,17 @@ Comparing file lists between two Indexer runs.
   honest set difference; the decision to suppress that report on a first run belongs to the
   caller, not to this function.
 
+## GameManifestFlagTests.cs
+
+`--game-manifest <name>` renames the game-file manifest so a macOS/Linux build folder
+produces `game_macos.info` / `game_linux.info` instead of overwriting the Windows one.
+
+- **Default_IsGameInfo** — with no flag, the game manifest is `game.info`.
+- **Flag_TakesTheNameAfterIt** — `--game-manifest game_macos.info` selects that name,
+  wherever it sits among the other args.
+- **FlagWithNoValue_IsIgnored** — a trailing `--game-manifest` with nothing after it falls
+  back to the default rather than crashing.
+
 ## RuleMatchingTests.cs
 
 The four forms an exclusion rule (`ignore_patterns.txt` and its siblings) can take.
