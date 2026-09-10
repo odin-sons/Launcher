@@ -61,8 +61,20 @@ Not built yet; do before 2026-09-09:
       (Win / macOS / Linux — a Steam Depot download or a clean copy kept aside, *not* a
       modded r2modman folder), regenerates all three manifests and stages them for upload.
 - [ ] Decide where the vanilla reference installs live (a locked Steam library folder,
-      or `steamcmd +download_depot` in CI: appid `892970`, depots `892971` Win /
-      `892973` macOS / `892975` Linux — confirm depot ids).
+      or `steamcmd +download_depot` in CI). Depot ids for appid `892970`, **all
+      confirmed 2026-09-10** via `steamcmd +app_info_print 892970` (the two earlier
+      guesses, `892971` Win and `892975` Linux, were both wrong):
+      - `892972` — Windows
+      - `892973` — macOS
+      - `892971` — Linux
+      **Do not reuse `D:\SteamLibrary\steamapps\common\Valheim`** as the Windows
+      reference even though it has depot `892972` installed — it's got half a dozen
+      old `BepInEx*` folders, `doorstop_config.ini`/`doorstop_libs`, and a GreyDwarf
+      launcher sitting in it, i.e. exactly the "modded r2modman folder" this TODO
+      already warns against. Get a fresh copy instead — steamcmd is set up at
+      `D:\Program Files\SteamCMD\steamcmd.exe`:
+      `steamcmd +login anonymous +force_install_dir <fresh empty folder> +app_update 892970 validate +quit`
+      (swap in the depot's own app id if download_depot is used directly instead).
 - [ ] Server publish step: drop the three files, bump nothing else. Injector clients pick
       them up on next launch; the check is the tiny manifest, not a re-download.
 - [ ] Optional: a `min_game_build` marker so the launcher can tell "you're on an older
