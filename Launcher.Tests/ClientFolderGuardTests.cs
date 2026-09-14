@@ -53,5 +53,30 @@ namespace Launcher.Tests
 
             Assert.True(ClientFolderGuard.IsSafeTarget(folder, out _));
         }
+
+        // Both checks build the path with Path.Combine/Path.GetFullPath rather than manual
+        // string concatenation, so a space in a folder name shouldn't need any special
+        // handling — these just confirm that's actually true, not assumed.
+        [Fact]
+        public void FolderPathWithSpaces_IsSafeAndWritable()
+        {
+            string folder = Path.Combine(TempFolder(), "My Game Folder");
+            Directory.CreateDirectory(folder);
+
+            Assert.True(ClientFolderGuard.IsSafeTarget(folder, out string safeReason));
+            Assert.Null(safeReason);
+
+            Assert.True(ClientFolderGuard.IsWritable(folder, out string writableReason, out _));
+            Assert.Null(writableReason);
+        }
+
+        [Fact]
+        public void MissingFolderPathWithSpaces_IsWritableViaParentWalk()
+        {
+            string missing = Path.Combine(TempFolder(), "New Client Folder", "nested spaced dir");
+
+            Assert.True(ClientFolderGuard.IsWritable(missing, out string reason, out _));
+            Assert.Null(reason);
+        }
     }
 }
