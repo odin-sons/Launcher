@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -100,11 +101,16 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 ? uri.GetLeftPart(UriPartial.Authority)
                 : string.Empty;
 
+        // 20s, not the original 5s: these are small requests (status/version/manifest
+        // existence checks), but nginx under a load spike (e.g. every player self-updating at
+        // once) can genuinely take longer than 5s to respond — that's not the same as the
+        // server being down. CheckMirrorAsync/FetchServerVersionAsync retry on top of this via
+        // HttpRetry, so a single slow response doesn't need the full budget anyway.
         private static readonly HttpClient HttpClient = new HttpClient(new SocketsHttpHandler
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
             MaxConnectionsPerServer = 10
-        }) { Timeout = TimeSpan.FromSeconds(5) };
+        }) { Timeout = TimeSpan.FromSeconds(20) };
 
         // The one shared "secondary text" gray for everything built in code — matches
         // #FFD6D6D6 in MainWindow.axaml (see that value's own comment, on TabControl.main
@@ -1310,7 +1316,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             {
                 try
                 {
-                    string serverVer = (await HttpClient.GetStringAsync(ActiveLauncherUrl + "version.txt")).Trim();
+                    string serverVer = await FetchServerVersionAsync();
                     if (CompareVersions(serverVer, _currentVersion) == VersionComparison.Older)
                         Log($"A newer launcher build is available ({serverVer}); self-update is Windows-only, skipping");
                 }
@@ -1325,7 +1331,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 string tempExePath = Path.Combine(baseDir, "new_launcher.exe");
 
                 Log($"Checking launcher version at {ActiveLauncherUrl}");
-                string serverVersion = (await HttpClient.GetStringAsync(ActiveLauncherUrl + "version.txt")).Trim();
+                string serverVersion = await FetchServerVersionAsync();
                 VersionComparison comparison = CompareVersions(serverVersion, _currentVersion);
 
                 if (comparison != VersionComparison.Older) return;
@@ -1424,6 +1430,44 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 Log($"min_version.txt not available ({ex.Message}); treating update to {serverVersion} as mandatory");
                 return true;
             }
+        }
+
+        /// <summary>Fetches version.txt with the same retry-on-429/503/timeout policy
+        /// CheckMirrorAsync already uses for the rest of the pre-gameplay checks — nginx rate
+        /// limits or a brief hiccup during a mass rollout (every player self-updating at once)
+        /// shouldn't fail the self-update check outright on the very first attempt.</summary>
+        private static async Task<string> FetchServerVersionAsync()
+        {
+            const int maxAttempts = 3;
+            HttpStatusCode? lastStatus = null;
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                bool lastAttempt = attempt == maxAttempts;
+                try
+                {
+                    using var response = await HttpClient.GetAsync(ActiveLauncherUrl + "version.txt");
+                    if (response.IsSuccessStatusCode)
+                        return (await response.Content.ReadAsStringAsync()).Trim();
+
+                    lastStatus = response.StatusCode;
+                    if (!HttpRetry.IsRetryableStatus(response.StatusCode) || lastAttempt) break;
+
+                    TimeSpan delay = HttpRetry.Delay(attempt, response);
+                    Log($"version.txt busy ({response.StatusCode}), retrying in {delay.TotalSeconds:0.0}s");
+                    await Task.Delay(delay);
+                }
+                catch (Exception ex) when (ex is TaskCanceledException or HttpRequestException)
+                {
+                    if (lastAttempt) throw;
+
+                    TimeSpan delay = HttpRetry.Delay(attempt, null);
+                    Log($"version.txt check failed ({ex.GetType().Name}: {ex.Message}), retrying in {delay.TotalSeconds:0.0}s");
+                    await Task.Delay(delay);
+                }
+            }
+
+            throw new HttpRequestException($"version.txt unreachable after {maxAttempts} attempts (last status: {lastStatus})");
         }
 
         private enum VersionComparison { Older, Same, Newer }
