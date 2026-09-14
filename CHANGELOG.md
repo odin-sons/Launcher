@@ -4,6 +4,15 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
+## [2.0.1] — 2026-09-14
+
+- Fixed `ClientFolderGuard` rejecting a fresh client folder as "not a Valheim install" when
+  it contained nothing but `optional_selected.txt`. Toggling an optional mod on the Mods tab
+  writes that file as soon as a server is selected — reachable well before Install ever
+  runs — and it wasn't on the list of the launcher's own files, so a player who visited the
+  Mods tab before installing got a false "unrelated content" block. Reported by a player
+  against a real Lite_v2 client folder.
+
 ## [2.0.0] — 2026-09-14
 
 **`Launcher.Avalonia` is now the primary GUI**, cross-platform (Windows/macOS/Linux); the
