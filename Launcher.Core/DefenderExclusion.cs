@@ -18,19 +18,12 @@ namespace Odinsons.ValheimLauncher
     /// </summary>
     public static class DefenderExclusion
     {
+        // No longer written — the one-time prompt this marked as shown/dismissed was replaced
+        // by a persistent checkbox on the Install tab (DefenderExclusionCheckBox), which reads
+        // live Defender state instead of a one-shot marker file. Kept as a known/protected name
+        // (ClientFolderGuard.OwnArtifacts, FileDownloader.ExcludeFiles) purely so a folder that
+        // already has one from an older launcher version isn't flagged as foreign content.
         public const string PromptedMarkerName = "defender_prompt_shown";
-
-        /// <summary>Whether the one-time prompt has already been shown (or dismissed) for this client folder.</summary>
-        public static bool HasBeenPrompted(string clientFolder) =>
-            File.Exists(Path.Combine(clientFolder, PromptedMarkerName));
-
-        /// <summary>Marks the prompt as shown so it never appears again for this client folder — call this
-        /// regardless of whether the player accepted or declined.</summary>
-        public static void MarkPrompted(string clientFolder)
-        {
-            try { File.WriteAllText(Path.Combine(clientFolder, PromptedMarkerName), string.Empty); }
-            catch { /* best-effort — worst case the prompt shows again next run */ }
-        }
 
         /// <summary>
         /// Whether the folder already has a Defender exclusion covering it — an exact match or
@@ -64,7 +57,15 @@ namespace Odinsons.ValheimLauncher
         /// Prompts for elevation (UAC) and adds the exclusion. Returns false if the player
         /// declined the UAC prompt or the command failed for any other reason — never throws.
         /// </summary>
-        public static bool TryAddExclusion(string folderPath)
+        public static bool TryAddExclusion(string folderPath) =>
+            RunElevatedExclusionCommand("Add-MpPreference", folderPath);
+
+        /// <summary>Same elevation/failure behavior as TryAddExclusion, in reverse — used when
+        /// the player unchecks the exclusion checkbox on the Install tab.</summary>
+        public static bool TryRemoveExclusion(string folderPath) =>
+            RunElevatedExclusionCommand("Remove-MpPreference", folderPath);
+
+        private static bool RunElevatedExclusionCommand(string cmdlet, string folderPath)
         {
             if (!OperatingSystem.IsWindows()) return false;
 
@@ -76,7 +77,7 @@ namespace Odinsons.ValheimLauncher
                 var psi = new ProcessStartInfo
                 {
                     FileName = "powershell.exe",
-                    Arguments = $"-NoProfile -WindowStyle Hidden -Command \"Add-MpPreference -ExclusionPath '{escaped}'\"",
+                    Arguments = $"-NoProfile -WindowStyle Hidden -Command \"{cmdlet} -ExclusionPath '{escaped}'\"",
                     UseShellExecute = true,
                     Verb = "runas",
                     WindowStyle = ProcessWindowStyle.Hidden

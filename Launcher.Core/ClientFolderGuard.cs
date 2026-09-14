@@ -31,10 +31,16 @@ namespace Odinsons.ValheimLauncher
             "optional.info",
             "force_check_files.txt",
             ClientLedger.FileName,
+            "changelog_seen.txt", // written by older launcher versions; no longer created
             "launcher_log.txt",
             "config.ini",
             "admin",
-            DefenderExclusion.PromptedMarkerName
+            DefenderExclusion.PromptedMarkerName,
+            // Cached locally by FetchServerChangelogAsync/FetchServerInfoAsync as soon as the
+            // Server tab loads — before any install exists, so a truly fresh client folder
+            // already has these two by the time the player gets to Install.
+            "changelog.md",
+            "info.md"
         };
 
         static ClientFolderGuard()

@@ -1,9 +1,11 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:Odinsons.ValheimLauncher.Avalonia.Views"
         x:Class="Odinsons.ValheimLauncher.Avalonia.Views.MainWindow"
         Title="OdinsonsLauncher"
         Width="900" Height="610"
-        CanResize="False"
+        MinWidth="630" MinHeight="610"
+        CanResize="True"
         WindowStartupLocation="CenterScreen"
         WindowDecorations="None"
         Background="Transparent"
@@ -12,24 +14,88 @@
         FontFamily="avares://OdinsonsLauncher/Resources/Fonts#Montserrat"
         FontWeight="Medium">
 
-    <Window.Transitions>
-        <Transitions>
-            <DoubleTransition Property="Opacity" Duration="0:0:0.8"/>
-        </Transitions>
-    </Window.Transitions>
+    <!-- MinWidth (630) is the header row's own content, added up — nothing narrower can fit it
+         without something overlapping or clipping:
+           20 (left margin) + 226 (logo) + 20 (gap to ServerSelector, same margin again)
+         + 190 (ServerSelector) + 20 (gap to the window controls, same margin again)
+         + 144 (three 48px hit areas, touching edge-to-edge — see Minimize/Maximize/Close's own
+         comments) + 10 (right margin — this one doesn't match the 20 elsewhere: growing the
+         window-control hit areas pushed Close's own margin in to 10, and its icon's visual
+         edge is still exactly 20 from the window edge, same as everywhere else, since the
+         icon stays centered in the middle of the (bigger) hit area) = 630 -->
+    <!-- Left margin (20) and the central panel/tab card's own left margin (also 20, see the
+         Border/TabControl below) are the same value on purpose — logo, tab card, and the
+         Play/Stop button row all line up flush against one vertical line now, instead of the
+         logo sitting 18px further right than everything below it. Same value on the right:
+         the tab card's own right margin (20) and the window-control icons' effective visual
+         edge (also 20, see the MinWidth note above) line up too. -->
+
+    <Window.Resources>
+        <!-- Shared between ServerSelector's rows and SingleServerDisplay (shown instead of the
+             dropdown when there's only one server to pick from — see MainWindow.axaml.cs,
+             RefreshServerSelectorMode) so the two stay visually identical: same dot + name
+             layout, one definition. -->
+        <DataTemplate x:Key="ServerRowTemplate" x:DataType="views:MainWindow+ServerListItem">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Panel Width="10" Height="10">
+                    <Ellipse Width="10" Height="10" Fill="Green" IsVisible="{Binding ShowOnline}"/>
+                    <Ellipse Width="10" Height="10" Fill="Red" IsVisible="{Binding ShowOffline}"/>
+                    <!-- Reuses the same rotating-dash look as the install-steps spinner
+                         (Ellipse.stepSpinner, in Window.Styles) instead of its own copy. -->
+                    <Ellipse Width="10" Height="10" Classes="stepSpinner" IsVisible="{Binding ShowChecking}">
+                        <Ellipse.RenderTransform>
+                            <RotateTransform Angle="0"/>
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+                </Panel>
+                <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- LanguageSelector's rows — just the native name (Loc.DisplayNames), no dot/status
+             like ServerRowTemplate: a language never has a "checking"/"offline" state. -->
+        <DataTemplate x:Key="LanguageRowTemplate" x:DataType="views:MainWindow+LanguageListItem">
+            <TextBlock Text="{Binding Name}"/>
+        </DataTemplate>
+
+        <!-- Scroll-edge shadows — same #80303030 as the central card's own background, faded to
+             fully transparent, so a scrollable tab reads as "there's more above/below" instead
+             of just stopping with no hint either way. Shared by every ScrollViewer in the tab
+             strip (see WireScrollShadows in MainWindow.axaml.cs) so they all fade identically.
+
+             Each tab's own Top/BottomShadow Border insets differently, and on purpose: the top
+             one sits below the tab header row, well clear of the panel's rounded top corners
+             already (the header strip's own height does that), so it only needs a hair of
+             margin (1px, matching the panel Border's own BorderThickness a bit above) to keep
+             its straight edge from sitting exactly on top of that outline. The bottom one has no
+             header row below it to create the same clearance — tab content really does reach
+             the panel's rounded bottom corners — so it needs the full 20px (the CornerRadius
+             itself) to clear the curve, not just the outline. -->
+
+        <LinearGradientBrush x:Key="ScrollShadowTopBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#80303030"/>
+            <GradientStop Offset="1" Color="#00303030"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="ScrollShadowBottomBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#00303030"/>
+            <GradientStop Offset="1" Color="#80303030"/>
+        </LinearGradientBrush>
+    </Window.Resources>
 
     <Window.Styles>
-        <!-- Hover-swap image buttons: two stacked images, hover toggles which one shows. -->
-        <Style Selector="Button Image.normalImg">
+        <!-- Hover-swap image buttons: two stacked images (or, for the sliced stretch-buttons —
+             BuildStretchButtonContent in MainWindow.axaml.cs — two stacked Borders, one per
+             tile piece), hover toggles which one shows. -->
+        <Style Selector="Button Image.normalImg, Button Border.normalImg">
             <Setter Property="IsVisible" Value="True"/>
         </Style>
-        <Style Selector="Button Image.hoverImg">
+        <Style Selector="Button Image.hoverImg, Button Border.hoverImg">
             <Setter Property="IsVisible" Value="False"/>
         </Style>
-        <Style Selector="Button:pointerover Image.normalImg">
+        <Style Selector="Button:pointerover Image.normalImg, Button:pointerover Border.normalImg">
             <Setter Property="IsVisible" Value="False"/>
         </Style>
-        <Style Selector="Button:pointerover Image.hoverImg">
+        <Style Selector="Button:pointerover Image.hoverImg, Button:pointerover Border.hoverImg">
             <Setter Property="IsVisible" Value="True"/>
         </Style>
         <!-- The images themselves never take part in hit-testing: only the button's own
@@ -60,10 +126,28 @@
                 </ControlTemplate>
             </Setter>
         </Style>
-        <!-- Applied in code-behind to step rows built imperatively in MainWindow.axaml.cs
-             (InstallProgressGrid) — a class selector lets a plain code-created Ellipse pick
-             up the same rotating-dash animation ServerCheckSpinner uses, without having to
-             build the Animation/KeyFrame object graph by hand in C#. -->
+        <!-- Mod-row Thunderstore/Hexium/website icon buttons (MainWindow.axaml.cs,
+             BuildModLinkButton) — hover feedback is a slight in-place zoom of the icon itself,
+             not a background highlight (there's no room for one at 16px, and the gap between
+             icons is Margin, not Padding, specifically so it stays outside the hit area — see
+             BuildModLinkButton's own comment). -->
+        <Style Selector="Button.modLinkIcon">
+            <Setter Property="RenderTransform" Value="scale(1)"/>
+            <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.modLinkIcon:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.2)"/>
+        </Style>
+        <!-- Shared rotating-dash spinner look: used for the install-steps rows built
+             imperatively in MainWindow.axaml.cs (InstallProgressPanel, in the Install tab)
+             via a code-created Ellipse, and for ServerSelector's per-row "checking" dot below.
+             A class selector
+             lets both reuse one Animation/KeyFrame definition instead of duplicating it. -->
         <Style Selector="Ellipse.stepSpinner">
             <Setter Property="Stroke" Value="White"/>
             <Setter Property="StrokeThickness" Value="2"/>
@@ -81,8 +165,8 @@
             </Style.Animations>
         </Style>
 
-        <!-- Loading skeleton for the news panel: rounded placeholder bars with a light
-             band sweeping across, instead of blanking the whole panel while news.info loads. -->
+        <!-- Loading skeleton for the server news panel: rounded placeholder bars with a light
+             band sweeping across, instead of blanking the whole panel while changelog.md loads. -->
         <Style Selector="Border.skeletonBar">
             <Setter Property="CornerRadius" Value="5"/>
             <Setter Property="Height" Value="15"/>
@@ -116,365 +200,662 @@
                 </Animation>
             </Style.Animations>
         </Style>
+
+        <!-- Central tab area — first pass at Phase 2 of the redesign: everything that used
+             to be its own floating overlay (mods, changelog) or header widget (server/player
+             picker) now lives inside one tabbed panel. Deliberately minimal styling for now,
+             same as ServerSelector's own "default FluentTheme, custom look is a follow-up". -->
+        <Style Selector="TabControl.main">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <!-- #FFD6D6D6 is this app's one shared "secondary text" gray — every de-emphasized
+             label/status/tab-foreground color in this file and MainWindow.axaml.cs uses this
+             exact value (previously several close-but-different grays: B0B0B0 here, 190/190/190
+             and 160/160/160 in code for mod descriptions/versions). Picked for WCAG contrast,
+             not just aesthetics: the central panel's own background is a semi-transparent dark
+             fill (#80303030) over a photo, so its effective color varies with whatever's behind
+             it — B0B0B0 (176) only cleared ~6:1 against the panel's own nominal #303030 and
+             noticeably less over the photo's lighter patches. D6D6D6 (214) keeps ~9:1 against
+             #303030 and stays above WCAG AA (4.5:1) even against a much lighter blended
+             estimate, while still reading clearly dimmer than the White used for headers/
+             selected-tab text — the hierarchy step this needs to preserve. -->
+        <Style Selector="TabControl.main TabItem">
+            <Setter Property="Foreground" Value="#FFD6D6D6"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style Selector="TabControl.main TabItem:selected">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <!-- ServerSelector — default FluentTheme ComboBox styling read as too washed-out
+             against the blurred background photo (a barely-there gray box), so it doesn't
+             register as the important, always-available "change server" control it is,
+             especially now it's step 1 of the install-wizard flow. A solid dark fill plus a
+             visible border gives it the same presence as the tab card below instead of
+             floating semi-transparently over the background. -->
+        <Style Selector="ComboBox#ServerSelector">
+            <Setter Property="Background" Value="#E0202020"/>
+            <Setter Property="BorderBrush" Value="#40FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="ComboBox#ServerSelector:pointerover">
+            <Setter Property="Background" Value="#E0303030"/>
+        </Style>
+
+        <!-- LanguageSelector — same washed-out-default reasoning as ServerSelector, just a
+             smaller/quieter treatment: it sits over the tab card's own semi-transparent fill
+             (#80303030), not directly over the photo background, so it already has some
+             contrast to build on and doesn't need the same visual weight as the server
+             picker. -->
+        <Style Selector="ComboBox#LanguageSelector">
+            <Setter Property="Background" Value="#40FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#40FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="MinHeight" Value="26"/>
+        </Style>
+        <Style Selector="ComboBox#LanguageSelector:pointerover">
+            <Setter Property="Background" Value="#50FFFFFF"/>
+        </Style>
     </Window.Styles>
 
     <!-- HighQuality resampling everywhere: the button/background PNGs are authored at 1x,
          so on a HiDPI display they're being scaled up — bicubic hides that far better than
          the default. A proper fix still needs 2x assets (or vector). -->
     <Grid Name="RootGrid" RenderOptions.BitmapInterpolationMode="HighQuality">
-        <!-- Drag handler lives on the background image specifically, not the root Grid:
+        <!-- Drag handler lives on the background specifically, not the root Grid:
              PointerPressed bubbles up from whatever was actually clicked, and attaching it
              to the Grid meant every button/combobox click also triggered BeginMoveDrag on
-             the way up, hijacking the pointer before the control's own click could land. -->
-        <Image Source="avares://OdinsonsLauncher/Resources/background.png" Stretch="Fill"
-               PointerPressed="Background_PointerPressed"/>
+             the way up, hijacking the pointer before the control's own click could land.
 
-        <!-- Button panel background -->
-        <Border Name="MainButtons"
-                Width="334" Height="540"
-                VerticalAlignment="Top" HorizontalAlignment="Left"
-                Margin="10,10,0,0"
-                CornerRadius="20">
-            <Border.Background>
-                <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
-                    <GradientStop Offset="0" Color="#06151515"/>
-                    <GradientStop Offset="1" Color="#80373737"/>
-                </LinearGradientBrush>
-            </Border.Background>
+             An ImageBrush instead of a plain Image: Image has no equivalent of CSS
+             object-position, so there'd be no way to anchor the UniformToFill crop to the
+             left edge — ImageBrush's AlignmentX/AlignmentY do exactly that. Confirmed by eye
+             that TileBrush's AlignmentX="Left" keeps the RIGHT side of the source image
+             visible (crops from the left) rather than the CSS object-position reading of
+             "Left" — Right is the one that actually keeps the left side on screen.
+
+             background.jpg, not the old background.png: once the window became resizable, the
+             old 920x610 source ran out of pixels and visibly upscaled/softened past its own
+             native size on a larger window. The replacement is a full 1920x1080 source — much
+             more headroom — pre-blurred with a Gaussian filter (radius 15) and saved as JPEG
+             rather than blurred live every frame with an Avalonia BlurEffect: blur is static
+             content here, so paying for it once at build time instead of on every repaint costs
+             nothing at runtime, and a blurred photo is exactly the case JPEG compresses far
+             better than PNG (58KB here vs. 545KB for the old PNG, despite the much larger
+             source). -->
+        <Rectangle PointerPressed="Background_PointerPressed">
+            <Rectangle.Fill>
+                <ImageBrush Source="avares://OdinsonsLauncher/Resources/background.jpg"
+                            Stretch="UniformToFill" AlignmentX="Right" AlignmentY="Center"/>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <!-- Logo — sized to roughly match the Start button's width, and its own card is gone
+             (the central panel below now spans the full width in its place — see the Border
+             right after this) so nothing needs to visually anchor to a left column anymore. -->
+        <Image Source="avares://OdinsonsLauncher/Resources/logo.png"
+               Width="226" Height="61"
+               VerticalAlignment="Top" HorizontalAlignment="Left"
+               Margin="20,16,0,0"/>
+
+        <!-- Central panel — one continuous card spanning the tabs and the space the old
+             left-side button column used to occupy. Left/right margin (20/20) matches the
+             logo's own left margin and the window-control icons' effective right edge — see
+             the MinWidth comment at the top of this file for the whole header row's shared
+             20px rhythm.
+
+             Sits entirely below the header row (logo/picker/window controls) rather than
+             underneath it — top margin 93 = logo's own bottom edge (16 top margin + 61 tall =
+             77) plus that same 16px again, so the logo reads as centered in the header band
+             with equal space above and below it, not just "whatever's left after the card
+             starts at 20". Bottom margin stays 90, for the Start button below the card.
+
+             Stretch on both axes instead of a fixed Width/Height so it grows and shrinks with
+             the window. Flat color, not the left-to-right gradient this used to have: that
+             faded from near-transparent to visible because it used to run alongside a separate
+             (narrower) left column, giving a reason for one edge to read as barely-there. Once
+             the card became one continuous surface across the full window width, stretching
+             that same left-to-right fade over a much wider span just banded — visible
+             stair-stepping in the alpha interpolation, worse the wider the window got. A flat
+             fill has nothing to band. -->
+        <!-- BorderBrush/Thickness started as a diagnostic (confirmed the panel really is
+             clipped to its rounded shape — see the TabControl's own wrapping Border further
+             down — the curve just didn't read against the dark background without a visible
+             edge) but reads well enough to keep as a permanent, subtle outline. Every scroll
+             shadow's own inset is sized against this exact 1px stroke now — see
+             ScrollShadowTopBrush's comment. -->
+        <Border VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                Margin="20,93,20,90" CornerRadius="20"
+                BorderBrush="#40FFFFFF" BorderThickness="1"
+                Background="#80303030"/>
+
+        <!-- Server picker — global chrome: it affects every tab (players/mods/news/changelog
+             all depend on which server is selected), so it lives in the window's header row
+             (alongside the logo and window controls) rather than inside the Server tab's own
+             content or the tabs card below.
+
+             Two mutually-exclusive controls share this one spot — see RefreshServerSelectorMode
+             in MainWindow.axaml.cs. With 2+ servers, ServerSelector (a real dropdown) is the one
+             visible. With exactly 1 (today's Lite_v2-only launch), a disabled dropdown here read
+             as broken, not "there's only one, deliberately" — FluentTheme's default disabled
+             styling dims a control's whole opacity, which combined with a name nobody could
+             pick anything else for just looked faded and confusing, not "locked on purpose". So
+             instead SingleServerDisplay shows: same dot + name, full opacity, no dropdown chrome
+             to imply an unpickable choice.
+
+             Each row carries its own online/offline/checking dot (bound to ServerListItem.Status
+             in MainWindow.axaml.cs, via the shared ServerRowTemplate in Window.Resources). -->
+        <!-- Left margin (266) matches the logo's own right edge (20 margin + 226 wide = 246)
+             plus that same 20px gap again, so the logo reads as evenly spaced between the
+             window edge and the selector. Top margin (30) centers it against the logo's own
+             vertical center (16 margin + 61 tall / 2 = 46.5) and the window controls' (32 + 28
+             / 2 = 46) — same row, not the old fixed 20 it used to float at. -->
+        <ComboBox Name="ServerSelector"
+                  Width="190" Height="34"
+                  HorizontalAlignment="Left" VerticalAlignment="Top"
+                  Margin="266,30,0,0"
+                  ItemTemplate="{StaticResource ServerRowTemplate}"
+                  SelectionChanged="ServerSelector_SelectionChanged"
+                  DropDownOpened="ServerSelector_DropDownOpened"/>
+
+        <ContentControl Name="SingleServerDisplay"
+                         Width="190" Height="34"
+                         HorizontalAlignment="Left" VerticalAlignment="Top"
+                         Margin="278,34,0,0"
+                         VerticalContentAlignment="Center"
+                         ContentTemplate="{StaticResource ServerRowTemplate}"
+                         IsVisible="False"/>
+
+        <!-- Wraps just the TabControl (not the Border above, which only paints the card's
+             background and stays a separate sibling so it's still behind ServerSelector/logo
+             like before) purely to clip it — ClipToBounds="True" plus the exact same
+             Margin/CornerRadius as that background Border. Anything the tab content draws right
+             at its own edges (the full-width scroll-top-shadow, in particular — see
+             ScrollShadowTopBrush's own comment) used to square off the background Border's
+             rounded corners instead of curving with them, since nothing was actually clipping
+             tab content to the rounded shape before. Border+ClipToBounds clips children to the
+             CornerRadius geometry, not just the rectangular bounds (same mechanism
+             Border.skeletonBar already relies on for its own sweep animation). -->
+        <Border Margin="20,93,20,90" CornerRadius="20" ClipToBounds="True">
+        <!-- A Panel, not just the TabControl directly: Border only allows one child, and
+             LanguageSelector below needs to sit alongside it, not inside it (see the
+             AVLN3000 note elsewhere in this file about wrapping a Border's existing single
+             child by mistake instead of adding a sibling layer like this). -->
+        <Panel>
+        <!-- Tab order doubles as the install-wizard sequence (see MainWindow.axaml.cs,
+             StartGameBtn_Click/UpdateWizardButton): Server (who's online, what's new, pick a
+             different one) → Mods (pick optional ones) → Install (check, install, play). The
+             main action button's label names whichever of these is next and its click lands
+             there; every tab stays independently clickable regardless. -->
+        <TabControl Name="MainTabControl" Classes="main"
+                    VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                    SelectionChanged="MainTabControl_SelectionChanged">
+
+            <!-- Сервер: vikings-online list in a fixed-width left column (see
+                 ComputePlayersColumnWidth in MainWindow.axaml.cs — sized from Valheim's own
+                 24-character name cap, not guessed), server description (short servers.json
+                 tagline + the longer per-server info.md, see FetchServerInfoAsync) and changelog
+                 (this server's own changelog.md, see ShowChangelogAsync) stacked in the
+                 remaining space on the right — description on top at its natural height,
+                 changelog filling whatever's left below it. Used to be two tabs (Server,
+                 Changelog); folded into one since separating them just left players wondering
+                 where the changelog had gone.
+
+                 First TabItem — TabControl selects the first one by default, and this is meant
+                 to be it: whether a game update is needed isn't something worth landing on
+                 first, the server itself (who's online, what's new) is. -->
+            <TabItem Name="ServerTab">
+                <!-- No explicit gap column: the two panels' own facing margins (10 each,
+                     below) add up to 20 — the same inset the TabControl itself has from the
+                     window's left/right edges (see the Border above), so the gap between
+                     panels reads as the same "unit" as everything else instead of its own
+                     wider one. -->
+                <Grid ColumnDefinitions="Auto,*">
+                <Grid Grid.Column="0" Name="PlayersColumn">
+                    <ScrollViewer Name="PlayersScrollViewer" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="12,12,10,12" Spacing="14">
+                            <TextBlock Name="PlayersHeading" Foreground="White" FontSize="15" FontWeight="Bold"/>
+                            <ItemsControl Name="PlayersList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="views:MainWindow+PlayerListItem">
+                                        <!-- Grid, not a horizontal StackPanel: a StackPanel never
+                                             constrains a child's width (each gets "however much
+                                             it wants" to measure with), so TextWrapping/
+                                             TextTrimming on the name TextBlock below had nothing
+                                             to actually wrap or trim against — long text just
+                                             overflowed past the column instead. The Grid's "*"
+                                             column gives it a real width to work within. -->
+                                        <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,8">
+                                            <Panel Grid.Column="0" Width="28" Height="28">
+                                                <Image Source="{Binding Avatar}" Width="28" Height="28" Stretch="UniformToFill"
+                                                       IsVisible="{Binding ShowAvatar}"/>
+
+                                                <!-- Loading skeleton: a softly pulsing circle standing
+                                                     in for an avatar that hasn't downloaded yet. -->
+                                                <Ellipse Width="28" Height="28" Fill="#FF4A4A4A" IsVisible="{Binding ShowSkeleton}">
+                                                    <Ellipse.Styles>
+                                                        <Style Selector="Ellipse">
+                                                            <Style.Animations>
+                                                                <Animation Duration="0:0:0.9" IterationCount="INFINITE" PlaybackDirection="Alternate">
+                                                                    <KeyFrame Cue="0%">
+                                                                        <Setter Property="Opacity" Value="0.35"/>
+                                                                    </KeyFrame>
+                                                                    <KeyFrame Cue="100%">
+                                                                        <Setter Property="Opacity" Value="0.9"/>
+                                                                    </KeyFrame>
+                                                                </Animation>
+                                                            </Style.Animations>
+                                                        </Style>
+                                                    </Ellipse.Styles>
+                                                </Ellipse>
+
+                                                <!-- "Nobody here" icon for the empty-server row: a plain
+                                                     circle-with-slash, not an avatar shape, so it doesn't
+                                                     read as a broken/missing image. -->
+                                                <Panel IsVisible="{Binding ShowEmptyIcon}">
+                                                    <Ellipse Width="28" Height="28" Stroke="#FF808080" StrokeThickness="1.5"/>
+                                                    <Line StartPoint="6,6" EndPoint="22,22" Stroke="#FF808080" StrokeThickness="1.5"/>
+                                                </Panel>
+                                            </Panel>
+                                            <TextBlock Grid.Column="1" Margin="10,0,0,0"
+                                                       Text="{Binding Name}" Foreground="White" FontSize="14" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" TextWrapping="{Binding NameWrapping}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <Border Name="PlayersTopShadow" Height="10" Margin="1,0,1,0" VerticalAlignment="Top"
+                            Background="{StaticResource ScrollShadowTopBrush}" IsHitTestVisible="False" IsVisible="False"/>
+                    <!-- Asymmetric on purpose, like every other bottom shadow in this TabControl:
+                         20 clears the panel's actual rounded bottom-left corner; 1 (facing the
+                         column gap, nowhere near a corner) only needs to clear the outline
+                         stroke, same reasoning as the top shadow. -->
+                    <Border Name="PlayersBottomShadow" Height="10" Margin="20,0,1,0" VerticalAlignment="Bottom"
+                            Background="{StaticResource ScrollShadowBottomBrush}" IsHitTestVisible="False" IsVisible="False"/>
+                </Grid>
+
+                <!-- One shared ScrollViewer for description + changelog together, not one each
+                     — splitting them left the changelog with barely any room of its own
+                     whenever the description ran long, since each got a fixed slice of the
+                     tab's height instead of sharing all of it. -->
+                <Grid Grid.Column="1" Name="ServerRightColumn">
+                    <ScrollViewer Name="ServerRightScrollViewer" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="10,12,12,12" Spacing="14">
+                            <TextBlock Name="ServerDescriptionText" IsVisible="False"
+                                       Foreground="#FFD8D8D8" FontSize="13" TextWrapping="Wrap"/>
+
+                            <TextBlock Name="ServerInfoHeading" Foreground="White" FontSize="15" FontWeight="Bold"/>
+                            <Grid>
+                                <StackPanel Name="ServerInfoContent"/>
+
+                                <!-- Loading skeleton: swaps out once FetchServerInfoAsync
+                                     returns, so nothing blinks while info.md loads. -->
+                                <StackPanel Name="ServerInfoSkeleton" HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                                    <Border Classes="skeletonBar" Width="430"><Rectangle/></Border>
+                                    <Border Classes="skeletonBar" Width="392"><Rectangle/></Border>
+                                    <Border Classes="skeletonBar" Width="286"><Rectangle/></Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <Border Height="1" Background="#1FFFFFFF"/>
+                            <TextBlock Name="ChangelogHeading" Foreground="White" FontSize="15" FontWeight="Bold"/>
+                            <StackPanel Name="ChangelogContent"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <Border Name="ServerRightTopShadow" Height="10" Margin="1,0,1,0" VerticalAlignment="Top"
+                            Background="{StaticResource ScrollShadowTopBrush}" IsHitTestVisible="False" IsVisible="False"/>
+                    <Border Name="ServerRightBottomShadow" Height="10" Margin="1,0,20,0" VerticalAlignment="Bottom"
+                            Background="{StaticResource ScrollShadowBottomBrush}" IsHitTestVisible="False" IsVisible="False"/>
+                </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- Моды: reachable directly at any time; the wizard button routes here until it's
+                 been visited at least once — see MarkModsTabVisited/StartGameBtn_Click. -->
+            <TabItem Name="ModsTab">
+                <Grid>
+                <ScrollViewer Name="ModsScrollViewer" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Name="ModsContent" Margin="12"/>
+                </ScrollViewer>
+                <Border Name="ModsTopShadow" Height="10" Margin="1,0,1,0" VerticalAlignment="Top"
+                        Background="{StaticResource ScrollShadowTopBrush}" IsHitTestVisible="False" IsVisible="False"/>
+                <Border Name="ModsBottomShadow" Height="10" Margin="20,0,20,0" VerticalAlignment="Bottom"
+                        Background="{StaticResource ScrollShadowBottomBrush}" IsHitTestVisible="False" IsVisible="False"/>
+                </Grid>
+            </TabItem>
+
+            <!-- Установка: last step of the wizard sequence — check, install, play. -->
+            <TabItem Name="InstallTab">
+                <Grid>
+                <ScrollViewer Name="InstallScrollViewer" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="12" Spacing="14">
+                        <!-- How the game will actually launch — set once the update check decides;
+                             see MainWindow.axaml.cs, SetInjectorPlan. Empty until the first check runs. -->
+                        <TextBlock Name="InstallStatusText"
+                                   Foreground="#FFD6D6D6" FontSize="13" TextWrapping="Wrap"/>
+                        <!-- Forces a full re-verification of every file, including the ones a normal
+                             start skips for speed — pointless before the client exists at all, so
+                             it starts hidden and only appears once RefreshFullCheckVisibility (see
+                             MainWindow.axaml.cs) confirms an install is actually there. -->
+                        <Button Name="FullCheck" Classes="iconButton" HorizontalAlignment="Left"
+                                IsVisible="False" Click="StartGameBtn_Click_Full">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Panel Width="20" Height="20">
+                                    <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/service.png" Stretch="Fill"/>
+                                    <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/service_green.png" Stretch="Fill"/>
+                                </Panel>
+                                <TextBlock Name="FullCheckLabel" Foreground="White" FontSize="13" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Collapsible, same chevron+animated-height pattern as a mod's own
+                             description (BuildModRow/BuildModChevronVisual in
+                             MainWindow.axaml.cs) — built here instead, since this group is a
+                             fixed, XAML-known set rather than a dynamically built list. Starts
+                             expanded (Height left at Auto); StartInstallSettingsCollapseWatch's
+                             ShowProgress/HideProgress hooks auto-collapse and disable the group
+                             once a real check/install starts, since at that point these settings
+                             are just noise competing with the step list for space — but the
+                             chevron itself stays clickable throughout, so re-expanding to look
+                             (not edit) is never blocked. -->
+                        <!-- Own tight Spacing, distinct from the outer StackPanel's 14 — without
+                             it, that 14 landed both above AND below InstallSettingsHeaderRow
+                             (once between it and whatever's above, once between it and
+                             InstallSettingsBox), reading as a much bigger gap under the header
+                             than the checkboxes' own 3 between each other. -->
+                        <StackPanel Spacing="4">
+                        <Grid Name="InstallSettingsHeaderRow" Background="Transparent"
+                              ColumnDefinitions="Auto,*" Cursor="Hand">
+                            <Panel Name="InstallSettingsChevronSlot" Grid.Column="0"
+                                   Width="16" Height="16" VerticalAlignment="Center"/>
+                            <TextBlock Name="InstallSettingsHeaderText" Grid.Column="1"
+                                       Foreground="White" FontSize="13" FontWeight="Bold"
+                                       VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        </Grid>
+                        <Border Name="InstallSettingsBox" ClipToBounds="True">
+                            <!-- Own tighter Spacing than that too — these four read as one
+                                 related group of checkboxes, not separate settings that happen
+                                 to be near each other. IsEnabled toggles as one unit (disables
+                                 every CheckBox inside) while a check/install is actually
+                                 running — see ShowProgress/HideProgress. -->
+                            <StackPanel Name="InstallSettingsStack" Spacing="3">
+                                <!-- Persisted (config.ini) across launches — see LoadAutoStartPreference /
+                                     AutoStartAfterValidationCheckBox_Click. Governs the "start" flag passed
+                                     to StartGameAsync from the wizard button once IsClientInstalled is false
+                                     (the FullCheck button above always passes start:false regardless, a
+                                     deliberate re-verify, not an install). -->
+                                <CheckBox Name="AutoStartAfterValidationCheckBox"
+                                           Foreground="#FFD6D6D6" FontSize="13"
+                                           Click="AutoStartAfterValidationCheckBox_Click"/>
+
+                                <!-- Windows only — see LoadDesktopShortcutState/DesktopShortcutCheckBox_Click
+                                     in MainWindow.axaml.cs. Not persisted in config.ini: IsChecked is
+                                     derived from whether the shortcut file actually exists, so it can't
+                                     drift out of sync with reality if the player deletes it by hand. -->
+                                <CheckBox Name="DesktopShortcutCheckBox"
+                                           Foreground="#FFD6D6D6" FontSize="13"
+                                           Click="DesktopShortcutCheckBox_Click"/>
+
+                                <!-- Windows only, same reasoning/pattern as DesktopShortcutCheckBox
+                                     above — see LoadStartMenuShortcutState/StartMenuShortcutCheckBox_Click. -->
+                                <CheckBox Name="StartMenuShortcutCheckBox"
+                                           Foreground="#FFD6D6D6" FontSize="13"
+                                           Click="StartMenuShortcutCheckBox_Click"/>
+
+                                <!-- Windows only — same "IsChecked reflects live reality" pattern as the
+                                     two shortcut checkboxes above, but the reality it reflects is
+                                     Defender's own exclusion list (DefenderExclusion.IsExcluded), not a
+                                     file on disk. A permanent, always-reachable equivalent of the old
+                                     one-time popup — see defender.message's own comment in Loc.cs. -->
+                                <CheckBox Name="DefenderExclusionCheckBox"
+                                           Foreground="#FFD6D6D6" FontSize="13"
+                                           Click="DefenderExclusionCheckBox_Click"/>
+                            </StackPanel>
+                        </Border>
+                        </StackPanel>
+
+                        <!-- Install progress: a grouped step list (see FileDownloader.BuildStepList)
+                             replacing the old two-bar strip, which used to visibly reset to 0% every
+                             time the download moved from one unrelated phase to the next. Lives here
+                             instead of a full-window overlay now — ShowProgress switches to this tab
+                             so it's never started off-screen, but the rest of the app (other tabs)
+                             stays usable while it runs instead of being dimmed out from under it.
+
+                             No background/padding of its own — this is the tab's own content, one
+                             level deep in the central card, not a boxed-in panel sitting inside it.
+                             (The Stop button used to live at the bottom of this list — it moved to
+                             the bottom bar, in the Start button's own spot, so it can't scroll out
+                             of view once there are enough parallel downloads to fill the screen.) -->
+                        <StackPanel Name="InstallProgressPanel" IsVisible="False" Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Name="InstallStepLabel" Grid.Column="0"
+                                           Foreground="White" FontSize="16" FontWeight="Bold"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Name="InstallStepCounter" Grid.Column="1"
+                                           Foreground="#FFD6D6D6" FontSize="12"
+                                           VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            </Grid>
+                            <ProgressBar Name="InstallOverallProgress" Minimum="0" Maximum="100" Value="0" Height="8"/>
+                            <StackPanel Name="InstallStepsPanel" Spacing="6"/>
+                            <StackPanel Name="DownloadDetailPanel" Spacing="7" IsVisible="False">
+                                <Border Height="1" Background="#1FFFFFFF"/>
+                                <TextBlock Name="DownloadDetailHeadline" Foreground="#FFD8D8D8" FontSize="12"/>
+                                <StackPanel Name="DownloadDetailList" Spacing="5"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+                <Border Name="InstallTopShadow" Height="10" Margin="1,0,1,0" VerticalAlignment="Top"
+                        Background="{StaticResource ScrollShadowTopBrush}" IsHitTestVisible="False" IsVisible="False"/>
+                <Border Name="InstallBottomShadow" Height="10" Margin="20,0,20,0" VerticalAlignment="Bottom"
+                        Background="{StaticResource ScrollShadowBottomBrush}" IsHitTestVisible="False" IsVisible="False"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Sits in the same row as the tab headers themselves — which only take up as much
+             width as their own labels need and stay pinned to the left (TabControl.main's
+             default FluentTheme tab strip isn't stretched), leaving the rest of that row free.
+             Right margin (22) clears the wrapping Border's own CornerRadius (20) so this
+             doesn't sit under the curved top-right corner; top margin is an eyeballed guess at
+             the (theme-default, not explicitly set anywhere) tab strip's own height and may
+             need a follow-up nudge once seen on screen. -->
+        <ComboBox Name="LanguageSelector"
+                  HorizontalAlignment="Right" VerticalAlignment="Top"
+                  Margin="0,6,22,0"
+                  ItemTemplate="{StaticResource LanguageRowTemplate}"
+                  SelectionChanged="LanguageSelector_SelectionChanged"/>
+        </Panel>
         </Border>
 
-        <!-- Logo -->
-        <Image Source="avares://OdinsonsLauncher/Resources/logo.png"
-               Width="298" Height="81"
-               VerticalAlignment="Top" HorizontalAlignment="Left"
-               Margin="28,27,0,0"/>
+        <!-- Start button — used to live in its own left-side column; that column is gone, so
+             it's pressed to the window's own left/bottom grid margin (20/20, the same ones the
+             central panel and the header row use) instead. The central panel's bottom margin
+             (90) is sized to leave exactly this button room above it. -->
+        <!-- Bottom row: Start/Stop and the site/Discord/version/copyright info block share one
+             64px-tall band, bottom-anchored together, so the info block can be vertically
+             centered against the button's own height (VerticalAlignment="Center" below) instead
+             of guessing a margin against its own (font-metric-dependent) content height. -->
+        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Height="64" Margin="20,0,20,14">
+            <Grid Name="StartButtonGrid" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <!-- Content built in code (BuildStretchButtonContent) from start-left/center/right.png:
+                     fixed-size end caps either side, the center tile repeated via ImageBrush TileMode
+                     to fill however wide the label needs — see MainWindow.axaml.cs constructor. No
+                     Width here: the Button sizes to that content, only Height is fixed.
 
-        <!-- Discord button -->
-        <Button Classes="iconButton" Width="176" Height="52"
-                HorizontalAlignment="Left" VerticalAlignment="Top"
-                Margin="89,153,0,0" Click="DiscordButton_Click">
-            <Panel>
-                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/discord.png" Stretch="Fill"/>
-                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/discord_hover.png" Stretch="Fill"/>
-            </Panel>
-        </Button>
+                     Starts disabled: that content is built later, from Loaded, off the UI
+                     thread's Background-priority queue (see BuildActionButtons) rather than in
+                     the constructor — without this, a click landing in that brief gap would hit
+                     a null _installCancelLabel down the line. Re-enabled at the end of
+                     BuildActionButtons. -->
+                <Button Name="StartGameBtn" Classes="iconButton" Height="64" IsEnabled="False"
+                        Click="StartGameBtn_Click"/>
+            </Grid>
 
-        <!-- Telegram button -->
-        <Button Classes="iconButton" Width="176" Height="52"
-                HorizontalAlignment="Left" VerticalAlignment="Top"
-                Margin="89,235,0,0" Click="TelegramButton_Click">
-            <Panel>
-                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/telegram.png" Stretch="Fill"/>
-                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/telegram_hover.png" Stretch="Fill"/>
-            </Panel>
-        </Button>
+            <!-- Stop button — same spot as Start, a separate element rather than a child of
+                 StartButtonGrid so StartButtonGrid's Opacity fade (0 while an update runs)
+                 doesn't hide this along with it. Shown/hidden opposite Start by
+                 ShowProgress/HideProgress. Also used to live inside the Install tab's own
+                 scroll content, where enough parallel downloads could push it below the fold —
+                 impossible here, it's outside the ScrollViewer entirely.
 
-        <!-- Website button -->
-        <Button Classes="iconButton" Width="176" Height="52"
-                HorizontalAlignment="Left" VerticalAlignment="Top"
-                Margin="89,317,0,0" Click="WebsiteButton_Click">
-            <Panel>
-                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/website.png" Stretch="Fill"/>
-                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/website_hover.png" Stretch="Fill"/>
-            </Panel>
-        </Button>
+                 Content built in code the same way Start is, from start-danger-burgundy-left/
+                 center/right.png — see the constructor. Sized wide enough for the longest of
+                 the three strings the label can show (BuildStretchButtonContent's
+                 possibleTexts), not just whichever one is set first. The label text itself is
+                 set on _installCancelLabel, not Content — see UpdateInstallHeader /
+                 InstallCancelButton_Click. -->
+            <Button Name="InstallCancelButton" IsVisible="False" Classes="iconButton"
+                    Height="64" HorizontalAlignment="Left" VerticalAlignment="Center"
+                    Click="InstallCancelButton_Click"/>
 
-        <!-- Donate button -->
-        <Button Classes="iconButton" Width="176" Height="52"
-                HorizontalAlignment="Left" VerticalAlignment="Top"
-                Margin="89,399,0,0" Click="DonateButton_Click">
-            <Panel>
-                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/donate.png" Stretch="Fill"/>
-                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/donate_hover.png" Stretch="Fill"/>
-            </Panel>
-        </Button>
+            <!-- Launcher version on top (clickable — opens the launcher's own CHANGELOG.md on
+                 GitHub in the default browser, see LauncherChangelogButton_Click), copyright
+                 below it (plain text, not clickable), site/Discord at the bottom. -->
+            <StackPanel Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Name="LauncherChangelogButton" Classes="iconButton" HorizontalAlignment="Right"
+                        Click="LauncherChangelogButton_Click">
+                    <TextBlock Name="LauncherVersionText" FontSize="12" Foreground="White"/>
+                </Button>
 
-        <!-- Start button -->
-        <Grid Name="StartButtonGrid">
-            <Button Name="StartGameBtn" Classes="iconButton" Width="226" Height="64"
-                    HorizontalAlignment="Left" VerticalAlignment="Top"
-                    Margin="64,480,0,0" Click="StartGameBtn_Click">
-                <Panel>
-                    <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/start.png" Stretch="Fill"/>
-                    <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/start_hover.png" Stretch="Fill"/>
-                </Panel>
-            </Button>
-        </Grid>
+                <TextBlock Name="CopyrightText" FontSize="12" Foreground="#FFD6D6D6" HorizontalAlignment="Right"/>
 
-        <!-- How the game will actually launch — set once the update check decides
-             (see MainWindow.axaml.cs, SetInjectorPlan). Empty until the first check runs.
-             Sits in the gap between the Donate button (ends y=451) and the Start button
-             (begins y=480) — InstallProgressGrid covers the whole window once an update
-             is actually running, so there's no clash to worry about there anymore. NoWrap +
-             ellipsis instead of Wrap: this gap is only ~25px tall, one wrapped line would
-             already overflow it. -->
-        <TextBlock Name="InstallStatusText"
-                   Margin="64,458,0,0"
-                   HorizontalAlignment="Left" VerticalAlignment="Top" Width="226"
-                   TextAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
-                   FontSize="10" Foreground="#FFB0B0B0"/>
-
-        <!-- Server status indicator -->
-        <Ellipse Name="ServerStatusIndicator"
-                 Width="10" Height="10" Fill="Red"
-                 HorizontalAlignment="Left" VerticalAlignment="Top"
-                 Margin="384,22,0,0"/>
-
-        <!-- Shown instead of the dot while a status check is in flight (see
-             ShowServerChecking/ShowServerStatus in MainWindow.axaml.cs) — otherwise the
-             previous server's color just sits there, unchanged, for however long the
-             check takes, and looks like the switch did nothing. -->
-        <Ellipse Name="ServerCheckSpinner"
-                 Width="10" Height="10"
-                 Stroke="White" StrokeThickness="2" StrokeDashArray="3,3.7"
-                 IsVisible="False"
-                 HorizontalAlignment="Left" VerticalAlignment="Top"
-                 Margin="384,22,0,0"
-                 RenderTransformOrigin="50%,50%">
-            <Ellipse.RenderTransform>
-                <RotateTransform Angle="0"/>
-            </Ellipse.RenderTransform>
-            <Ellipse.Styles>
-                <Style Selector="Ellipse#ServerCheckSpinner">
-                    <Style.Animations>
-                        <Animation Duration="0:0:0.9" IterationCount="INFINITE">
-                            <KeyFrame Cue="0%">
-                                <Setter Property="RotateTransform.Angle" Value="0"/>
-                            </KeyFrame>
-                            <KeyFrame Cue="100%">
-                                <Setter Property="RotateTransform.Angle" Value="360"/>
-                            </KeyFrame>
-                        </Animation>
-                    </Style.Animations>
-                </Style>
-            </Ellipse.Styles>
-        </Ellipse>
-
-        <!-- Server picker — default FluentTheme styling for now, custom look is a follow-up -->
-        <ComboBox Name="ServerSelector"
-                  Width="160" Height="34"
-                  HorizontalAlignment="Left" VerticalAlignment="Top"
-                  Margin="403,10,0,0"
-                  SelectionChanged="ServerSelector_SelectionChanged"/>
-
-        <!-- Player count — a real ComboBox, same as ServerSelector, so the chrome (border,
-             arrow, height, hover/pressed states) matches exactly instead of being
-             hand-approximated. "Selecting" a row is meaningless here (nothing to select),
-             so PlayerCountSelector_SelectionChanged immediately snaps SelectedItem back to
-             the header row — which is what keeps showing "Vikings: N" as the closed-box
-             content, styled the same as ServerSelector's own real selection. -->
-        <ComboBox Name="PlayerCountSelector"
-                  Width="170" Height="34"
-                  HorizontalAlignment="Left" VerticalAlignment="Top"
-                  Margin="583,10,0,0"
-                  SelectionChanged="PlayerCountSelector_SelectionChanged">
-            <ComboBox.ItemTemplate>
-                <DataTemplate x:CompileBindings="False">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <!-- Three mutually-exclusive layers, one per PlayerListItem.ShowXxx flag —
-                             the header row hides this whole slot instead of leaving it empty. -->
-                        <Panel Width="24" Height="24" IsVisible="{Binding ShowSlot}">
-                            <Image Source="{Binding Avatar}" Width="24" Height="24" Stretch="UniformToFill"
-                                   IsVisible="{Binding ShowAvatar}"/>
-
-                            <!-- Loading skeleton: a softly pulsing circle standing in for an avatar
-                                 that hasn't downloaded yet. -->
-                            <Ellipse Width="24" Height="24" Fill="#FF4A4A4A" IsVisible="{Binding ShowSkeleton}">
-                                <Ellipse.Styles>
-                                    <Style Selector="Ellipse">
-                                        <Style.Animations>
-                                            <Animation Duration="0:0:0.9" IterationCount="INFINITE" PlaybackDirection="Alternate">
-                                                <KeyFrame Cue="0%">
-                                                    <Setter Property="Opacity" Value="0.35"/>
-                                                </KeyFrame>
-                                                <KeyFrame Cue="100%">
-                                                    <Setter Property="Opacity" Value="0.9"/>
-                                                </KeyFrame>
-                                            </Animation>
-                                        </Style.Animations>
-                                    </Style>
-                                </Ellipse.Styles>
-                            </Ellipse>
-
-                            <!-- "Nobody here" icon for the empty-server row: a plain circle-with-slash,
-                                 not an avatar shape, so it doesn't read as a broken/missing image. -->
-                            <Panel IsVisible="{Binding ShowEmptyIcon}">
-                                <Ellipse Width="24" Height="24" Stroke="#FF808080" StrokeThickness="1.5"/>
-                                <Line StartPoint="5,5" EndPoint="19,19" Stroke="#FF808080" StrokeThickness="1.5"/>
-                            </Panel>
-                        </Panel>
-                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </DataTemplate>
-            </ComboBox.ItemTemplate>
-        </ComboBox>
-
-        <!-- Changelog button -->
-        <Button Name="ChangelogButton" Classes="iconButton"
-                HorizontalAlignment="Left" VerticalAlignment="Top"
-                Margin="799,17,0,0" Width="20" Height="20"
-                Click="ChangelogButton_Click" ZIndex="10">
-            <Panel>
-                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/settings.png" Stretch="Fill"/>
-                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/settings_hover.png" Stretch="Fill"/>
-            </Panel>
-        </Button>
-
-        <!-- Full check button -->
-        <Button Name="FullCheck" Classes="iconButton"
-                HorizontalAlignment="Left" VerticalAlignment="Top"
-                Margin="768,18,0,0" Width="20" Height="20"
-                Click="StartGameBtn_Click_Full">
-            <Panel>
-                <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/service.png" Stretch="Fill"/>
-                <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/service_green.png" Stretch="Fill"/>
-            </Panel>
-        </Button>
-
-        <!-- News block. The panel background stays put — only its content swaps between
-             a loading skeleton and the text, so nothing blinks while news.info loads. -->
-        <Grid Name="NewsGrid">
-            <Border Width="489" Height="390"
-                    VerticalAlignment="Top" HorizontalAlignment="Left"
-                    Margin="384,153,0,0" CornerRadius="20">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
-                        <GradientStop Offset="0" Color="#06151515"/>
-                        <GradientStop Offset="1" Color="#80373737"/>
-                    </LinearGradientBrush>
-                </Border.Background>
-            </Border>
-
-            <ScrollViewer Width="452" Height="365"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalAlignment="Left" VerticalAlignment="Top"
-                          Margin="402,170,0,0">
-                <TextBlock Name="News" TextWrapping="Wrap" Foreground="White" FontSize="16"/>
-            </ScrollViewer>
-
-            <StackPanel Name="NewsSkeleton"
-                        Width="452"
-                        HorizontalAlignment="Left" VerticalAlignment="Top"
-                        Margin="402,178,0,0">
-                <Border Classes="skeletonBar" Width="430"><Rectangle/></Border>
-                <Border Classes="skeletonBar" Width="392"><Rectangle/></Border>
-                <Border Classes="skeletonBar" Width="418"><Rectangle/></Border>
-                <Border Classes="skeletonBar" Width="286"><Rectangle/></Border>
-                <Border Classes="skeletonBar" Width="60" Margin="0,0,0,30"><Rectangle/></Border>
-                <Border Classes="skeletonBar" Width="404"><Rectangle/></Border>
-                <Border Classes="skeletonBar" Width="370"><Rectangle/></Border>
-                <Border Classes="skeletonBar" Width="228"><Rectangle/></Border>
+                <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Right">
+                    <Button Classes="iconButton" Click="WebsiteButton_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <!-- Feather Icons "globe" (MIT) — a generic site icon, not a brand
+                                 mark, so unlike Discord's logo any plain globe glyph would do
+                                 here. -->
+                            <Viewbox Width="14" Height="14">
+                                <Canvas Width="24" Height="24">
+                                    <Ellipse Canvas.Left="2" Canvas.Top="2" Width="20" Height="20"
+                                             Stroke="White" StrokeThickness="2"/>
+                                    <Line StartPoint="2,12" EndPoint="22,12" Stroke="White" StrokeThickness="2"/>
+                                    <Path Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                                          Data="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                                </Canvas>
+                            </Viewbox>
+                            <TextBlock Name="OurSiteLinkText" FontSize="13" Foreground="White" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="iconButton" Click="DiscordButton_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <!-- Discord's own brand guidelines (discord.com/branding) list color,
+                                 white, or black as the only sanctioned ways to show this mark —
+                                 "reconfiguring" it (e.g. into a custom stroke-only outline) isn't
+                                 one of them, so white fill instead of the blurple is as far as
+                                 this can go and stay compliant. Matches the plain white globe
+                                 next to it either way. -->
+                            <Viewbox Width="14" Height="14">
+                                <Path Fill="White"
+                                      Data="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+                            </Viewbox>
+                            <TextBlock Text="Discord" FontSize="13" Foreground="White" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </StackPanel>
         </Grid>
 
-        <!-- Launcher version — one flowing label instead of two independently-positioned
-             TextBlocks, so the version number can never visually drift away from its label
-             regardless of font metrics. -->
-        <TextBlock Name="CopyrightText"
-                   Margin="599,589,10,0"
-                   HorizontalAlignment="Left" VerticalAlignment="Top"
-                   FontSize="12" Foreground="White"/>
+        <!-- Window controls — anchored Right/Top so they stay pinned to the actual window
+             corner as it's resized, independent of the fixed-position tabs card next to them
+             (which stays put on its own left-anchored margin instead of stretching). -->
 
-        <!-- Install progress panel: a grouped step list (see FileDownloader.BuildStepList)
-             replacing the old two-bar strip, which used to visibly reset to 0% every time
-             the download moved from one unrelated phase to the next. -->
-        <Grid Name="InstallProgressGrid" IsVisible="False" ZIndex="1000">
-            <!-- Same drag handler as the window background: without it, this overlay's own
-                 Rectangle intercepts every click and the window can't be moved for the whole
-                 (often multi-minute) duration of an update. -->
-            <Rectangle Fill="#E6000000" Width="900" Height="610"
-                       PointerPressed="Background_PointerPressed"/>
-            <Border Width="520"
-                    VerticalAlignment="Center" HorizontalAlignment="Center"
-                    CornerRadius="16" Padding="28" Background="#FF232323">
-                <StackPanel Spacing="14">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Name="InstallStepLabel" Grid.Column="0"
-                                   Foreground="White" FontSize="16" FontWeight="Bold"
-                                   TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Name="InstallStepCounter" Grid.Column="1"
-                                   Foreground="#FFB0B0B0" FontSize="12"
-                                   VerticalAlignment="Center" Margin="12,0,0,0"/>
-                    </Grid>
-                    <ProgressBar Name="InstallOverallProgress" Minimum="0" Maximum="100" Value="0" Height="8"/>
-                    <StackPanel Name="InstallStepsPanel" Spacing="6"/>
-                    <StackPanel Name="DownloadDetailPanel" Spacing="7" IsVisible="False">
-                        <Border Height="1" Background="#1FFFFFFF"/>
-                        <TextBlock Name="DownloadDetailHeadline" Foreground="#FFD8D8D8" FontSize="12"/>
-                        <StackPanel Name="DownloadDetailList" Spacing="5"/>
-                    </StackPanel>
-                    <Button Name="InstallCancelButton" HorizontalAlignment="Right"
-                            Click="InstallCancelButton_Click"/>
-                </StackPanel>
-            </Border>
-        </Grid>
+        <!-- Minimize button — sized/positioned to line up with the logo's own height.
 
-        <!-- Minimize button -->
+             The hit area (48x48) is bigger than the 28x28 icon on every side — a slightly-off
+             click still lands on it — but the icon Panel is pinned to 28x28 and centered, so
+             nothing about how it looks or where its visual center sits changes; only the
+             invisible hit area around it grows. Deliberately sized so the three buttons' hit
+             areas touch edge-to-edge (icon centers are 48px apart, same as the hit area size) —
+             bigger than that would start overlapping the neighbor's — specifically to widen the
+             zone that closes the launcher, the one control among these three where missing
+             matters most. Margins are the icon-center math: was 40x40 at (0,26,110,0) with the
+             icon centered inside; growing to 48x48 around that same center shifts top by
+             (48-40)/2=4 and right by the same, so 26-4=22 / 110-4=106. -->
         <Button Name="MinimizeButton" Classes="iconButton"
-                Height="20" Width="24"
-                Margin="834,20,0,0"
-                VerticalAlignment="Top" HorizontalAlignment="Left"
+                Height="48" Width="48"
+                Margin="0,22,106,0"
+                VerticalAlignment="Top" HorizontalAlignment="Right"
                 Click="Minimize">
-            <Panel>
+            <Panel Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/minimaze.png" Stretch="Uniform"/>
                 <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/minimaze_hover.png" Stretch="Uniform"/>
             </Panel>
         </Button>
 
-        <!-- Close button -->
+        <!-- Maximize/restore button — MaximizeIcon/RestoreIcon visibility is flipped in
+             code-behind (see UpdateMaximizeIcon) whenever WindowState actually changes, not
+             just from this button — the OS's own Win+Up/Down shortcuts still work with
+             SystemDecorations="None" and would otherwise leave the icon stale. Each of the two
+             states has its own normalImg/hoverImg pair, same pattern as Minimize/Close.
+
+             Same enlarged-hit-area treatment as Minimize — see its comment. Was 40x40 at
+             (0,26,62,0); same +4/+4 shift as Minimize gives (0,22,58,0). -->
+        <Button Name="MaximizeButton" Classes="iconButton"
+                Height="48" Width="48"
+                Margin="0,22,58,0"
+                VerticalAlignment="Top" HorizontalAlignment="Right"
+                Click="MaximizeButton_Click">
+            <Panel Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Panel Name="MaximizeIcon">
+                    <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/maximize.png" Stretch="Uniform"/>
+                    <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/maximize_hover.png" Stretch="Uniform"/>
+                </Panel>
+                <Panel Name="RestoreIcon" IsVisible="False">
+                    <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/restore.png" Stretch="Uniform"/>
+                    <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/restore_hover.png" Stretch="Uniform"/>
+                </Panel>
+            </Panel>
+        </Button>
+
+        <!-- Close button — same enlarged-hit-area treatment as Minimize above. Was 40x40 at
+             (0,26,14,0); same +4/+4 shift gives (0,22,10,0). -->
         <Button Name="CloseWindowButton" Classes="iconButton"
-                Margin="872,18,0,0"
-                VerticalAlignment="Top" HorizontalAlignment="Left"
-                Height="20" Width="20"
+                Margin="0,22,10,0"
+                VerticalAlignment="Top" HorizontalAlignment="Right"
+                Height="48" Width="48"
                 Click="CloseButton_Click">
-            <Panel>
+            <Panel Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/close.png" Stretch="Fill"/>
                 <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/close_hover.png" Stretch="Fill"/>
             </Panel>
         </Button>
 
-        <!-- Changelog panel -->
-        <Grid Name="ChangelogGrid" IsVisible="False" ZIndex="1000">
-            <Rectangle Fill="#E6000000" Width="900" Height="610"/>
-            <ScrollViewer Width="800" Height="500"
-                          VerticalScrollBarVisibility="Auto"
-                          Margin="22,20,22,60"
-                          VerticalAlignment="Center" HorizontalAlignment="Center">
-                <StackPanel Name="ChangelogContent"
-                            Margin="30,40,30,60"
-                            VerticalAlignment="Top" HorizontalAlignment="Left"/>
-            </ScrollViewer>
-            <Button Name="CloseChangelogButton" Classes="iconButton"
-                    HorizontalAlignment="Right" VerticalAlignment="Top"
-                    Width="20" Height="20" Margin="0,35,27,0"
-                    Click="CloseChangelogButton_Click">
-                <Panel>
-                    <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/close.png" Stretch="Fill"/>
-                    <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/close_hover.png" Stretch="Fill"/>
-                </Panel>
-            </Button>
-        </Grid>
+        <!-- Invisible resize grips — SystemDecorations="None" means Avalonia doesn't provide
+             OS-native edge-drag resizing for free, so this wires it up by hand via
+             Window.BeginResizeDrag. Declared last (highest z-order) and after the background's
+             own drag handler so an edge press resizes instead of moving the window; corners
+             come after the edges for the same reason, so the diagonal cursor wins in the few
+             pixels where they'd otherwise overlap.
 
-        <!-- Mods panel -->
-        <Grid Name="ModsGrid" IsVisible="False" ZIndex="1000">
-            <Rectangle Fill="#E6000000" Width="900" Height="610"/>
-            <ScrollViewer Width="800" Height="500"
-                          VerticalScrollBarVisibility="Auto"
-                          Margin="22,20,22,60"
-                          VerticalAlignment="Center" HorizontalAlignment="Center">
-                <StackPanel Name="ModsContent"
-                            Margin="30,40,30,60"
-                            VerticalAlignment="Top" HorizontalAlignment="Left"/>
-            </ScrollViewer>
-            <Button Name="CloseModsButton" Classes="iconButton"
-                    HorizontalAlignment="Right" VerticalAlignment="Top"
-                    Width="20" Height="20" Margin="0,35,27,0"
-                    Click="CloseModsButton_Click">
-                <Panel>
-                    <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/close.png" Stretch="Fill"/>
-                    <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/close_hover.png" Stretch="Fill"/>
-                </Panel>
-            </Button>
-        </Grid>
+             No North (top-edge) grip: the header row is exactly where people instinctively
+             grab to drag the window, and a full-width resize strip right there made that hard
+             to hit reliably. The two top corners still cover top-edge resizing for anyone who
+             wants it specifically. -->
+        <Rectangle Fill="Transparent" Height="6" VerticalAlignment="Bottom"
+                   Cursor="SizeNorthSouth" Tag="South" PointerPressed="ResizeGrip_PointerPressed"/>
+        <Rectangle Fill="Transparent" Width="6" HorizontalAlignment="Left"
+                   Cursor="SizeWestEast" Tag="West" PointerPressed="ResizeGrip_PointerPressed"/>
+        <Rectangle Fill="Transparent" Width="6" HorizontalAlignment="Right"
+                   Cursor="SizeWestEast" Tag="East" PointerPressed="ResizeGrip_PointerPressed"/>
+        <Rectangle Fill="Transparent" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Top"
+                   Cursor="TopLeftCorner" Tag="NorthWest" PointerPressed="ResizeGrip_PointerPressed"/>
+        <Rectangle Fill="Transparent" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top"
+                   Cursor="TopRightCorner" Tag="NorthEast" PointerPressed="ResizeGrip_PointerPressed"/>
+        <Rectangle Fill="Transparent" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                   Cursor="BottomLeftCorner" Tag="SouthWest" PointerPressed="ResizeGrip_PointerPressed"/>
+        <Rectangle Fill="Transparent" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                   Cursor="BottomRightCorner" Tag="SouthEast" PointerPressed="ResizeGrip_PointerPressed"/>
+
     </Grid>
 </Window>

@@ -19,9 +19,25 @@
         <PublishSingleFile Condition="'$(RuntimeIdentifier)' != ''">true</PublishSingleFile>
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
         <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+        <!-- Back on: the "off" experiment showed the actual per-launch cost was extraction to a
+             per-build temp folder, decompression or not — that cache keys on a hash of the
+             bundle, so it never hit during this dev session (a new build every turn), making
+             every single launch look like a slow "first" one regardless of this setting. A real
+             player downloads one build and launches it many times — extraction happens once,
+             genuinely cached after that — so for them this only costs on the very first run,
+             and the ~40% smaller download is worth it every time before that first launch too. -->
         <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
         <DebugType>embedded</DebugType>
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+        <!-- Roughly halves the published exe (~47MB -> ~23MB): the self-contained runtime and
+             Avalonia/Skia pull in far more than this app ever calls. Safe now that both DataTemplates
+             use compiled bindings (x:DataType, not x:CompileBindings="False") and servers.json/
+             /serverinfo parse through AppJsonContext instead of reflection-based JsonSerializer —
+             those were the two things a trim pass could have silently stripped. The two warnings
+             that remain (ComActivator, Avalonia.DesignerSupport) are framework/third-party, not ours. -->
+        <PublishTrimmed Condition="'$(RuntimeIdentifier)' != ''">true</PublishTrimmed>
+        <TrimMode Condition="'$(RuntimeIdentifier)' != ''">partial</TrimMode>
     </PropertyGroup>
 
     <ItemGroup>
@@ -30,6 +46,7 @@
 
     <ItemGroup>
         <AvaloniaResource Include="Resources\*.png" />
+        <AvaloniaResource Include="Resources\*.jpg" />
         <AvaloniaResource Include="Resources\*.ico" />
         <AvaloniaResource Include="Resources\Fonts\*.ttf" />
     </ItemGroup>
@@ -37,7 +54,6 @@
     <ItemGroup>
       <PackageReference Include="Avalonia" Version="12.1.1" />
       <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
-      <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
       <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
     </ItemGroup>
 

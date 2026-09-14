@@ -24,12 +24,39 @@ namespace Launcher.Tests
         [Fact]
         public void FolderWithOnlyTheDefenderPromptMarker_IsStillSafe()
         {
-            // Regression: MaybeOfferDefenderExclusionAsync writes this marker into the client
-            // folder the moment it's known — before the player ever presses "Играть". A fresh
-            // Rune_v2_test folder with nothing but this marker used to be rejected as "not
-            // empty, not a client install", since OwnArtifacts didn't know the marker's name.
+            // Regression: an older launcher version wrote this marker into the client folder
+            // the moment it was known — before the player ever pressed "Играть" (the one-time
+            // exclusion prompt this backed has since been replaced by a persistent checkbox,
+            // but the marker itself is left in OwnArtifacts so folders that already have one
+            // from before still recognize it). A fresh Rune_v2_test folder with nothing but
+            // this marker used to be rejected as "not empty, not a client install", since
+            // OwnArtifacts didn't know the marker's name.
             string folder = TempFolder();
-            DefenderExclusion.MarkPrompted(folder);
+            File.WriteAllText(Path.Combine(folder, DefenderExclusion.PromptedMarkerName), string.Empty);
+
+            Assert.True(ClientFolderGuard.IsSafeTarget(folder, out string reason));
+            Assert.Null(reason);
+        }
+
+        [Fact]
+        public void FolderWithOnlyTheChangelogSeenFile_IsStillSafe()
+        {
+            string folder = TempFolder();
+            File.WriteAllText(Path.Combine(folder, "changelog_seen.txt"), "{}");
+
+            Assert.True(ClientFolderGuard.IsSafeTarget(folder, out string reason));
+            Assert.Null(reason);
+        }
+
+        [Fact]
+        public void FolderWithOnlyTheCachedChangelogAndInfoFiles_IsStillSafe()
+        {
+            // Regression: FetchServerChangelogAsync/FetchServerInfoAsync cache changelog.md and
+            // info.md into the client folder as soon as the Server tab loads — well before the
+            // player ever reaches Install, so a truly fresh folder already has both by then.
+            string folder = TempFolder();
+            File.WriteAllText(Path.Combine(folder, "changelog.md"), "# Changelog");
+            File.WriteAllText(Path.Combine(folder, "info.md"), "# Info");
 
             Assert.True(ClientFolderGuard.IsSafeTarget(folder, out string reason));
             Assert.Null(reason);
