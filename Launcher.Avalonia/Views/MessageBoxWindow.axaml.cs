@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Odinsons.ValheimLauncher;
 
 namespace Odinsons.ValheimLauncher.Avalonia.Views
 {
@@ -19,6 +20,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         {
             Title = title;
             MessageText.Text = message;
+            OkButton.Content = Loc.T("gui.okButton");
         }
 
         private void OkButton_Click(object? sender, RoutedEventArgs e) => Close();

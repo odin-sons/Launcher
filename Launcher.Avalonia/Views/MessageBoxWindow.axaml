@@ -13,10 +13,10 @@
         <Grid RowDefinitions="Auto,Auto" Margin="20">
             <ScrollViewer Grid.Row="0" MaxHeight="280" VerticalScrollBarVisibility="Auto">
                 <SelectableTextBlock x:Name="MessageText" Foreground="White" FontSize="14"
-                                     TextWrapping="Wrap"/>
+                                     TextWrapping="Wrap" TextAlignment="Center"/>
             </ScrollViewer>
-            <Button x:Name="OkButton" Grid.Row="1" Content="OK" Width="80" Height="30"
-                    Margin="0,16,0,0" HorizontalAlignment="Center"
+            <Button x:Name="OkButton" Grid.Row="1" Width="80" Height="30"
+                    Margin="0,16,0,0" HorizontalAlignment="Center" HorizontalContentAlignment="Center"
                     Background="Chocolate" Foreground="White" FontSize="14"
                     CornerRadius="5" Click="OkButton_Click"/>
         </Grid>
