@@ -68,14 +68,24 @@ namespace Launcher.Tests
 
         private IReadOnlyList<string> _stepLabels = Array.Empty<string>();
 
+        public List<string> StartedStepLabels { get; } = new();
+        public List<string> FinishedStepLabels { get; } = new();
+
         public void SetSteps(IReadOnlyList<InstallStep> steps) =>
             _stepLabels = steps.Select(s => s.Label).ToList();
 
         public void StartStep(int index)
         {
+            if (index >= 0 && index < _stepLabels.Count) StartedStepLabels.Add(_stepLabels[index]);
+
             if (CancelOnStepLabel is not null && index >= 0 && index < _stepLabels.Count &&
                 _stepLabels[index] == CancelOnStepLabel)
                 Worker?.CancelAsync();
+        }
+
+        public void FinishStep(int index)
+        {
+            if (index >= 0 && index < _stepLabels.Count) FinishedStepLabels.Add(_stepLabels[index]);
         }
     }
 }

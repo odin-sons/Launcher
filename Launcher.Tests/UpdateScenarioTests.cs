@@ -491,6 +491,38 @@ namespace Launcher.Tests
             Assert.False(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/ReqMod/ReqMod.dll")));
         }
 
+        [Fact]
+        public async Task CancelledPartwayThrough_DoesNotReportTheFinalizeStepAsStartedOrFinished()
+        {
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteEmptyManifest("update_admin.info");
+            pack.WriteEmptyGameManifest();
+            pack.WriteEmptyManifest("optional.info");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+
+            // EndUpdate (restoring the stashed exe) still runs on a cancelled run — only the
+            // step-list reporting around it is skipped. Before the fix, StartStep/FinishStep
+            // for "Finishing up" ran unconditionally, so a cancelled download showed that later
+            // step as done while an earlier one (Downloading) was still sitting there interrupted.
+            var worker = new BackgroundWorker { WorkerReportsProgress = true, WorkerSupportsCancellation = true };
+            var ui = new RecordingUpdateUi(client.Path)
+            {
+                Worker = worker,
+                CancelOnStepLabel = Loc.T("dl.step.clientCheck")
+            };
+
+            await FileDownloader.StartUpdateAsync(worker, ui, full: true, startGame: false, server.BaseUrl,
+                ownExecutableName: "test-launcher.exe", maxConcurrentDownloads: 3);
+
+            Assert.True(ui.CompleteCalled);
+            Assert.DoesNotContain(Loc.T("dl.step.finalize"), ui.StartedStepLabels);
+            Assert.DoesNotContain(Loc.T("dl.step.finalize"), ui.FinishedStepLabels);
+        }
+
         /// <summary>A temporary client folder with a few files, for setting up an "already installed" state.</summary>
         private sealed class TempClientFolder : IDisposable
         {

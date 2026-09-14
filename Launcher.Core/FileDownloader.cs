@@ -367,7 +367,7 @@ namespace Odinsons.ValheimLauncher
             // reporting as the ordinary check below, so it needs to run off the UI thread —
             // otherwise the progress panel we just showed can't actually paint.
             if (_stepIndexSteamCheck >= 0) _ui.StartStep(_stepIndexSteamCheck);
-            await Task.Run(TryPrepareInjectorMode);
+            await Task.Run(() => TryPrepareInjectorMode(worker));
             if (_stepIndexSteamCheck >= 0) _ui.FinishStep(_stepIndexSteamCheck);
             _ui.SetInjectorPlan(_injectorPlan);
 
@@ -382,9 +382,15 @@ namespace Odinsons.ValheimLauncher
             // starts the game on that signal. If the stashed valheim.exe were moved back
             // later — when the lock is released — the launch would land on a moment when
             // the file doesn't exist under its own name yet.
-            _ui.StartStep(_stepIndexFinalize);
+            //
+            // EndUpdate itself always runs, cancelled or not — the exe has to come back
+            // regardless. Only the step-list reporting around it is skipped on a cancelled
+            // run, so "Finishing up" doesn't show as done while an earlier step (Downloading)
+            // is still sitting there interrupted.
+            bool cancelled = worker.CancellationPending;
+            if (!cancelled) _ui.StartStep(_stepIndexFinalize);
             session?.EndUpdate();
-            _ui.FinishStep(_stepIndexFinalize);
+            if (!cancelled) _ui.FinishStep(_stepIndexFinalize);
 
             OnComplete();
         }
@@ -458,7 +464,7 @@ namespace Odinsons.ValheimLauncher
         /// the path exists, by design (see its class doc comment): the build-match check is the
         /// caller's job. Skipping this would mean silently launching the wrong game build with our mods.
         /// </summary>
-        private static bool GameFilesMatchSteamInstall()
+        private static bool GameFilesMatchSteamInstall(BackgroundWorker worker)
         {
             if (GameEntries.Count == 0) return true;
 
@@ -468,7 +474,7 @@ namespace Odinsons.ValheimLauncher
 
             Parallel.ForEach(GameEntries, HashOptions, (entry, state) =>
             {
-                if (mismatchFound) { state.Stop(); return; }
+                if (mismatchFound || worker.CancellationPending) { state.Stop(); return; }
 
                 string fullPath = Path.Combine(_steamGameFolder, entry.Path);
                 bool matches = File.Exists(fullPath) &&
@@ -494,14 +500,18 @@ namespace Odinsons.ValheimLauncher
             LauncherLog.Info($"steam install check: {_steamHashCache.Hits} file(s) reused from cache, " +
                              $"{_steamHashCache.Misses} hashed for real");
 
-            return !mismatchFound;
+            // A cancelled-out check hasn't actually confirmed a match — treat it the same as a
+            // mismatch so TryPrepareInjectorMode falls back instead of preparing an injector
+            // plan off an incomplete verification. The classic download path it falls back to
+            // checks CancellationPending itself within a step or two, same as this one now does.
+            return !mismatchFound && !worker.CancellationPending;
         }
 
-        private static void TryPrepareInjectorMode()
+        private static void TryPrepareInjectorMode(BackgroundWorker worker)
         {
             if (_steamGameFolder is null || GameFiles.Count == 0) return;
 
-            if (!GameFilesMatchSteamInstall())
+            if (!GameFilesMatchSteamInstall(worker))
             {
                 LauncherLog.Info("injector mode not available this run: the Steam install's game files do not " +
                                  "match what the server currently expects; falling back to the classic download path");
@@ -660,9 +670,14 @@ namespace Odinsons.ValheimLauncher
                 // Checking required files
                 _ui.StartStep(_stepIndexClientCheck);
                 int processedFiles = 0;
-                Parallel.ForEach(fileList, HashOptions, file =>
+                Parallel.ForEach(fileList, HashOptions, (file, state) =>
                 {
-                    if (worker.CancellationPending) { e.Cancel = true; return; }
+                    // state.Stop(), not just returning, so the loop stops dispatching the
+                    // remaining files immediately instead of still scheduling and running
+                    // every one of them (each just hitting this same early-out) before
+                    // Parallel.ForEach itself returns — with hundreds of files that lag was
+                    // exactly the "Stop" button not doing anything for about a second.
+                    if (worker.CancellationPending) { e.Cancel = true; state.Stop(); return; }
 
                     string fileDir = file.Path;
                     string fileHash = file.Hash;
@@ -818,9 +833,9 @@ namespace Odinsons.ValheimLauncher
 
                 if (optionalFileList.Count > 0)
                 {
-                    Parallel.ForEach(optionalFileList, HashOptions, optionalFile =>
+                    Parallel.ForEach(optionalFileList, HashOptions, (optionalFile, state) =>
                     {
-                        if (worker.CancellationPending) { e.Cancel = true; return; }
+                        if (worker.CancellationPending) { e.Cancel = true; state.Stop(); return; }
 
                         (string fileDir, string fileHash, long fileSize) = optionalFile;
 
