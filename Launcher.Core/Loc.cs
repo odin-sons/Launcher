@@ -1464,6 +1464,17 @@ namespace Odinsons.ValheimLauncher
                 "尚未进行检查。",
                 "Перевірку ще не виконано."),
 
+            // Shown for the same window ShowProgress used to just blank InstallStatusText for —
+            // SetInjectorPlan hasn't fired yet for this run, so injector-vs-classic isn't known,
+            // but "nothing here" read as the indicator having disappeared rather than "still
+            // figuring it out".
+            ["gui.installStatus.checking"] = L(
+                "Determining install method…", "Installationsmethode wird ermittelt…",
+                "Determinando el método de instalación…", "Détermination de la méthode d'installation…",
+                "Ustalanie metody instalacji…", "A determinar o método de instalação…",
+                "Определяем способ установки…", "Fastställer installationsmetod…",
+                "正在确定安装方式…", "Визначаємо спосіб встановлення…"),
+
             ["gui.installMode.injector"] = L(
                 "Playing from your Steam installation",
                 "Läuft über Ihre Steam-Installation",

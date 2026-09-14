@@ -195,8 +195,11 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             // The stale "no check has been run yet" (or a previous run's injector/classic mode
             // line) would otherwise sit there throughout the whole check — misleading once
             // there's no "Start" button to reference, and just wrong once SetInjectorPlan hasn't
-            // fired yet for this run. SetInjectorPlan repopulates it partway through.
-            InstallStatusText.Text = string.Empty;
+            // fired yet for this run. A loading placeholder instead of blanking it outright —
+            // an empty line here read as the indicator having disappeared, not as "still
+            // figuring it out". SetInjectorPlan repopulates it with the real answer partway
+            // through.
+            InstallStatusText.Text = Loc.T("gui.installStatus.checking");
             ToolTip.SetTip(InstallStatusText, null);
 
             // Just noise competing with the step list for space once real work starts — the
@@ -204,13 +207,29 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             // only editing is (InstallSettingsStack.IsEnabled), until HideProgress re-enables it.
             CollapseInstallSettings();
             InstallSettingsStack.IsEnabled = false;
+
+            // Unconditional, not just "expand if collapsed": a fresh run's step list is a
+            // different size than whatever the last one settled at, and ExpandInstallSteps
+            // would no-op (early-return) if the previous run was left expanded — leaving the
+            // Border pinned to a stale height instead of tracking the new content. Auto/NaN
+            // first so the constantly-changing step list (rows folding as steps start/finish)
+            // isn't fought over by a pinned pixel height for the run's own duration.
+            InstallStepsBox.Height = double.NaN;
+            _installStepsExpanded = true;
+            _installStepsChevronRotation!.Angle = 90;
         });
 
         public void HideProgress() => Dispatcher.UIThread.Invoke(() =>
         {
-            InstallProgressPanel.IsVisible = false;
             InstallCancelButton.IsVisible = false;
             InstallSettingsStack.IsEnabled = true;
+
+            // Collapsed, not hidden: the panel (label, step counter, overall progress bar)
+            // stays put so the run's outcome is still visible, and the step list — elapsed
+            // times included — is one click away instead of gone the moment the run ends. It
+            // used to disappear with the rest of InstallProgressPanel here, which meant reading
+            // it meant catching it while steps were still flying by.
+            CollapseInstallSteps();
         });
 
         // Superseded by the grouped step list (SetSteps/StartStep/SetStepProgress/FinishStep
@@ -240,6 +259,14 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         // up front, not something to dig for.
         private bool _installSettingsExpanded = true;
         private RotateTransform? _installSettingsChevronRotation;
+
+        // InstallStepsBox/InstallStepsChevronSlot's collapse state — see
+        // SetupInstallStepsGroup/CollapseInstallSteps/ExpandInstallSteps. Starts true: expanded
+        // while a run is actually happening, same as install settings default to. ShowProgress
+        // forces this back to true (and the Border back to Auto height) at the start of every
+        // new run regardless of how the previous one was left collapsed/expanded.
+        private bool _installStepsExpanded = true;
+        private RotateTransform? _installStepsChevronRotation;
 
         private RotateTransform? _refreshPlayersRotation;
         private CancellationTokenSource? _refreshPlayersSpinCts;
@@ -887,6 +914,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             WireScrollShadows(ModsScrollViewer, ModsTopShadow, ModsBottomShadow);
             WireScrollShadows(InstallScrollViewer, InstallTopShadow, InstallBottomShadow);
             SetupInstallSettingsGroup();
+            SetupInstallStepsGroup();
             SetupRefreshPlayersButton();
 
             PlayersColumn.Width = ComputePlayersColumnWidth();
@@ -1655,6 +1683,64 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             // now), which Measure would just echo back instead of the content's real height.
             InstallSettingsStack.Measure(new Size(InstallSettingsBox.Bounds.Width, double.PositiveInfinity));
             InstallSettingsBox.Height = InstallSettingsStack.DesiredSize.Height;
+        }
+
+        /// <summary>Called once, from the constructor — mirrors SetupInstallSettingsGroup.</summary>
+        private void SetupInstallStepsGroup()
+        {
+            _installStepsChevronRotation = new RotateTransform(90) // starts expanded: pointing down
+            {
+                Transitions = new Transitions
+                {
+                    new DoubleTransition { Property = RotateTransform.AngleProperty, Duration = TimeSpan.FromMilliseconds(180) }
+                }
+            };
+            InstallStepsChevronSlot.Children.Add(BuildModChevronVisual(_installStepsChevronRotation));
+
+            InstallStepsBox.Transitions = new Transitions
+            {
+                new DoubleTransition
+                {
+                    Property = Border.HeightProperty,
+                    Duration = TimeSpan.FromMilliseconds(220),
+                    Easing = new CubicEaseOut()
+                }
+            };
+
+            InstallStepsHeaderRow.PointerPressed += (_, __) =>
+            {
+                if (_installStepsExpanded) CollapseInstallSteps();
+                else ExpandInstallSteps();
+            };
+        }
+
+        /// <summary>Called from HideProgress once a run ends, so the step list (elapsed times
+        /// included) stays around to read afterward instead of disappearing with the rest of
+        /// the panel. Same "capture the real height, then collapse to 0" two-step as
+        /// CollapseInstallSettings — see its own comment for why both lines are needed.</summary>
+        private void CollapseInstallSteps()
+        {
+            if (!_installStepsExpanded) return;
+            _installStepsExpanded = false;
+
+            _installStepsChevronRotation!.Angle = 0;
+            InstallStepsBox.Height = InstallStepsBox.Bounds.Height;
+            InstallStepsBox.Height = 0;
+        }
+
+        /// <summary>Called from ShowProgress at the start of every run (unconditionally resetting
+        /// the Border back to Auto height right after, so the constantly-changing step list
+        /// during the run itself is never fought over by a pinned pixel height) and from a
+        /// manual header click.</summary>
+        private void ExpandInstallSteps()
+        {
+            if (_installStepsExpanded) return;
+            _installStepsExpanded = true;
+
+            _installStepsChevronRotation!.Angle = 90;
+
+            InstallStepsBoxContent.Measure(new Size(InstallStepsBox.Bounds.Width, double.PositiveInfinity));
+            InstallStepsBox.Height = InstallStepsBoxContent.DesiredSize.Height;
         }
 
         private const string AutoStartSettingKey = "AutoStartAfterValidation";

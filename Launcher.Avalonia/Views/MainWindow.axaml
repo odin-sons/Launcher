@@ -648,21 +648,42 @@
                              the bottom bar, in the Start button's own spot, so it can't scroll out
                              of view once there are enough parallel downloads to fill the screen.) -->
                         <StackPanel Name="InstallProgressPanel" IsVisible="False" Spacing="14">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Name="InstallStepLabel" Grid.Column="0"
+                            <!-- Clickable like InstallSettingsHeaderRow, same chevron —
+                                 HideProgress used to hide this whole panel the moment a run
+                                 ended, which meant the step list (elapsed times included —
+                                 useful for spotting a slow step, not just "curious") had to be
+                                 read as it flew by or not at all. Now it stays put, collapsed by
+                                 HideProgress, so it's there to expand and read afterward. -->
+                            <Grid Name="InstallStepsHeaderRow" Background="Transparent" Cursor="Hand"
+                                  ColumnDefinitions="Auto,*,Auto">
+                                <Panel Name="InstallStepsChevronSlot" Grid.Column="0"
+                                       Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Name="InstallStepLabel" Grid.Column="1"
                                            Foreground="White" FontSize="16" FontWeight="Bold"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Name="InstallStepCounter" Grid.Column="1"
+                                           TextTrimming="CharacterEllipsis" Margin="6,0,0,0"/>
+                                <TextBlock Name="InstallStepCounter" Grid.Column="2"
                                            Foreground="#FFD6D6D6" FontSize="12"
                                            VerticalAlignment="Center" Margin="12,0,0,0"/>
                             </Grid>
                             <ProgressBar Name="InstallOverallProgress" Minimum="0" Maximum="100" Value="0" Height="8"/>
-                            <StackPanel Name="InstallStepsPanel" Spacing="6"/>
-                            <StackPanel Name="DownloadDetailPanel" Spacing="7" IsVisible="False">
-                                <Border Height="1" Background="#1FFFFFFF"/>
-                                <TextBlock Name="DownloadDetailHeadline" Foreground="#FFD8D8D8" FontSize="12"/>
-                                <StackPanel Name="DownloadDetailList" Spacing="5"/>
-                            </StackPanel>
+                            <!-- Height left at Auto (never touched) while a run is actually in
+                                 progress — the step list resizes itself constantly as rows fold
+                                 (see RenderInstallSteps) and fighting that with a pinned pixel
+                                 height would just clip or leave a gap. Only CollapseInstallSteps/
+                                 ExpandInstallSteps (called from HideProgress/ShowProgress and the
+                                 header click) ever pin it, and ShowProgress resets it back to
+                                 Auto at the start of every new run regardless of how the previous
+                                 one was left. -->
+                            <Border Name="InstallStepsBox" ClipToBounds="True">
+                                <StackPanel Name="InstallStepsBoxContent" Spacing="14">
+                                    <StackPanel Name="InstallStepsPanel" Spacing="6"/>
+                                    <StackPanel Name="DownloadDetailPanel" Spacing="7" IsVisible="False">
+                                        <Border Height="1" Background="#1FFFFFFF"/>
+                                        <TextBlock Name="DownloadDetailHeadline" Foreground="#FFD8D8D8" FontSize="12"/>
+                                        <StackPanel Name="DownloadDetailList" Spacing="5"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
