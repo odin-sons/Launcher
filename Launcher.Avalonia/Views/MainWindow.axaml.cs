@@ -3327,6 +3327,10 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         private void ShowPlayersLoadingState()
         {
             PlayersHeading.Text = string.Empty;
+            // Hidden until PopulatePlayersList shows it back — otherwise it sat to the left of
+            // the still-empty heading (nothing else in the StackPanel to push it over yet) and
+            // visibly jumped into place the moment real text appeared.
+            RefreshPlayersButton.IsVisible = false;
             PlayersList.ItemsSource = new List<PlayerListItem>
             {
                 new() { Name = Loc.T("gui.checkingPlayers"), Kind = PlayerRowKind.Loading }
@@ -3361,6 +3365,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         {
             _lastKnownPlayerCount = playerCount;
             PlayersHeading.Text = Loc.T("gui.vikingsCount", playerCount);
+            RefreshPlayersButton.IsVisible = true;
 
             var items = new List<PlayerListItem>();
 

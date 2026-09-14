@@ -431,7 +431,7 @@
                                      icon, just rotated by hand while a refresh is in flight
                                      (RotateTransform + Transition) so it can finish its current
                                      lap and settle back to 0° instead of freezing mid-turn. -->
-                                <Button Name="RefreshPlayersButton" Classes="iconButton"
+                                <Button Name="RefreshPlayersButton" Classes="iconButton" IsVisible="False"
                                         Click="RefreshPlayersButton_Click" VerticalAlignment="Center"/>
                             </StackPanel>
                             <ItemsControl Name="PlayersList">
