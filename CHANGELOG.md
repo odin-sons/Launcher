@@ -1,7 +1,38 @@
 # Changelog
 
 Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions come from
-`Valheim-Online_Launcher.csproj`.
+`Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
+version bumps of its own.
+
+## [2.0.0] — 2026-09-14
+
+**`Launcher.Avalonia` is now the primary GUI**, cross-platform (Windows/macOS/Linux); the
+WPF-only `Launcher` is kept for compatibility but no longer receives new development.
+
+- Window chrome gets real Maximize/Restore buttons and states — Restore now correctly
+  returns to the pre-maximize size and position instead of just un-snapping from the
+  screen edges.
+- Install settings (auto-start after validation, desktop/Start Menu shortcuts, Windows
+  Defender exclusion) move into a collapsible group with checkboxes reflecting live
+  state, replacing one-time popups.
+- The launcher no longer needs administrator on every launch — it self-elevates (a
+  one-shot UAC prompt) only the one time it actually needs to write into a Steam game
+  folder for injector mode, and skips even that once nothing needs writing.
+- Mods list redesign: collapsible per-mod descriptions, Thunderstore/Hexium links,
+  clearer chevron/toggle layout.
+- Ukrainian (`uk`) added as a 10th language; the UI language, once picked manually from
+  the switcher, is now remembered across launches.
+- Gray body/secondary text unified to a single, contrast-checked color across markdown
+  rendering, mod descriptions, and status text.
+- The "no players online" label now wraps/truncates correctly instead of overflowing
+  its row.
+- Cancelling an update responds immediately instead of finishing the in-flight batch of
+  files first; a cancelled Steam-install check no longer lets an incomplete verification
+  pass as a match.
+- Fixed a cross-platform bug where extra-file cleanup deleted files in enumeration order
+  instead of deepest-first on Linux/macOS.
+- `Indexer`: an empty admin-only-mods list is now a note, not a build failure — only a
+  non-empty list that matches nothing still fails the build.
 
 ## [1.3.6] — 2026-08-29
 
