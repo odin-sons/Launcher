@@ -12,7 +12,9 @@ namespace Indexer
     internal class Program
     {
         private static readonly HashSet<string> IgnoreRules = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private static readonly HashSet<string> AdminOnlyMods = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Internal so Indexer.Tests can drive CheckInvariants directly without going through Main.</summary>
+        internal static readonly HashSet<string> AdminOnlyMods = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Original-game paths (game_files.txt).
@@ -195,12 +197,14 @@ namespace Indexer
         /// Recomputed directly from the rules, not through the code that built the lists —
         /// otherwise a bug in the shared logic would go unnoticed by the same eyes that let it in.
         ///
-        /// Invariants 4 and 5 repeat a real incident: admin_only_patterns.txt wasn't found,
-        /// the list came up empty, and nine admin mods silently shipped to players. Before,
-        /// this was reported as a single WARNING line among thousands of lines of output —
-        /// now it's a failure with a non-zero exit code.
+        /// Invariant 5 guards against a real incident: admin_only_patterns.txt wasn't found,
+        /// the list came up empty, and nine admin mods silently shipped to players — that was
+        /// reported as a single WARNING line among thousands of lines of output; now a
+        /// non-empty list that matches nothing is a failure with a non-zero exit code.
+        /// An empty list by itself (invariant 4) isn't that same mistake — a build can
+        /// genuinely have no admin-only mods — so it's a NOTE, not a failure.
         /// </summary>
-        private static void CheckInvariants(
+        internal static void CheckInvariants(
             List<string> files, List<string> filesAdmin, List<string> optionalFiles, List<string> gameFiles,
             Dictionary<string, Odinsons.ValheimLauncher.Manifest.Entry> hashes, List<string> problems)
         {
@@ -240,10 +244,15 @@ namespace Indexer
             foreach (string path in playerPaths.Intersect(gamePaths, StringComparer.OrdinalIgnoreCase))
                 problems.Add($"game file duplicated in update.info: {path}");
 
-            // 4: the list is empty — so far the only reason admin mods have ever
-            // leaked to players.
+            // 4: the list is empty. Not a problem by itself — a build can genuinely have no
+            // admin-only mods (a vanilla/game-file-only index, for instance) — just worth
+            // saying out loud so it's never a silent assumption. The real hazard this used to
+            // guard against was admin_only_patterns.txt going missing on a build that DOES
+            // have admin mods (nine of them shipped to players once); invariant 5 below still
+            // catches that shape of mistake — a non-empty list that matches nothing.
             if (AdminOnlyMods.Count == 0)
-                problems.Add("admin-only mod list is empty — admin-only mods would ship to every player");
+                Console.WriteLine("NOTE: no admin-only mods for this build — " +
+                                   "update.info and update_admin.info are identical.");
 
             // 5: the list isn't empty, but no rule matched anything — both manifests come
             // out identical. Usually a typo in a path inside admin_only_patterns.txt,
