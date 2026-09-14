@@ -956,7 +956,15 @@ namespace Odinsons.ValheimLauncher
                     {
                         LauncherLog.Info($"extra files to remove: {extraFiles.Count}");
                         SetStateLabel(Loc.T("dl.deletingExtra"), 0, 0);
-                        extraFiles.Sort((a, b) => b.Split('\\').Length.CompareTo(a.Split('\\').Length));
+                        // '\\'-only used to split here — correct on Windows (where
+                        // Directory.EnumerateFiles returns backslash paths) but silently a
+                        // no-op on Linux/macOS, where those same paths use '/': every path
+                        // measured as "depth 1", so extra files were deleted in enumeration
+                        // order instead of deepest-first. Same normalize-both-separators-then-
+                        // split('/') already used elsewhere in this file (see relPath/fileDir
+                        // above) for exactly this reason.
+                        extraFiles.Sort((a, b) =>
+                            b.Replace('\\', '/').Split('/').Length.CompareTo(a.Replace('\\', '/').Split('/').Length));
 
                         // Collect failures to show one summary message instead of
                         // a dialog per file.
