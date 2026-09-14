@@ -10,6 +10,11 @@ namespace Odinsons.ValheimLauncher
         public string Ip { get; set; }
         public int QueryPort { get; set; }
         public int HttpPort { get; set; }
+
+        /// <summary>Free-text characteristics shown on the server tab (mode, wipe schedule,
+        /// rules, …) — one line per "\n". Optional; absent in servers.json means no
+        /// description is shown for that server.</summary>
+        public string Description { get; set; }
     }
 
     public class ServerList
