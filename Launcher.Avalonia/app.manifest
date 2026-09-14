@@ -2,10 +2,20 @@
 
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
     <assemblyIdentity version="1.0.0.0" name="OdinsonsLauncher.app"/>
+    <!-- asInvoker, not requireAdministrator: the ONE thing in the whole app that ever needs
+         elevation is writing winhttp.dll/doorstop_config.ini into the player's Steam game
+         folder for injector mode (InjectorLauncher.EnsureGameFolderPrepared) — and only when
+         that folder isn't already writable by the current user (e.g. it's under Program
+         Files). That one operation self-elevates on demand by relaunching this same exe with
+         a "runas" verb, the same one-shot-elevation pattern DefenderExclusion already uses —
+         see InjectorLauncher.cs and Program.cs's early-exit for InjectorLauncher.ElevatedHelperArg.
+         Least privilege: nothing else in the app (checking for updates, browsing tabs,
+         downloading mods into the launcher's own client folder) needs admin at all, so asking
+         for it up front on every single launch was asking for more than was ever actually used. -->
     <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
         <security>
             <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
-                <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
+                <requestedExecutionLevel level="asInvoker" uiAccess="false" />
             </requestedPrivileges>
         </security>
     </trustInfo>

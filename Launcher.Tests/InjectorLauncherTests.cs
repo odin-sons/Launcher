@@ -69,6 +69,32 @@ namespace Launcher.Tests
         }
 
         [Fact]
+        public void SecondRun_WithNothingChanged_TouchesNeitherFileNorCreatesABackup()
+        {
+            // Windows-only: this is exactly the "already prepared" case EnsureGameFolderPrepared/
+            // NeedsPreparation exist to detect without needing write access (let alone
+            // elevation) just to find out there's nothing to do.
+            using var _ = RuntimePlatform.Pretend(TargetOs.Windows);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewProfileFolder();
+
+            Assert.True(InjectorLauncher.TryPrepareLaunch(game.Root, profile.Root, out InjectorPlan firstPlan, out string reason1), reason1);
+
+            string configPath = Path.Combine(game.Root, "doorstop_config.ini");
+            string configAfterFirstRun = File.ReadAllText(configPath);
+            DateTime configWriteTime = File.GetLastWriteTimeUtc(configPath);
+
+            bool ok = InjectorLauncher.TryPrepareLaunch(game.Root, profile.Root, out InjectorPlan plan, out string reason2);
+
+            Assert.True(ok, reason2);
+            Assert.NotNull(plan);
+            Assert.False(Directory.Exists(Path.Combine(game.Root, GameFolderInspector.BackupFolderName)),
+                "a second run with nothing changed should not create a backup folder");
+            Assert.Equal(configAfterFirstRun, File.ReadAllText(configPath));
+            Assert.Equal(configWriteTime, File.GetLastWriteTimeUtc(configPath));
+        }
+
+        [Fact]
         public void BlockingBepInExFolder_IsMovedToBackup_ThenPrepSucceeds()
         {
             // Windows-only behaviour: the backup dance protects the relative target_assembly in

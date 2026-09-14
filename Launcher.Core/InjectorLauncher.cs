@@ -201,6 +201,11 @@ namespace Odinsons.ValheimLauncher
         /// Anything about to be overwritten is moved to a backup first — nothing is lost.
         /// Nothing needs doing on Unix, injection happens through environment variables.
         /// </summary>
+        // What target_assembly-disabled doorstop_config.ini actually contains — a named
+        // constant so PrepareGameFolder's write and NeedsPreparation's read-only comparison
+        // can't drift apart.
+        private const string DisabledDoorstopConfig = "[General]\r\nenabled = false\r\ntarget_assembly = \r\n";
+
         public static bool PrepareGameFolder(string gameFolder, string profileFolder, out string reason)
         {
             reason = null;
@@ -216,10 +221,13 @@ namespace Odinsons.ValheimLauncher
             string targetProxy = Path.Combine(gameFolder, WindowsProxyName);
             string targetConfig = Path.Combine(gameFolder, DoorstopConfigName);
 
-            // First, back up everything we're about to overwrite.
+            // First, back up everything we're about to overwrite — skip anything that's already
+            // exactly what we'd write anyway, so a run that already has everything set up from a
+            // past pass doesn't churn a fresh (ever-accumulating, see GameFolderInspector.
+            // UniqueTarget) backup entry on every single launch for no reason.
             var toBackup = new List<string>();
             if (File.Exists(targetProxy) && !SameContent(targetProxy, ourProxy)) toBackup.Add(targetProxy);
-            if (File.Exists(targetConfig)) toBackup.Add(targetConfig);
+            if (File.Exists(targetConfig) && !SameConfigContent(targetConfig)) toBackup.Add(targetConfig);
 
             if (toBackup.Count > 0 &&
                 !GameFolderInspector.MoveToBackup(gameFolder, toBackup, out _, out string backupReason))
@@ -234,8 +242,7 @@ namespace Odinsons.ValheimLauncher
 
                 // enabled=false: double-clicking the game in Steam launches vanilla,
                 // while our launcher turns Doorstop on via environment variables and arguments.
-                File.WriteAllText(targetConfig,
-                    "[General]\r\nenabled = false\r\ntarget_assembly = \r\n");
+                if (!File.Exists(targetConfig)) File.WriteAllText(targetConfig, DisabledDoorstopConfig);
 
                 return true;
             }
@@ -244,6 +251,12 @@ namespace Odinsons.ValheimLauncher
                 reason = Loc.T("injector.prepareFailed", ex.Message);
                 return false;
             }
+        }
+
+        private static bool SameConfigContent(string targetConfig)
+        {
+            try { return File.ReadAllText(targetConfig) == DisabledDoorstopConfig; }
+            catch { return false; }
         }
 
         /// <summary>
@@ -261,17 +274,7 @@ namespace Odinsons.ValheimLauncher
             plan = BuildPlan(gameFolder, profileFolder, out reason);
             if (plan is null) return false;
 
-            GameFolderInspection inspection = GameFolderInspector.Inspect(
-                gameFolder, Path.Combine(profileFolder, WindowsProxyName));
-
-            if (inspection.Blocking.Count > 0 &&
-                !GameFolderInspector.MoveToBackup(gameFolder, inspection.Blocking, out _, out reason))
-            {
-                plan = null;
-                return false;
-            }
-
-            if (!PrepareGameFolder(gameFolder, profileFolder, out reason))
+            if (!EnsureGameFolderPrepared(gameFolder, profileFolder, out reason))
             {
                 plan = null;
                 return false;
@@ -279,6 +282,129 @@ namespace Odinsons.ValheimLauncher
 
             return true;
         }
+
+        /// <summary>Backs up anything blocking and drops the substitute winhttp.dll/disabled
+        /// doorstop_config.ini into the game folder — the combined "prepare" step, run either
+        /// in this process directly (the common case: the Steam library is writable by the
+        /// current user) or, on Windows, in a one-shot elevated re-launch of this same exe when
+        /// it isn't (see EnsureGameFolderPrepared).</summary>
+        private static bool PrepareGameFolderCore(string gameFolder, string profileFolder, out string reason)
+        {
+            GameFolderInspection inspection = GameFolderInspector.Inspect(
+                gameFolder, Path.Combine(profileFolder, WindowsProxyName));
+
+            if (inspection.Blocking.Count > 0 &&
+                !GameFolderInspector.MoveToBackup(gameFolder, inspection.Blocking, out _, out reason))
+                return false;
+
+            return PrepareGameFolder(gameFolder, profileFolder, out reason);
+        }
+
+        /// <summary>Command-line argument Program.cs checks for before starting the normal GUI —
+        /// present means "run RunElevatedHelperMain and exit", nothing else.</summary>
+        public const string ElevatedHelperArg = "--prepare-injector-folder";
+
+        /// <summary>
+        /// Least privilege, in two layers. First: is there even anything to write? A repeat
+        /// launch with everything already set up exactly as a past pass left it (the common
+        /// case after the very first run) needs no write at all — NeedsPreparation checks that
+        /// with plain reads, which essentially never need elevation even inside Program Files.
+        /// Only if something genuinely needs writing does it even ask whether the folder is
+        /// writable by the current user, and only then — if it isn't — re-launch this same exe
+        /// elevated (ElevatedHelperArg), the one-shot-elevation pattern
+        /// DefenderExclusion.TryAddExclusion already uses, instead of the whole app requesting
+        /// admin via its manifest for something only this one operation, on some players'
+        /// machines, on a fraction of their launches, ever needs.
+        /// </summary>
+        private static bool EnsureGameFolderPrepared(string gameFolder, string profileFolder, out string reason)
+        {
+            reason = null;
+            if (RuntimePlatform.IsWindows && !NeedsPreparation(gameFolder, profileFolder))
+                return true;
+
+            if (!RuntimePlatform.IsWindows || ClientFolderGuard.IsWritable(gameFolder, out _, out _))
+                return PrepareGameFolderCore(gameFolder, profileFolder, out reason);
+
+            return RunElevatedHelper(gameFolder, profileFolder, out reason);
+        }
+
+        /// <summary>Whether PrepareGameFolderCore would actually change anything — read-only
+        /// (file existence + content comparison), so it essentially never needs elevation even
+        /// when the folder itself is otherwise write-protected. Mirrors PrepareGameFolder's own
+        /// "already matches, don't touch it" checks for winhttp.dll/doorstop_config.ini, plus
+        /// GameFolderInspector's blocking-folder check.</summary>
+        private static bool NeedsPreparation(string gameFolder, string profileFolder)
+        {
+            try
+            {
+                GameFolderInspection inspection = GameFolderInspector.Inspect(
+                    gameFolder, Path.Combine(profileFolder, WindowsProxyName));
+                if (inspection.Blocking.Count > 0) return true;
+
+                string ourProxy = Path.Combine(profileFolder, WindowsProxyName);
+                string targetProxy = Path.Combine(gameFolder, WindowsProxyName);
+                if (!File.Exists(targetProxy) || !SameContent(targetProxy, ourProxy)) return true;
+
+                string targetConfig = Path.Combine(gameFolder, DoorstopConfigName);
+                return !File.Exists(targetConfig) || !SameConfigContent(targetConfig);
+            }
+            catch
+            {
+                // Couldn't tell from a read alone — fall through to the normal
+                // writability-check/elevate path rather than silently assuming "nothing to do".
+                return true;
+            }
+        }
+
+        private static bool RunElevatedHelper(string gameFolder, string profileFolder, out string reason)
+        {
+            reason = null;
+            string exePath = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(exePath))
+            {
+                reason = Loc.T("injector.elevationFailed", "no process path");
+                return false;
+            }
+
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    UseShellExecute = true,
+                    Verb = "runas"
+                };
+                psi.ArgumentList.Add(ElevatedHelperArg);
+                psi.ArgumentList.Add(gameFolder);
+                psi.ArgumentList.Add(profileFolder);
+
+                using Process process = Process.Start(psi);
+                process.WaitForExit(30000);
+
+                if (process.ExitCode == 0) return true;
+
+                reason = Loc.T("injector.elevationFailed", $"exit code {process.ExitCode}");
+                return false;
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+                // The UAC prompt was declined — not an error, just "no".
+                reason = Loc.T("injector.elevationDeclined");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                reason = Loc.T("injector.elevationFailed", ex.Message);
+                return false;
+            }
+        }
+
+        /// <summary>Entry point for the elevated re-launch (see ElevatedHelperArg) — Program.cs
+        /// calls this instead of starting the GUI when the process was started with that flag,
+        /// then exits with the returned code. No UI: this process only exists to do the one
+        /// privileged file operation and hand the result back to the un-elevated parent.</summary>
+        public static int RunElevatedHelperMain(string gameFolder, string profileFolder) =>
+            PrepareGameFolderCore(gameFolder, profileFolder, out _) ? 0 : 1;
 
         /// <summary>Actually launches the game according to the built plan.</summary>
         public static Process Launch(InjectorPlan plan)
