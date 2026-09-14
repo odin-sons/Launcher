@@ -63,6 +63,20 @@ namespace Launcher.Tests
         }
 
         [Fact]
+        public void FolderWithOnlyTheOptionalModSelectionFile_IsStillSafe()
+        {
+            // Regression: toggling an optional mod on the Mods tab writes optional_selected.txt
+            // into the client folder immediately, reachable before the player has ever pressed
+            // Install — a fresh folder with nothing but this one file was rejected as "not a
+            // client install" (reported by a player against a real Lite_v2 client folder).
+            string folder = TempFolder();
+            File.WriteAllText(Path.Combine(folder, OptionalModSelection.FileName), "SomeMod-Plugin");
+
+            Assert.True(ClientFolderGuard.IsSafeTarget(folder, out string reason));
+            Assert.Null(reason);
+        }
+
+        [Fact]
         public void FolderWithAnUnrelatedFile_IsNotSafe()
         {
             string folder = TempFolder();

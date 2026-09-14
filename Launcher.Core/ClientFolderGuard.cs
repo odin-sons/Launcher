@@ -40,7 +40,11 @@ namespace Odinsons.ValheimLauncher
             // Server tab loads — before any install exists, so a truly fresh client folder
             // already has these two by the time the player gets to Install.
             "changelog.md",
-            "info.md"
+            "info.md",
+            // Written the moment a player toggles an optional mod on the Mods tab — reachable
+            // before Install has ever run, so a folder with nothing but this one file is still
+            // a fresh install, not foreign content.
+            OptionalModSelection.FileName
         };
 
         static ClientFolderGuard()
