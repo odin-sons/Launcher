@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <RootNamespace>Launcher.Avalonia.Tests</RootNamespace>
+        <LangVersion>latest</LangVersion>
+        <IsPackable>false</IsPackable>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+        <!-- Avalonia.Headless.XUnit 12.1.1 only supports the xunit v3 generation (it depends
+             on xunit.v3.extensibility.core) — the rest of this repo's test projects are still
+             on xunit v2 (Launcher.Tests, Indexer.Tests), which is fine: these packages are
+             scoped to this one project and don't affect them. -->
+        <!-- Pinned to match Avalonia.Headless.XUnit 12.1.1's own xunit.v3.extensibility.core
+             3.2.2 dependency exactly — the newer xunit.v3 4.0.0 changed a method signature
+             AvaloniaFactDiscoverer was compiled against, which fails at test-discovery time
+             with a MissingMethodException rather than a build error. -->
+        <PackageReference Include="xunit.v3" Version="3.2.2" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+        <PackageReference Include="Avalonia.Headless" Version="12.1.1" />
+        <PackageReference Include="Avalonia.Headless.XUnit" Version="12.1.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Launcher.Avalonia\Launcher.Avalonia.csproj" />
+    </ItemGroup>
+
+</Project>
