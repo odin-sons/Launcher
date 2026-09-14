@@ -1,0 +1,9 @@
+@echo off
+setlocal
+cd /d "%~dp0"
+title OdinsonsLauncher build (win-x64)
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-windows.ps1"
+
+echo.
+pause
