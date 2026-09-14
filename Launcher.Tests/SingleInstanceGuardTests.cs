@@ -34,6 +34,23 @@ namespace Launcher.Tests
         }
 
         [Fact]
+        public void TwoDifferentFolders_BothBecomePrimary_Independently()
+        {
+            // Regression: the pipe used to activate an existing instance used to be one
+            // hardcoded name shared by every install on the machine, even though the lock FILE
+            // was already per-folder. A player with more than one install side by side (a
+            // game-bundled copy plus a separate dist/ build, say) launching the second one
+            // could end up pinging/activating the first one's window instead of ever showing —
+            // or even attempting — a window of its own, which looks exactly like the second
+            // install "remembering" settings it never actually loaded.
+            using SingleInstanceGuard first = SingleInstanceGuard.TryBecomePrimary(TempFolder());
+            using SingleInstanceGuard second = SingleInstanceGuard.TryBecomePrimary(TempFolder());
+
+            Assert.NotNull(first);
+            Assert.NotNull(second);
+        }
+
+        [Fact]
         public async Task SecondAttempt_PingsThePrimaryInstanceToActivate()
         {
             string folder = TempFolder();

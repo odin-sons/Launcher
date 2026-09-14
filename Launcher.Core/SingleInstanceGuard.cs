@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,9 +24,10 @@ namespace Odinsons.ValheimLauncher
     public sealed class SingleInstanceGuard : IDisposable
     {
         public const string LockFileName = "launcher-instance.lock";
-        private const string PipeName = "OdinsonsLauncher.SingleInstance";
+        private const string PipeNamePrefix = "OdinsonsLauncher.SingleInstance.";
 
         private readonly string _lockPath;
+        private readonly string _pipeName;
         private CancellationTokenSource _listenerCts;
         private bool _disposed;
 
@@ -32,19 +35,32 @@ namespace Odinsons.ValheimLauncher
         /// guaranteed to fire on the UI thread — marshal accordingly.</summary>
         public event Action ActivateRequested;
 
-        private SingleInstanceGuard(string lockPath) => _lockPath = lockPath;
+        private SingleInstanceGuard(string lockPath, string pipeName)
+        {
+            _lockPath = lockPath;
+            _pipeName = pipeName;
+        }
 
         /// <summary>
-        /// Tries to become the one running instance. On success, starts listening for pings
-        /// from later launch attempts and returns a guard the caller must keep alive (and
-        /// eventually Dispose) for the life of the app. On failure, pings whichever instance
-        /// already holds the lock to come to the foreground and returns null — the caller
-        /// should exit immediately without creating any UI.
+        /// Tries to become the one running instance *of this install*. On success, starts
+        /// listening for pings from later launch attempts and returns a guard the caller must
+        /// keep alive (and eventually Dispose) for the life of the app. On failure, pings
+        /// whichever instance already holds the lock to come to the foreground and returns
+        /// null — the caller should exit immediately without creating any UI.
+        ///
+        /// The pipe name is derived from appFolder (see PipeNameFor) so two independent installs
+        /// on the same machine — e.g. a game-bundled copy and a separate dist/ build, or several
+        /// server presets each with their own folder — never contend for the same pipe. The lock
+        /// FILE was already per-folder; the pipe name used to be a single hardcoded constant
+        /// shared by every install, so a second install could end up activating a first
+        /// install's window instead of ever showing (or even attempting) one of its own —
+        /// looking exactly like it "remembered" settings it never actually loaded.
         /// </summary>
         public static SingleInstanceGuard TryBecomePrimary(string appFolder)
         {
             string lockPath = Path.Combine(appFolder, LockFileName);
-            var candidate = new SingleInstanceGuard(lockPath);
+            string pipeName = PipeNameFor(appFolder);
+            var candidate = new SingleInstanceGuard(lockPath, pipeName);
 
             if (candidate.TryAcquireLock())
             {
@@ -52,8 +68,19 @@ namespace Odinsons.ValheimLauncher
                 return candidate;
             }
 
-            NotifyPrimaryInstance();
+            NotifyPrimaryInstance(pipeName);
             return null;
+        }
+
+        /// <summary>A stable, filesystem-path-safe pipe name unique to this install folder.
+        /// Full path (not just the folder name) so two differently-named folders never collide,
+        /// and a short hash rather than the raw path so it stays within named-pipe length limits
+        /// and away from characters pipe names can't contain.</summary>
+        private static string PipeNameFor(string appFolder)
+        {
+            string normalized = Path.GetFullPath(appFolder).TrimEnd(Path.DirectorySeparatorChar).ToUpperInvariant();
+            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
+            return PipeNamePrefix + Convert.ToHexString(hash, 0, 8);
         }
 
         private bool TryAcquireLock()
@@ -128,7 +155,7 @@ namespace Odinsons.ValheimLauncher
             {
                 try
                 {
-                    using var server = new NamedPipeServerStream(PipeName, PipeDirection.In, 1,
+                    using var server = new NamedPipeServerStream(_pipeName, PipeDirection.In, 1,
                         PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
                     await server.WaitForConnectionAsync(ct);
                     ActivateRequested?.Invoke();
@@ -147,11 +174,11 @@ namespace Odinsons.ValheimLauncher
 
         /// <summary>Best-effort: if the primary instance's pipe isn't there for any reason,
         /// this launch attempt still exits, just without waking it up.</summary>
-        private static void NotifyPrimaryInstance()
+        private static void NotifyPrimaryInstance(string pipeName)
         {
             try
             {
-                using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
+                using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.Out);
                 client.Connect(1000);
             }
             catch
