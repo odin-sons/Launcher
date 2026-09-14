@@ -11,6 +11,7 @@ dist/
 launcher_log.txt
 config.ini
 /clients/
+*.cache
 
 # Маркеры Syncthing — внутренний идентификатор папки синхронизации, не код.
 .stfolder/
