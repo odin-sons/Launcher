@@ -49,13 +49,30 @@ namespace Odinsons.ValheimLauncher.Avalonia
 
         /// <summary>
         /// The launcher keeps its data (config.ini, clients/, launcher_log.txt) next to
-        /// <see cref="Environment.CurrentDirectory"/>. On Windows that's the .exe folder, as
-        /// before. A macOS .app (or a bare binary) opened from Finder starts with the working
-        /// directory at "/", so point it at a per-user data directory instead.
+        /// <see cref="Environment.CurrentDirectory"/>, so this needs to reliably land on the
+        /// .exe's own folder regardless of how the process was started.
+        ///
+        /// On Windows, double-clicking OdinsonsLauncher.exe directly gets this right for free —
+        /// Explorer sets the CWD to the exe's folder. A .url shortcut (Desktop/Start Menu,
+        /// chosen over .lnk specifically to avoid COM interop — see UpdateUrlShortcut) has no
+        /// "Start in" field at all, unlike .lnk, and leaves the CWD wherever the shell happens
+        /// to put it — reported as the "admin" marker file and the server list behaving
+        /// differently launched from a shortcut vs the exe directly (LoadServersAsync's
+        /// isAdmin check and config.ini both read relative to CurrentDirectory). Pinning it to
+        /// AppContext.BaseDirectory here, unconditionally, makes every launch path identical.
+        ///
+        /// A macOS .app (or a bare binary) opened from Finder starts with the working directory
+        /// at "/" instead, so that platform points at a per-user data directory rather than the
+        /// bundle's own (often read-only, code-signed) folder.
         /// </summary>
         private static void SetWorkingDirectory()
         {
-            if (OperatingSystem.IsWindows()) return;
+            if (OperatingSystem.IsWindows())
+            {
+                try { Directory.SetCurrentDirectory(AppContext.BaseDirectory); }
+                catch { /* keep whatever directory the process was handed */ }
+                return;
+            }
 
             try
             {
