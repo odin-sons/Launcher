@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
+using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
@@ -240,6 +241,9 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         // up front, not something to dig for.
         private bool _installSettingsExpanded = true;
         private RotateTransform? _installSettingsChevronRotation;
+
+        private RotateTransform? _refreshPlayersRotation;
+        private CancellationTokenSource? _refreshPlayersSpinCts;
 
         public void SetInjectorPlan(InjectorPlan? plan)
         {
@@ -884,6 +888,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             WireScrollShadows(ModsScrollViewer, ModsTopShadow, ModsBottomShadow);
             WireScrollShadows(InstallScrollViewer, InstallTopShadow, InstallBottomShadow);
             SetupInstallSettingsGroup();
+            SetupRefreshPlayersButton();
 
             PlayersColumn.Width = ComputePlayersColumnWidth();
 
@@ -1004,6 +1009,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
             ToolTip.SetTip(MinimizeButton, Loc.T("gui.tooltip.minimize"));
             ToolTip.SetTip(CloseWindowButton, Loc.T("gui.tooltip.close"));
+            ToolTip.SetTip(RefreshPlayersButton, Loc.T("gui.tooltip.refreshPlayers"));
             UpdateMaximizeIcon(WindowState); // also refreshes MaximizeButton's Maximize/Restore tooltip text
 
             UpdateWizardButton();
@@ -2077,6 +2083,40 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             ShowServerStatus(online: false, playerCount: 0);
         }
 
+        private async void RefreshPlayersButton_Click(object? sender, RoutedEventArgs e)
+        {
+            if (_refreshPlayersSpinCts is not null) return; // a refresh is already in flight
+
+            RefreshPlayersButton.IsEnabled = false;
+            _refreshPlayersSpinCts = new CancellationTokenSource();
+            Task spin = SpinRefreshPlayersIconAsync(_refreshPlayersSpinCts.Token);
+
+            await UpdateServerStatusAsync();
+
+            _refreshPlayersSpinCts.Cancel();
+            await spin;
+            _refreshPlayersSpinCts.Dispose();
+            _refreshPlayersSpinCts = null;
+            RefreshPlayersButton.IsEnabled = true;
+        }
+
+        /// <summary>Adds a full 360° turn every leg, for as long as the token isn't cancelled.
+        /// Cancelling doesn't touch the leg already in flight — that keeps animating on its own
+        /// via _refreshPlayersRotation's Transition until it lands back on a multiple of 360°
+        /// (visually identical to the resting position); cancelling only stops scheduling the
+        /// *next* one. So the icon always finishes its current lap before coming to rest,
+        /// instead of snapping to a stop mid-turn the moment the refresh completes.</summary>
+        private async Task SpinRefreshPlayersIconAsync(CancellationToken token)
+        {
+            TimeSpan legDuration = TimeSpan.FromMilliseconds(600);
+            while (!token.IsCancellationRequested)
+            {
+                _refreshPlayersRotation!.Angle += 360;
+                try { await Task.Delay(legDuration, token); }
+                catch (TaskCanceledException) { return; }
+            }
+        }
+
         /// <summary>The one button doing whatever UpdateWizardButton's label promises, not just
         /// "advance a tab":
         /// - "Go to mods" (Mods never visited): switch tabs only, nothing to check yet.
@@ -2831,6 +2871,37 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 RenderTransform = rotation,
                 RenderTransformOrigin = RelativePoint.Center
             };
+        }
+
+        /// <summary>Same dashed-ring look as Ellipse.stepSpinner (see its style comment for why
+        /// it needs a dash pattern at all — a solid ring never visually shows it's rotating),
+        /// but built here as a plain Ellipse instead of that shared class: stepSpinner's
+        /// Style.Animations spins forever the moment the class is applied, with no hook to
+        /// finish the current lap and settle at 0° before stopping — exactly what
+        /// RefreshPlayersButton_Click needs when the refresh completes. Driven by hand instead,
+        /// via the RotateTransform's own Transition (set up in SetupRefreshPlayersButton).</summary>
+        private static Ellipse BuildRefreshPlayersIcon(RotateTransform rotation) => new()
+        {
+            Width = 14,
+            Height = 14,
+            Stroke = Brushes.White,
+            StrokeThickness = 2,
+            StrokeDashArray = new AvaloniaList<double> { 3, 3.7 },
+            RenderTransform = rotation,
+            RenderTransformOrigin = RelativePoint.Center
+        };
+
+        /// <summary>Called once, from the constructor — mirrors SetupInstallSettingsGroup.</summary>
+        private void SetupRefreshPlayersButton()
+        {
+            _refreshPlayersRotation = new RotateTransform(0)
+            {
+                Transitions = new Transitions
+                {
+                    new DoubleTransition { Property = RotateTransform.AngleProperty, Duration = TimeSpan.FromMilliseconds(600) }
+                }
+            };
+            RefreshPlayersButton.Content = BuildRefreshPlayersIcon(_refreshPlayersRotation);
         }
 
         /// <summary>Feather Icons "globe" (MIT) — the same glyph the bottom bar's website

@@ -421,7 +421,18 @@
                 <Grid Grid.Column="0" Name="PlayersColumn">
                     <ScrollViewer Name="PlayersScrollViewer" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="12,12,10,12" Spacing="14">
-                            <TextBlock Name="PlayersHeading" Foreground="White" FontSize="15" FontWeight="Bold"/>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Name="PlayersHeading" Foreground="White" FontSize="15"
+                                           FontWeight="Bold" VerticalAlignment="Center"/>
+                                <!-- Content filled in code (SetupRefreshPlayersButton) — the dashed-ring
+                                     look is a plain Ellipse driven by hand, not Ellipse.stepSpinner's
+                                     Style.Animations: this one needs to finish its current lap and
+                                     settle back to 0° when the refresh completes, not freeze mid-turn
+                                     the moment the class comes off. -->
+                                <Button Grid.Column="1" Name="RefreshPlayersButton" Classes="iconButton"
+                                        Click="RefreshPlayersButton_Click" VerticalAlignment="Center"
+                                        Margin="8,0,0,0"/>
+                            </Grid>
                             <ItemsControl Name="PlayersList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="views:MainWindow+PlayerListItem">

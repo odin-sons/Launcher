@@ -1725,6 +1725,11 @@ namespace Odinsons.ValheimLauncher
                 "Close", "Schließen", "Cerrar", "Fermer", "Zamknij",
                 "Fechar", "Закрыть", "Stäng", "关闭", "Закрити"),
 
+            ["gui.tooltip.refreshPlayers"] = L(
+                "Refresh player list", "Spielerliste aktualisieren", "Actualizar lista de jugadores",
+                "Actualiser la liste des joueurs", "Odśwież listę graczy", "Atualizar lista de jogadores",
+                "Обновить список игроков", "Uppdatera spelarlistan", "刷新玩家列表", "Оновити список гравців"),
+
             // Windows only (see AutoStartAfterValidationCheckBox_Click's sibling
             // DesktopShortcutCheckBox_Click in MainWindow.axaml.cs) — macOS/Linux builds don't
             // show this checkbox at all, see RuntimePlatform.IsWindows gating in the XAML's
