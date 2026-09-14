@@ -31,7 +31,8 @@ namespace Odinsons.ValheimLauncher
             "update.info", "update_admin.info", "Indexer.exe", "full.info", "version.info", "news.info",
             "OdinsonsLauncher.exe", "ValknutLauncher.exe", "LogOutput.log", "admin",
             "admin_only_patterns.txt", "force_check_files.txt", "game.info", "optional.info", ClientLedger.FileName,
-            OptionalModSelection.FileName, ClientHashCacheFileName, SteamHashCacheFileName, DefenderExclusion.PromptedMarkerName
+            OptionalModSelection.FileName, ClientHashCacheFileName, SteamHashCacheFileName, DefenderExclusion.PromptedMarkerName,
+            "changelog.md", "changelog_seen.txt" // written by older launcher versions; no longer created
         };
 
         /// <summary>Both live in the client folder — never inside the Steam library, which isn't ours to write into.</summary>
