@@ -58,18 +58,29 @@ namespace Odinsons.ValheimLauncher.Avalonia
         /// "Start in" field at all, unlike .lnk, and leaves the CWD wherever the shell happens
         /// to put it — reported as the "admin" marker file and the server list behaving
         /// differently launched from a shortcut vs the exe directly (LoadServersAsync's
-        /// isAdmin check and config.ini both read relative to CurrentDirectory). Pinning it to
-        /// AppContext.BaseDirectory here, unconditionally, makes every launch path identical.
+        /// isAdmin check and config.ini both read relative to CurrentDirectory).
         ///
-        /// A macOS .app (or a bare binary) opened from Finder starts with the working directory
-        /// at "/" instead, so that platform points at a per-user data directory rather than the
-        /// bundle's own (often read-only, code-signed) folder.
+        /// AppContext.BaseDirectory is NOT the right fix for this, despite looking like the
+        /// obvious one: this is a PublishSingleFile build, and for those .NET extracts the
+        /// bundle (native libs, and — IncludeAllContentForSelfExtract — the managed assemblies
+        /// too) to a per-bundle-hash folder under %TEMP%\.net\OdinsonsLauncher\ at every launch,
+        /// and AppContext.BaseDirectory points AT that temp extraction folder, not at the
+        /// original .exe. Pinning CWD there "worked" in the sense of being consistent across
+        /// launches of the same build, but silently moved config.ini/clients/launcher_log.txt
+        /// into %TEMP% instead of next to the exe — confirmed by finding them sitting in
+        /// exactly that folder. Environment.ProcessPath is single-file-safe (already used the
+        /// same way in InjectorLauncher's elevated re-launch) — it resolves to the real apphost
+        /// exe's own path even when the running code was extracted elsewhere.
         /// </summary>
         private static void SetWorkingDirectory()
         {
             if (OperatingSystem.IsWindows())
             {
-                try { Directory.SetCurrentDirectory(AppContext.BaseDirectory); }
+                try
+                {
+                    string? exeDir = Path.GetDirectoryName(Environment.ProcessPath);
+                    if (!string.IsNullOrEmpty(exeDir)) Directory.SetCurrentDirectory(exeDir);
+                }
                 catch { /* keep whatever directory the process was handed */ }
                 return;
             }
