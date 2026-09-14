@@ -15,7 +15,7 @@ namespace Odinsons.ValheimLauncher
     /// Nothing in a non-English language (or any human-facing text at all) should exist outside
     /// this file — otherwise the string won't make it into translation.
     ///
-    /// To add a 10th language: add its code to <see cref="Supported"/> and its native name to
+    /// To add an 11th language: add its code to <see cref="Supported"/> and its native name to
     /// <see cref="DisplayNames"/>, then add one more parameter to <see cref="L"/> (give it a
     /// default of <c>null</c> so every existing call site keeps compiling unchanged) and pass it
     /// through into the returned dictionary. Existing keys don't need to be touched all at once —
@@ -28,7 +28,7 @@ namespace Odinsons.ValheimLauncher
 
         /// <summary>Languages that have translations.</summary>
         public static readonly IReadOnlyList<string> Supported =
-            new[] { "en", "de", "es", "fr", "pl", "pt", "ru", "sv", "zh" };
+            new[] { "en", "de", "es", "fr", "pl", "pt", "ru", "sv", "zh", "uk" };
 
         /// <summary>
         /// Language names in their own language — for a future dropdown in settings.
@@ -46,7 +46,8 @@ namespace Odinsons.ValheimLauncher
                 ["pt"] = "Português",
                 ["ru"] = "Русский",
                 ["sv"] = "Svenska",
-                ["zh"] = "中文"
+                ["zh"] = "中文",
+                ["uk"] = "Українська"
             };
 
         private static string _language = Fallback;
@@ -117,11 +118,12 @@ namespace Odinsons.ValheimLauncher
         }
 
         private static Dictionary<string, string> L(
-            string en, string de, string es, string fr, string pl, string pt, string ru, string sv, string zh) =>
+            string en, string de, string es, string fr, string pl, string pt, string ru, string sv, string zh,
+            string uk = null) =>
             new()
             {
                 ["en"] = en, ["de"] = de, ["es"] = es, ["fr"] = fr, ["pl"] = pl,
-                ["pt"] = pt, ["ru"] = ru, ["sv"] = sv, ["zh"] = zh
+                ["pt"] = pt, ["ru"] = ru, ["sv"] = sv, ["zh"] = zh, ["uk"] = uk
             };
 
         private static readonly Dictionary<string, Dictionary<string, string>> Table = new()
@@ -137,7 +139,8 @@ namespace Odinsons.ValheimLauncher
                 "o caminho da pasta do cliente não foi definido",
                 "путь к папке клиента не задан",
                 "sökvägen till klientmappen är inte angiven",
-                "未指定客户端文件夹路径"),
+                "未指定客户端文件夹路径",
+                "шлях до папки клієнта не вказано"),
 
             ["guard.specifyFolder"] = L(
                 "Specify the client folder.",
@@ -148,7 +151,8 @@ namespace Odinsons.ValheimLauncher
                 "Indique a pasta do cliente.",
                 "Укажите каталог клиента.",
                 "Ange klientmappen.",
-                "请指定客户端文件夹。"),
+                "请指定客户端文件夹。",
+                "Вкажіть папку клієнта."),
 
             ["guard.badPath"] = L(
                 "invalid path: {0}",
@@ -159,7 +163,8 @@ namespace Odinsons.ValheimLauncher
                 "caminho inválido: {0}",
                 "некорректный путь: {0}",
                 "ogiltig sökväg: {0}",
-                "路径无效：{0}"),
+                "路径无效：{0}",
+                "недійсний шлях: {0}"),
 
             ["guard.checkSpelling"] = L(
                 "Check the spelling of the path.",
@@ -170,7 +175,8 @@ namespace Odinsons.ValheimLauncher
                 "Verifique a grafia do caminho.",
                 "Проверьте написание пути.",
                 "Kontrollera att sökvägen är rätt stavad.",
-                "请检查路径拼写。"),
+                "请检查路径拼写。",
+                "Перевірте правильність написання шляху."),
 
             ["guard.unreadable"] = L(
                 "could not read the folder contents: {0}",
@@ -181,7 +187,8 @@ namespace Odinsons.ValheimLauncher
                 "não foi possível ler o conteúdo da pasta: {0}",
                 "не удалось прочитать содержимое папки: {0}",
                 "kunde inte läsa mappens innehåll: {0}",
-                "无法读取文件夹内容：{0}"),
+                "无法读取文件夹内容：{0}",
+                "не вдалося прочитати вміст папки: {0}"),
 
             ["guard.notClient"] = L(
                 "the folder is not empty and does not look like a Valheim client — none of {0} were found. Unrelated contents: {1}",
@@ -192,7 +199,8 @@ namespace Odinsons.ValheimLauncher
                 "a pasta não está vazia e não parece um cliente do Valheim — nada de {0} foi encontrado. Conteúdo alheio: {1}",
                 "папка не пуста и не похожа на клиент Valheim — не найдено ничего из {0}. Постороннее содержимое: {1}",
                 "mappen är inte tom och ser inte ut som en Valheim-klient — inget av {0} hittades. Främmande innehåll: {1}",
-                "该文件夹非空且不像 Valheim 客户端——未找到 {0} 中的任何内容。无关内容：{1}"),
+                "该文件夹非空且不像 Valheim 客户端——未找到 {0} 中的任何内容。无关内容：{1}",
+                "папка не порожня і не схожа на клієнт Valheim — не знайдено жодного з {0}. Сторонній вміст: {1}"),
 
             ["guard.andMore"] = L(
                 "and {0} more",
@@ -203,7 +211,8 @@ namespace Odinsons.ValheimLauncher
                 "e mais {0}",
                 "и ещё {0}",
                 "och {0} till",
-                "还有 {0} 项"),
+                "还有 {0} 项",
+                "і ще {0}"),
 
             ["guard.noParent"] = L(
                 "no existing parent folder for «{0}»",
@@ -214,7 +223,8 @@ namespace Odinsons.ValheimLauncher
                 "não existe nenhuma pasta superior para «{0}»",
                 "не существует ни одной родительской папки для «{0}»",
                 "ingen befintlig överordnad mapp för «{0}»",
-                "找不到 «{0}» 的任何上级文件夹"),
+                "找不到 «{0}» 的任何上级文件夹",
+                "не існує жодної батьківської папки для «{0}»"),
 
             ["guard.checkDrive"] = L(
                 "Check that the drive is connected and the path is correct.",
@@ -225,7 +235,8 @@ namespace Odinsons.ValheimLauncher
                 "Verifique se a unidade está conectada e o caminho está correto.",
                 "Проверьте, подключён ли диск и верен ли путь.",
                 "Kontrollera att enheten är ansluten och att sökvägen stämmer.",
-                "请检查磁盘是否已连接、路径是否正确。"),
+                "请检查磁盘是否已连接、路径是否正确。",
+                "Перевірте, чи підключено диск і чи правильний шлях."),
 
             ["guard.notWritable"] = L(
                 "no write access to «{0}» ({1}: {2})",
@@ -236,7 +247,8 @@ namespace Odinsons.ValheimLauncher
                 "sem permissão de escrita em «{0}» ({1}: {2})",
                 "нет прав на запись в «{0}» ({1}: {2})",
                 "ingen skrivbehörighet till «{0}» ({1}: {2})",
-                "对 «{0}» 没有写入权限（{1}：{2}）"),
+                "对 «{0}» 没有写入权限（{1}：{2}）",
+                "немає прав на запис до «{0}» ({1}: {2})"),
 
             ["guard.advice.windows"] = L(
                 "Windows: clear the «Read-only» attribute on the folder, or move the client into a folder inside your user profile — writing to Program Files or a drive root requires administrator rights. Also check that antivirus is not blocking the folder and that the game is not currently running.",
@@ -247,7 +259,8 @@ namespace Odinsons.ValheimLauncher
                 "Windows: remova o atributo «Somente leitura» da pasta ou mova o cliente para uma pasta dentro do seu perfil de usuário — gravar em Arquivos de Programas ou na raiz do disco exige permissões de administrador. Verifique também se o antivírus não está bloqueando a pasta e se o jogo não está em execução.",
                 "Windows: снимите атрибут «Только чтение» с папки, либо перенесите клиент в каталог внутри профиля пользователя — в Program Files и корне диска запись требует прав администратора. Также проверьте, не блокирует ли папку антивирус и не запущена ли игра прямо сейчас.",
                 "Windows: ta bort attributet «Skrivskyddad» från mappen, eller flytta klienten till en mapp i din användarprofil — att skriva till Program Files eller enhetens rot kräver administratörsbehörighet. Kontrollera även att antivirus inte blockerar mappen och att spelet inte körs.",
-                "Windows：请取消该文件夹的“只读”属性，或将客户端移动到用户配置文件下的文件夹——写入 Program Files 或磁盘根目录需要管理员权限。另请确认杀毒软件没有拦截该文件夹，且游戏当前没有在运行。"),
+                "Windows：请取消该文件夹的“只读”属性，或将客户端移动到用户配置文件下的文件夹——写入 Program Files 或磁盘根目录需要管理员权限。另请确认杀毒软件没有拦截该文件夹，且游戏当前没有在运行。",
+                "Windows: зніміть атрибут «Тільки читання» з папки, або перенесіть клієнт у папку всередині свого профілю користувача — запис у Program Files чи в корінь диска потребує прав адміністратора. Також перевірте, що антивірус не блокує папку і що гра наразі не запущена."),
 
             ["guard.advice.macos"] = L(
                 "macOS: grant write access with  chmod -R u+w \"{0}\"  or change the owner:  sudo chown -R $(whoami) \"{0}\"  . If the folder is in Desktop, Documents or Downloads, also allow access in System Settings → Privacy & Security → Files and Folders.",
@@ -258,7 +271,8 @@ namespace Odinsons.ValheimLauncher
                 "macOS: conceda permissão de escrita com  chmod -R u+w \"{0}\"  ou altere o proprietário:  sudo chown -R $(whoami) \"{0}\"  . Se a pasta estiver em Mesa, Documentos ou Transferências, permita também o acesso em Ajustes do Sistema → Privacidade e Segurança → Ficheiros e pastas.",
                 "macOS: выдайте права командой  chmod -R u+w \"{0}\"  или смените владельца:  sudo chown -R $(whoami) \"{0}\"  . Если папка находится в «Рабочий стол», «Документы» или «Загрузки», разрешите доступ в Системных настройках → Конфиденциальность и безопасность → Доступ к файлам и папкам.",
                 "macOS: ge skrivbehörighet med  chmod -R u+w \"{0}\"  eller byt ägare:  sudo chown -R $(whoami) \"{0}\"  . Ligger mappen i Skrivbord, Dokument eller Hämtade filer, tillåt även åtkomst i Systeminställningar → Integritet och säkerhet → Filer och mappar.",
-                "macOS：使用  chmod -R u+w \"{0}\"  授予写入权限，或更改所有者：  sudo chown -R $(whoami) \"{0}\"  。如果该文件夹位于“桌面”“文稿”或“下载”中，还需在“系统设置 → 隐私与安全性 → 文件和文件夹”中允许访问。"),
+                "macOS：使用  chmod -R u+w \"{0}\"  授予写入权限，或更改所有者：  sudo chown -R $(whoami) \"{0}\"  。如果该文件夹位于“桌面”“文稿”或“下载”中，还需在“系统设置 → 隐私与安全性 → 文件和文件夹”中允许访问。",
+                "macOS: надайте права на запис командою  chmod -R u+w \"{0}\"  або змініть власника:  sudo chown -R $(whoami) \"{0}\"  . Якщо папка знаходиться в «Робочому столі», «Документах» або «Завантаженнях», також дозвольте доступ у Системних налаштуваннях → Конфіденційність і безпека → Файли і папки."),
 
             ["guard.advice.linux"] = L(
                 "Linux: grant write access with  chmod -R u+w \"{0}\"  or change the owner:  sudo chown -R $USER \"{0}\"  . Also make sure the partition is not mounted read-only (check  mount | grep ro ).",
@@ -269,7 +283,8 @@ namespace Odinsons.ValheimLauncher
                 "Linux: conceda permissão de escrita com  chmod -R u+w \"{0}\"  ou altere o proprietário:  sudo chown -R $USER \"{0}\"  . Confirme também que a partição não está montada como somente leitura (verifique  mount | grep ro ).",
                 "Linux: выдайте права командой  chmod -R u+w \"{0}\"  или смените владельца:  sudo chown -R $USER \"{0}\"  . Убедитесь также, что раздел не смонтирован только для чтения (проверьте  mount | grep ro ).",
                 "Linux: ge skrivbehörighet med  chmod -R u+w \"{0}\"  eller byt ägare:  sudo chown -R $USER \"{0}\"  . Kontrollera även att partitionen inte är monterad skrivskyddad (se  mount | grep ro ).",
-                "Linux：使用  chmod -R u+w \"{0}\"  授予写入权限，或更改所有者：  sudo chown -R $USER \"{0}\"  。另请确认分区未以只读方式挂载（检查  mount | grep ro ）。"),
+                "Linux：使用  chmod -R u+w \"{0}\"  授予写入权限，或更改所有者：  sudo chown -R $USER \"{0}\"  。另请确认分区未以只读方式挂载（检查  mount | grep ro ）。",
+                "Linux: надайте права на запис командою  chmod -R u+w \"{0}\"  або змініть власника:  sudo chown -R $USER \"{0}\"  . Також переконайтеся, що розділ не змонтовано лише для читання (перевірте  mount | grep ro )."),
 
             // ---------- UpdateSession ----------
 
@@ -282,7 +297,8 @@ namespace Odinsons.ValheimLauncher
                 "esta pasta já está a ser atualizada ({0})",
                 "обновление этой папки уже выполняется ({0})",
                 "den här mappen uppdateras redan ({0})",
-                "该文件夹正在被更新（{0}）"),
+                "该文件夹正在被更新（{0}）",
+                "ця папка вже оновлюється ({0})"),
 
             ["session.unknownProcess"] = L(
                 "unknown process",
@@ -293,7 +309,8 @@ namespace Odinsons.ValheimLauncher
                 "processo desconhecido",
                 "неизвестный процесс",
                 "okänd process",
-                "未知进程"),
+                "未知进程",
+                "невідомий процес"),
 
             ["session.owner"] = L(
                 "PID {0}, {1}, started {2}",
@@ -304,7 +321,8 @@ namespace Odinsons.ValheimLauncher
                 "PID {0}, {1}, iniciado {2}",
                 "PID {0}, {1}, запущено {2}",
                 "PID {0}, {1}, startad {2}",
-                "PID {0}，{1}，启动于 {2}"),
+                "PID {0}，{1}，启动于 {2}",
+                "PID {0}, {1}, запущено {2}"),
 
             ["session.staleLockFailed"] = L(
                 "could not clear the stale lock {0}: {1}",
@@ -315,7 +333,8 @@ namespace Odinsons.ValheimLauncher
                 "não foi possível remover o bloqueio obsoleto {0}: {1}",
                 "не удалось снять зависшую блокировку {0}: {1}",
                 "kunde inte ta bort det inaktuella låset {0}: {1}",
-                "无法清除失效的锁 {0}：{1}"),
+                "无法清除失效的锁 {0}：{1}",
+                "не вдалося прибрати застаріле блокування {0}: {1}"),
 
             ["session.lockCreateFailed"] = L(
                 "could not create the lock file {0}: {1}",
@@ -326,7 +345,8 @@ namespace Odinsons.ValheimLauncher
                 "não foi possível criar o ficheiro de bloqueio {0}: {1}",
                 "не удалось создать файл блокировки {0}: {1}",
                 "kunde inte skapa låsfilen {0}: {1}",
-                "无法创建锁文件 {0}：{1}"),
+                "无法创建锁文件 {0}：{1}",
+                "не вдалося створити файл блокування {0}: {1}"),
 
             ["session.lockFailed"] = L(
                 "could not acquire a lock on the client folder",
@@ -337,7 +357,8 @@ namespace Odinsons.ValheimLauncher
                 "não foi possível bloquear a pasta do cliente",
                 "не удалось получить блокировку папки клиента",
                 "kunde inte låsa klientmappen",
-                "无法锁定客户端文件夹"),
+                "无法锁定客户端文件夹",
+                "не вдалося отримати блокування папки клієнта"),
 
             // ---------- GameFolderInspector ----------
 
@@ -350,7 +371,8 @@ namespace Odinsons.ValheimLauncher
                 "COMO RESTAURAR.txt",
                 "КАК ВЕРНУТЬ.txt",
                 "SA HAR ATERSTALLER DU.txt",
-                "如何还原.txt"),
+                "如何还原.txt",
+                "ЯК ВІДНОВИТИ.txt"),
 
             ["backup.readme.title"] = L(
                 "These files were moved out of the game folder by the launcher.",
@@ -361,7 +383,8 @@ namespace Odinsons.ValheimLauncher
                 "Estes ficheiros foram movidos da pasta do jogo pelo launcher.",
                 "Эти файлы перенесены лаунчером из папки игры.",
                 "Dessa filer flyttades ut ur spelmappen av launchern.",
-                "这些文件已被启动器从游戏文件夹中移出。"),
+                "这些文件已被启动器从游戏文件夹中移出。",
+                "Ці файли перенесено лаунчером з папки гри."),
 
             ["backup.readme.why"] = L(
                 "Why: the launcher runs the game with its own set of mods and cannot do that\r\nwhile another BepInEx installation sits next to the game — foreign mods would load.",
@@ -372,7 +395,8 @@ namespace Odinsons.ValheimLauncher
                 "Motivo: o launcher executa o jogo com o seu próprio conjunto de mods e não o consegue fazer\r\nenquanto houver outra instalação do BepInEx junto ao jogo — seriam carregados mods alheios.",
                 "Зачем: лаунчер запускает игру со своим набором модов и не может этого сделать,\r\nпока рядом с игрой лежит другая установка BepInEx — загрузились бы чужие моды.",
                 "Varför: launchern startar spelet med sin egen uppsättning mods och kan inte göra det\r\nså länge en annan BepInEx-installation ligger bredvid spelet — främmande mods skulle laddas.",
-                "原因：启动器使用自己的模组集合运行游戏，而当游戏旁边存在另一个 BepInEx 安装时无法做到\r\n——那样会加载别的模组。"),
+                "原因：启动器使用自己的模组集合运行游戏，而当游戏旁边存在另一个 BepInEx 安装时无法做到\r\n——那样会加载别的模组。",
+                "Чому: лаунчер запускає гру зі своїм набором модів і не може зробити це,\r\nпоки поруч із грою лежить інша інсталяція BepInEx — завантажилися б чужі моди."),
 
             ["backup.readme.nothingDeleted"] = L(
                 "Nothing was deleted. To restore everything, move the contents back:",
@@ -383,15 +407,16 @@ namespace Odinsons.ValheimLauncher
                 "Nada foi eliminado. Para restaurar tudo, mova o conteúdo de volta:",
                 "Ничего не удалено. Чтобы вернуть всё как было, перенесите содержимое обратно:",
                 "Inget har raderats. Flytta tillbaka innehållet för att återställa allt:",
-                "没有删除任何内容。要恢复原状，请将内容移回："),
+                "没有删除任何内容。要恢复原状，请将内容移回：",
+                "Нічого не було видалено. Щоб відновити все, перенесіть вміст назад:"),
 
             ["backup.readme.from"] = L(
                 "  from : {0}", "  von  : {0}", "  desde: {0}", "  de   : {0}", "  z    : {0}",
-                "  de   : {0}", "  из   : {0}", "  från : {0}", "  从   ：{0}"),
+                "  de   : {0}", "  из   : {0}", "  från : {0}", "  从   ：{0}", "  з    : {0}"),
 
             ["backup.readme.to"] = L(
                 "  to   : {0}", "  nach : {0}", "  a    : {0}", "  vers : {0}", "  do   : {0}",
-                "  para : {0}", "  в    : {0}", "  till : {0}", "  到   ：{0}"),
+                "  para : {0}", "  в    : {0}", "  till : {0}", "  到   ：{0}", "  до   : {0}"),
 
             ["backup.readme.date"] = L(
                 "Moved on: {0}",
@@ -402,7 +427,8 @@ namespace Odinsons.ValheimLauncher
                 "Movido em: {0}",
                 "Дата переноса: {0}",
                 "Flyttat: {0}",
-                "移动时间：{0}"),
+                "移动时间：{0}",
+                "Дата перенесення: {0}"),
 
             ["backup.moveFailed"] = L(
                 "could not move to backup: {0}",
@@ -413,7 +439,8 @@ namespace Odinsons.ValheimLauncher
                 "não foi possível mover para a cópia de segurança: {0}",
                 "не удалось перенести в резерв: {0}",
                 "kunde inte flytta till säkerhetskopian: {0}",
-                "无法移动到备份：{0}"),
+                "无法移动到备份：{0}",
+                "не вдалося перенести в резервну копію: {0}"),
 
             // ---------- SteamLocator ----------
 
@@ -426,7 +453,8 @@ namespace Odinsons.ValheimLauncher
                 "não foi encontrada nenhuma instalação do Steam",
                 "не найдена установка Steam",
                 "ingen Steam-installation hittades",
-                "未找到 Steam 安装"),
+                "未找到 Steam 安装",
+                "не знайдено встановлення Steam"),
 
             ["steam.librariesUnreadable"] = L(
                 "could not read the list of Steam libraries: {0}",
@@ -437,7 +465,8 @@ namespace Odinsons.ValheimLauncher
                 "não foi possível ler a lista de bibliotecas do Steam: {0}",
                 "не удалось прочитать список библиотек Steam: {0}",
                 "kunde inte läsa listan över Steam-bibliotek: {0}",
-                "无法读取 Steam 库列表：{0}"),
+                "无法读取 Steam 库列表：{0}",
+                "не вдалося прочитати список бібліотек Steam: {0}"),
 
             ["steam.gameNotFound"] = L(
                 "the game was not found in any Steam library",
@@ -448,63 +477,74 @@ namespace Odinsons.ValheimLauncher
                 "o jogo não foi encontrado em nenhuma biblioteca do Steam",
                 "игра не найдена ни в одной библиотеке Steam",
                 "spelet hittades inte i något Steam-bibliotek",
-                "在任何 Steam 库中都未找到该游戏"),
+                "在任何 Steam 库中都未找到该游戏",
+                "гру не знайдено в жодній бібліотеці Steam"),
 
             // ---------- FileDownloader: status line ----------
 
             ["dl.initializing"] = L(
                 "Initializing…", "Initialisierung…", "Inicializando…", "Initialisation…", "Inicjalizacja…",
-                "A inicializar…", "Инициализация…", "Initierar…", "正在初始化…"),
+                "A inicializar…", "Инициализация…", "Initierar…", "正在初始化…", "Ініціалізація…"),
 
             ["dl.preparing"] = L(
                 "Preparing…", "Vorbereitung…", "Preparando…", "Préparation…", "Przygotowanie…",
-                "A preparar…", "Подготовка…", "Förbereder…", "正在准备…"),
+                "A preparar…", "Подготовка…", "Förbereder…", "正在准备…", "Підготовка…"),
 
             ["dl.checkingFiles"] = L(
                 "Checking files…", "Dateien werden geprüft…", "Comprobando archivos…", "Vérification des fichiers…",
-                "Sprawdzanie plików…", "A verificar ficheiros…", "Проверка файлов…", "Kontrollerar filer…", "正在检查文件…"),
+                "Sprawdzanie plików…", "A verificar ficheiros…", "Проверка файлов…", "Kontrollerar filer…", "正在检查文件…",
+                "Перевірка файлів…"),
 
             // ---------- FileDownloader: grouped step list ----------
 
             ["dl.group.check"] = L(
                 "Checking files", "Dateien prüfen", "Comprobación de archivos", "Vérification des fichiers",
-                "Sprawdzanie plików", "Verificação de ficheiros", "Проверка файлов", "Kontrollerar filer", "检查文件"),
+                "Sprawdzanie plików", "Verificação de ficheiros", "Проверка файлов", "Kontrollerar filer", "检查文件",
+                "Перевірка файлів"),
 
             ["dl.group.download"] = L(
                 "Downloading content", "Inhalte herunterladen", "Descarga de contenido", "Téléchargement du contenu",
-                "Pobieranie zawartości", "Transferência de conteúdo", "Загрузка контента", "Laddar ner innehåll", "下载内容"),
+                "Pobieranie zawartości", "Transferência de conteúdo", "Загрузка контента", "Laddar ner innehåll", "下载内容",
+                "Завантаження вмісту"),
 
             ["dl.group.finalize"] = L(
                 "Finishing up", "Abschluss", "Finalización", "Finalisation",
-                "Kończenie", "Finalização", "Завершение", "Slutför", "正在完成"),
+                "Kończenie", "Finalização", "Завершение", "Slutför", "正在完成",
+                "Завершення"),
 
             ["dl.step.steamCheck"] = L(
                 "Verifying Steam install", "Steam-Installation wird geprüft", "Comprobando la instalación de Steam",
                 "Vérification de l'installation Steam", "Weryfikacja instalacji Steam", "A verificar a instalação Steam",
-                "Проверка установки Steam", "Verifierar Steam-installationen", "正在验证 Steam 安装"),
+                "Проверка установки Steam", "Verifierar Steam-installationen", "正在验证 Steam 安装",
+                "Перевірка встановлення Steam"),
 
             ["dl.step.clientCheck"] = L(
                 "Checking game files", "Spieldateien werden geprüft", "Comprobando los archivos del juego",
                 "Vérification des fichiers du jeu", "Sprawdzanie plików gry", "A verificar os ficheiros do jogo",
-                "Проверка файлов игры", "Kontrollerar spelfiler", "正在检查游戏文件"),
+                "Проверка файлов игры", "Kontrollerar spelfiler", "正在检查游戏文件",
+                "Перевірка файлів гри"),
 
             ["dl.step.optionalCheck"] = L(
                 "Checking optional mods", "Optionale Mods werden geprüft", "Comprobando mods opcionales",
                 "Vérification des mods optionnels", "Sprawdzanie opcjonalnych modów", "A verificar mods opcionais",
-                "Проверка опциональных модов", "Kontrollerar valfria mods", "正在检查可选模组"),
+                "Проверка опциональных модов", "Kontrollerar valfria mods", "正在检查可选模组",
+                "Перевірка опціональних модів"),
 
             ["dl.step.download"] = L(
                 "Downloading files", "Dateien werden heruntergeladen", "Descargando archivos",
                 "Téléchargement des fichiers", "Pobieranie plików", "A transferir ficheiros",
-                "Загрузка файлов", "Laddar ner filer", "正在下载文件"),
+                "Загрузка файлов", "Laddar ner filer", "正在下载文件",
+                "Завантаження файлів"),
 
             ["dl.step.finalize"] = L(
                 "Finishing up", "Wird abgeschlossen", "Finalizando", "Finalisation", "Kończenie",
-                "A finalizar", "Завершение", "Slutför", "正在完成"),
+                "A finalizar", "Завершение", "Slutför", "正在完成",
+                "Завершення"),
 
             ["dl.stepCounter"] = L(
                 "Step {0} of {1}", "Schritt {0} von {1}", "Paso {0} de {1}", "Étape {0} sur {1}",
-                "Krok {0} z {1}", "Passo {0} de {1}", "Шаг {0} из {1}", "Steg {0} av {1}", "第 {0} 步，共 {1} 步"),
+                "Krok {0} z {1}", "Passo {0} de {1}", "Шаг {0} из {1}", "Steg {0} av {1}", "第 {0} 步，共 {1} 步",
+                "Крок {0} з {1}"),
 
             // Download detail line: {0} groups done, {1} groups total, {2} MB done, {3} MB total, {4} speed.
             ["dl.detail.headline"] = L(
@@ -516,63 +556,95 @@ namespace Odinsons.ValheimLauncher
                 "Mods: {0} / {1}   ·   {2} / {3}   ·   {4}",
                 "Моды: {0} / {1}   ·   {2} / {3}   ·   {4}",
                 "Mods: {0} / {1}   ·   {2} / {3}   ·   {4}",
-                "模组：{0} / {1}   ·   {2} / {3}   ·   {4}"),
+                "模组：{0} / {1}   ·   {2} / {3}   ·   {4}",
+                "Моди: {0} / {1}   ·   {2} / {3}   ·   {4}"),
 
             ["dl.detail.misc"] = L(
                 "Other files", "Weitere Dateien", "Otros archivos", "Autres fichiers",
-                "Inne pliki", "Outros ficheiros", "Прочие файлы", "Övriga filer", "其他文件"),
+                "Inne pliki", "Outros ficheiros", "Прочие файлы", "Övriga filer", "其他文件",
+                "Інші файли"),
 
-            // "Interrupt", not "Cancel": clicking this does NOT roll back whatever already
+            // "Stop", not "Cancel": clicking this does NOT roll back whatever already
             // installed/downloaded — it only stops the run where it stands (see FileDownloader's
             // cancellation handling). "Cancel" reads as "undo", which would misrepresent that.
             ["dl.cancelChecking"] = L(
-                "Interrupt check", "Prüfung unterbrechen", "Interrumpir comprobación", "Interrompre la vérification",
-                "Przerwij sprawdzanie", "Interromper verificação", "Прервать проверку", "Avbryt kontrollen", "中断检查"),
+                "Stop checking", "Prüfung stoppen", "Detener comprobación", "Arrêter la vérification",
+                "Zatrzymaj sprawdzanie", "Parar verificação", "Остановить проверку", "Stoppa kontrollen", "停止检查",
+                "Зупинити перевірку"),
 
             ["dl.cancelDownloading"] = L(
-                "Interrupt download", "Download unterbrechen", "Interrumpir descarga", "Interrompre le téléchargement",
-                "Przerwij pobieranie", "Interromper transferência", "Прервать загрузку", "Avbryt nedladdningen", "中断下载"),
+                "Stop downloading", "Download stoppen", "Detener descarga", "Arrêter le téléchargement",
+                "Zatrzymaj pobieranie", "Parar transferência", "Остановить загрузку", "Stoppa nedladdningen", "停止下载",
+                "Зупинити завантаження"),
+
+            // Shown on the Stop button itself the instant it's clicked, before the cancellation
+            // actually lands — the parallel file-check loops can take a moment to notice
+            // CancellationPending, and without this the button just sits there looking like it
+            // did nothing (or like the whole app hung) for that gap.
+            ["dl.stopping"] = L(
+                "Stopping…", "Wird gestoppt…", "Deteniendo…", "Arrêt en cours…",
+                "Zatrzymywanie…", "A parar…", "Останавливаем…", "Stoppar…", "正在停止…",
+                "Зупиняємо…"),
+
+            // Shown on the Install tab in place of the live step label once a run has been
+            // interrupted (worker.CancellationPending was true when it finished) — the step
+            // list and progress bar stay exactly as they were, this just relabels the header
+            // so "why did it stop moving" has an answer instead of the panel just vanishing.
+            ["dl.interrupted"] = L(
+                "Stopped", "Gestoppt", "Detenido", "Arrêté",
+                "Zatrzymano", "Parado", "Остановлено", "Stoppad", "已停止",
+                "Зупинено"),
+
+            ["dl.interruptedPercent"] = L(
+                "{0}% complete", "{0}% abgeschlossen", "{0}% completado", "{0}% terminé",
+                "Ukończono {0}%", "{0}% concluído", "Выполнено {0}%", "{0}% klart", "已完成 {0}%",
+                "Виконано {0}%"),
 
             ["dl.deletingExtra"] = L(
                 "Removing extra files", "Überzählige Dateien werden entfernt", "Eliminando archivos sobrantes",
                 "Suppression des fichiers superflus", "Usuwanie zbędnych plików", "A remover ficheiros supérfluos",
-                "Удаление лишних файлов", "Tar bort överflödiga filer", "正在删除多余文件"),
+                "Удаление лишних файлов", "Tar bort överflödiga filer", "正在删除多余文件",
+                "Видалення зайвих файлів"),
 
             ["dl.deletingOne"] = L(
                 "Removing {0}", "Entferne {0}", "Eliminando {0}", "Suppression de {0}", "Usuwanie {0}",
-                "A remover {0}", "Удаление {0}", "Tar bort {0}", "正在删除 {0}"),
+                "A remover {0}", "Удаление {0}", "Tar bort {0}", "正在删除 {0}",
+                "Видалення {0}"),
 
             ["dl.startingDownload"] = L(
                 "Starting download…", "Download wird gestartet…", "Iniciando la descarga…", "Démarrage du téléchargement…",
-                "Rozpoczynanie pobierania…", "A iniciar a transferência…", "Начало загрузки…", "Startar nedladdning…", "开始下载…"),
+                "Rozpoczynanie pobierania…", "A iniciar a transferência…", "Начало загрузки…", "Startar nedladdning…", "开始下载…",
+                "Початок завантаження…"),
 
             ["dl.downloading"] = L(
                 "Downloading…", "Wird heruntergeladen…", "Descargando…", "Téléchargement…", "Pobieranie…",
-                "A transferir…", "Загрузка…", "Laddar ner…", "正在下载…"),
+                "A transferir…", "Загрузка…", "Laddar ner…", "正在下载…",
+                "Завантаження…"),
 
             ["dl.speed"] = L(
                 "Download speed: {0}", "Downloadgeschwindigkeit: {0}", "Velocidad de descarga: {0}",
                 "Vitesse de téléchargement : {0}", "Prędkość pobierania: {0}", "Velocidade de transferência: {0}",
-                "Скорость загрузки: {0}", "Nedladdningshastighet: {0}", "下载速度：{0}"),
+                "Скорость загрузки: {0}", "Nedladdningshastighet: {0}", "下载速度：{0}",
+                "Швидкість завантаження: {0}"),
 
             // Units separated by | — order: bytes, kilo, mega, giga.
             ["dl.sizeUnits"] = L(
                 "B|KB|MB|GB", "B|KB|MB|GB", "B|KB|MB|GB", "o|Ko|Mo|Go", "B|KB|MB|GB",
-                "B|KB|MB|GB", "Б|КБ|МБ|ГБ", "B|kB|MB|GB", "B|KB|MB|GB"),
+                "B|KB|MB|GB", "Б|КБ|МБ|ГБ", "B|kB|MB|GB", "B|KB|MB|GB", "Б|КБ|МБ|ГБ"),
 
             ["dl.speedUnits"] = L(
                 "B/s|KB/s|MB/s|GB/s", "B/s|KB/s|MB/s|GB/s", "B/s|KB/s|MB/s|GB/s", "o/s|Ko/s|Mo/s|Go/s",
                 "B/s|KB/s|MB/s|GB/s", "B/s|KB/s|MB/s|GB/s", "Б/с|КБ/с|МБ/с|ГБ/с", "B/s|kB/s|MB/s|GB/s",
-                "B/s|KB/s|MB/s|GB/s"),
+                "B/s|KB/s|MB/s|GB/s", "Б/с|КБ/с|МБ/с|ГБ/с"),
 
             // ---------- FileDownloader: messages ----------
 
             ["dl.title.error"] = L(
-                "Error", "Fehler", "Error", "Erreur", "Błąd", "Erro", "Ошибка", "Fel", "错误"),
+                "Error", "Fehler", "Error", "Erreur", "Błąd", "Erro", "Ошибка", "Fel", "错误", "Помилка"),
 
             ["dl.title.warning"] = L(
                 "Warning", "Warnung", "Advertencia", "Avertissement", "Ostrzeżenie", "Aviso",
-                "Предупреждение", "Varning", "警告"),
+                "Предупреждение", "Varning", "警告", "Попередження"),
 
             ["dl.error.updateInfo"] = L(
                 "Failed to download update.info: {0}",
@@ -583,7 +655,8 @@ namespace Odinsons.ValheimLauncher
                 "Não foi possível transferir update.info: {0}",
                 "Ошибка загрузки update.info: {0}",
                 "Kunde inte ladda ner update.info: {0}",
-                "无法下载 update.info：{0}"),
+                "无法下载 update.info：{0}",
+                "Не вдалося завантажити update.info: {0}"),
 
             ["dl.error.processing"] = L(
                 "Error while processing files: {0}",
@@ -594,7 +667,8 @@ namespace Odinsons.ValheimLauncher
                 "Erro ao processar os ficheiros: {0}",
                 "Ошибка при обработке файлов: {0}",
                 "Fel vid bearbetning av filer: {0}",
-                "处理文件时出错：{0}"),
+                "处理文件时出错：{0}",
+                "Помилка під час обробки файлів: {0}"),
 
             ["dl.error.downloadFile"] = L(
                 "Error downloading file {0}: {1}",
@@ -605,7 +679,8 @@ namespace Odinsons.ValheimLauncher
                 "Erro ao transferir o ficheiro {0}: {1}",
                 "Ошибка при скачивании файла {0}: {1}",
                 "Fel vid nedladdning av filen {0}: {1}",
-                "下载文件 {0} 时出错：{1}"),
+                "下载文件 {0} 时出错：{1}",
+                "Помилка завантаження файлу {0}: {1}"),
 
             ["dl.warn.optionalUnreadable"] = L(
                 "Could not read the list of optional mods: {0}\n\nThe update will continue, but optional mods may be removed as extraneous.",
@@ -616,7 +691,8 @@ namespace Odinsons.ValheimLauncher
                 "Não foi possível ler a lista de mods opcionais: {0}\n\nA atualização vai continuar, mas os mods opcionais podem ser removidos por serem considerados supérfluos.",
                 "Не удалось прочитать список необязательных модов: {0}\n\nОбновление продолжится, но необязательные моды могут быть удалены как лишние.",
                 "Kunde inte läsa listan över valfria mods: {0}\n\nUppdateringen fortsätter, men valfria mods kan tas bort som överflödiga.",
-                "无法读取可选模组列表：{0}\n\n更新将继续，但可选模组可能会被当作多余文件删除。"),
+                "无法读取可选模组列表：{0}\n\n更新将继续，但可选模组可能会被当作多余文件删除。",
+                "Не вдалося прочитати список опціональних модів: {0}\n\nОновлення продовжиться, але опціональні моди можуть бути видалені як зайві."),
 
             ["dl.warn.suspiciousRedownload"] = L(
                 "{0} file(s) had to be re-downloaded even though they were fine on the last check. This can happen if antivirus software or missing write permission is affecting the game folder. Check launcher_log.txt for the file list.",
@@ -627,7 +703,8 @@ namespace Odinsons.ValheimLauncher
                 "{0} arquivo(s) precisaram ser baixados novamente mesmo estando corretos na última verificação. Isso pode acontecer por causa de um antivírus ou falta de permissão de escrita na pasta do jogo. A lista de arquivos está em launcher_log.txt.",
                 "{0} файл(ов) пришлось скачать заново, хотя при прошлой проверке они были в порядке. Так бывает, если антивирус или отсутствие прав на запись мешают папке игры. Список файлов — в launcher_log.txt.",
                 "{0} fil(er) behövde laddas ner igen trots att de var korrekta vid senaste kontrollen. Det kan bero på ett antivirusprogram eller saknad skrivbehörighet i spelmappen. Fillistan finns i launcher_log.txt.",
-                "有 {0} 个文件需要重新下载，尽管上次检查时它们是正常的。这可能是杀毒软件或游戏文件夹缺少写入权限导致的。文件列表见 launcher_log.txt。"),
+                "有 {0} 个文件需要重新下载，尽管上次检查时它们是正常的。这可能是杀毒软件或游戏文件夹缺少写入权限导致的。文件列表见 launcher_log.txt。",
+                "{0} файл(ів) довелося завантажити повторно, хоча під час минулої перевірки вони були в порядку. Так буває, якщо антивірус або відсутність прав на запис заважають папці гри. Список файлів — у launcher_log.txt."),
 
             ["dl.warn.deleteFailedTitle"] = L(
                 "Could not remove files",
@@ -638,7 +715,8 @@ namespace Odinsons.ValheimLauncher
                 "Não foi possível remover ficheiros",
                 "Не удалось удалить файлы",
                 "Kunde inte ta bort filer",
-                "无法删除文件"),
+                "无法删除文件",
+                "Не вдалося видалити файли"),
 
             ["dl.warn.deleteFailed"] = L(
                 "Could not remove {0} extra file(s). The modpack may not work correctly.\n\n{1}\n\nThe usual causes are a running game, antivirus, or missing folder permissions. Close the game and run the update again; details are in launcher_log.txt.",
@@ -649,7 +727,8 @@ namespace Odinsons.ValheimLauncher
                 "Não foi possível remover {0} ficheiro(s) supérfluo(s). O modpack pode não funcionar corretamente.\n\n{1}\n\nAs causas habituais são o jogo estar em execução, o antivírus ou falta de permissões na pasta. Feche o jogo e repita a atualização; os detalhes estão em launcher_log.txt.",
                 "Не удалось удалить лишних файлов: {0}. Сборка может работать неправильно.\n\n{1}\n\nЧаще всего причина — запущенная игра, антивирус или нехватка прав на папку. Закройте игру и повторите обновление; подробности в launcher_log.txt.",
                 "Kunde inte ta bort {0} överflödig(a) fil(er). Modpacket kanske inte fungerar korrekt.\n\n{1}\n\nVanliga orsaker är att spelet körs, antivirus eller saknade mapprättigheter. Stäng spelet och kör uppdateringen igen; detaljer finns i launcher_log.txt.",
-                "无法删除 {0} 个多余文件。整合包可能无法正常运行。\n\n{1}\n\n常见原因是游戏正在运行、杀毒软件拦截或文件夹权限不足。请关闭游戏后重新更新；详情见 launcher_log.txt。"),
+                "无法删除 {0} 个多余文件。整合包可能无法正常运行。\n\n{1}\n\n常见原因是游戏正在运行、杀毒软件拦截或文件夹权限不足。请关闭游戏后重新更新；详情见 launcher_log.txt。",
+                "Не вдалося видалити зайві файли: {0}. Збірка може працювати неправильно.\n\n{1}\n\nЗазвичай причина — запущена гра, антивірус або нестача прав на папку. Закрийте гру і повторіть оновлення; подробиці в launcher_log.txt."),
 
             ["dl.retrying"] = L(
                 "Retrying {0} ({1} of {2})…",
@@ -660,7 +739,8 @@ namespace Odinsons.ValheimLauncher
                 "A tentar novamente {0} ({1} de {2})…",
                 "Повтор {0} ({1} из {2})…",
                 "Försöker igen med {0} ({1} av {2})…",
-                "正在重试 {0}（第 {1}/{2} 次）…"),
+                "正在重试 {0}（第 {1}/{2} 次）…",
+                "Повтор {0} ({1} з {2})…"),
 
             ["dl.error.stalled"] = L(
                 "Download of {0} stalled: no data for {1:0} seconds. Check your connection and try again.",
@@ -671,11 +751,12 @@ namespace Odinsons.ValheimLauncher
                 "A transferência de {0} parou: sem dados há {1:0} segundos. Verifique a ligação e tente novamente.",
                 "Загрузка {0} зависла: данные не идут {1:0} секунд. Проверьте соединение и повторите.",
                 "Nedladdningen av {0} har fastnat: inga data på {1:0} sekunder. Kontrollera anslutningen och försök igen.",
-                "{0} 的下载已停滞：{1:0} 秒没有数据。请检查网络后重试。"),
+                "{0} 的下载已停滞：{1:0} 秒没有数据。请检查网络后重试。",
+                "Завантаження {0} зупинилося: немає даних протягом {1:0} секунд. Перевірте з'єднання і спробуйте ще раз."),
 
             ["dl.andMore"] = L(
                 "… and {0} more", "… und {0} weitere", "… y {0} más", "… et {0} de plus", "… i jeszcze {0}",
-                "… e mais {0}", "… и ещё {0}", "… och {0} till", "…还有 {0} 项"),
+                "… e mais {0}", "… и ещё {0}", "… och {0} till", "…还有 {0} 项", "… і ще {0}"),
 
             // ---------- Console updater ----------
 
@@ -683,38 +764,40 @@ namespace Odinsons.ValheimLauncher
                 "Could not reach any mirror.", "Kein Spiegelserver erreichbar.", "No se pudo contactar con ningún espejo.",
                 "Impossible de joindre un miroir.", "Nie udało się połączyć z żadnym serwerem lustrzanym.",
                 "Não foi possível contactar nenhum espelho.", "Не удалось связаться ни с одним зеркалом.",
-                "Kunde inte nå någon spegel.", "无法连接到任何镜像。"),
+                "Kunde inte nå någon spegel.", "无法连接到任何镜像。", "Не вдалося зв'язатися з жодним дзеркалом."),
 
             ["cli.mirror"] = L(
                 "Mirror: {0}", "Spiegel: {0}", "Espejo: {0}", "Miroir : {0}", "Serwer lustrzany: {0}",
-                "Espelho: {0}", "Зеркало: {0}", "Spegel: {0}", "镜像：{0}"),
+                "Espelho: {0}", "Зеркало: {0}", "Spegel: {0}", "镜像：{0}", "Дзеркало: {0}"),
 
             ["cli.noServers"] = L(
                 "The server list is empty.", "Die Serverliste ist leer.", "La lista de servidores está vacía.",
                 "La liste des serveurs est vide.", "Lista serwerów jest pusta.", "A lista de servidores está vazia.",
-                "Список серверов пуст.", "Serverlistan är tom.", "服务器列表为空。"),
+                "Список серверов пуст.", "Serverlistan är tom.", "服务器列表为空。", "Список серверів порожній."),
 
             ["cli.hidden"] = L(
                 "(hidden)", "(versteckt)", "(oculto)", "(masqué)", "(ukryty)",
-                "(oculto)", "(скрытый)", "(dold)", "（隐藏）"),
+                "(oculto)", "(скрытый)", "(dold)", "（隐藏）", "(схований)"),
 
             ["cli.server"] = L(
                 "Server: {0}", "Server: {0}", "Servidor: {0}", "Serveur : {0}", "Serwer: {0}",
-                "Servidor: {0}", "Сервер: {0}", "Server: {0}", "服务器：{0}"),
+                "Servidor: {0}", "Сервер: {0}", "Server: {0}", "服务器：{0}", "Сервер: {0}"),
 
             ["cli.clientFolder"] = L(
                 "Client: {0}", "Client: {0}", "Cliente: {0}", "Client : {0}", "Klient: {0}",
-                "Cliente: {0}", "Клиент: {0}", "Klient: {0}", "客户端：{0}"),
+                "Cliente: {0}", "Клиент: {0}", "Klient: {0}", "客户端：{0}", "Клієнт: {0}"),
 
             ["cli.modeFull"] = L(
                 "Mode: full check", "Modus: vollständige Prüfung", "Modo: comprobación completa",
                 "Mode : vérification complète", "Tryb: pełne sprawdzenie", "Modo: verificação completa",
-                "Режим: полная проверка", "Läge: fullständig kontroll", "模式：完整校验"),
+                "Режим: полная проверка", "Läge: fullständig kontroll", "模式：完整校验",
+                "Режим: повна перевірка"),
 
             ["cli.modeNormal"] = L(
                 "Mode: normal check", "Modus: normale Prüfung", "Modo: comprobación normal",
                 "Mode : vérification normale", "Tryb: zwykłe sprawdzenie", "Modo: verificação normal",
-                "Режим: обычная проверка", "Läge: normal kontroll", "模式：常规校验"),
+                "Режим: обычная проверка", "Läge: normal kontroll", "模式：常规校验",
+                "Режим: звичайна перевірка"),
 
             ["cli.interruptedFullCheck"] = L(
                 "The previous update did not finish — running a full check.",
@@ -725,19 +808,21 @@ namespace Odinsons.ValheimLauncher
                 "A atualização anterior não terminou — será feita uma verificação completa.",
                 "Прошлое обновление не завершилось — выполняется полная проверка.",
                 "Föregående uppdatering slutfördes inte — en fullständig kontroll körs.",
-                "上次更新未完成——正在执行完整校验。"),
+                "上次更新未完成——正在执行完整校验。",
+                "Попереднє оновлення не завершилося — виконується повна перевірка."),
 
             ["cli.cancelling"] = L(
                 "Cancelling…", "Wird abgebrochen…", "Cancelando…", "Annulation…", "Anulowanie…",
-                "A cancelar…", "Отмена…", "Avbryter…", "正在取消…"),
+                "A cancelar…", "Отмена…", "Avbryter…", "正在取消…", "Скасування…"),
 
             ["cli.refused"] = L(
                 "Refused: {0}", "Abgelehnt: {0}", "Rechazado: {0}", "Refusé : {0}", "Odmowa: {0}",
-                "Recusado: {0}", "Отказ: {0}", "Nekad: {0}", "已拒绝：{0}"),
+                "Recusado: {0}", "Отказ: {0}", "Nekad: {0}", "已拒绝：{0}", "Відмова: {0}"),
 
             ["cli.howToFix"] = L(
                 "How to fix:", "So beheben Sie das:", "Cómo solucionarlo:", "Comment corriger :",
-                "Jak to naprawić:", "Como resolver:", "Как исправить:", "Så här åtgärdar du:", "如何解决："),
+                "Jak to naprawić:", "Como resolver:", "Как исправить:", "Så här åtgärdar du:", "如何解决：",
+                "Як виправити:"),
 
             ["cli.deletesWarning"] = L(
                 "The update removes everything that is not in the manifest,\nso it will not run in an unrelated folder. There is no override.\nSpecify an empty folder or an existing Valheim client.",
@@ -748,7 +833,8 @@ namespace Odinsons.ValheimLauncher
                 "A atualização remove tudo o que não está no manifesto,\npor isso não é executada numa pasta alheia. Não existe forma de contornar.\nIndique uma pasta vazia ou um cliente do Valheim existente.",
                 "Обновление удаляет из папки всё, чего нет в манифесте,\nпоэтому в постороннюю папку оно не запускается. Обхода нет.\nУкажите пустую папку либо существующий клиент Valheim.",
                 "Uppdateringen tar bort allt som inte finns i manifestet,\nså den körs inte i en främmande mapp. Det går inte att kringgå.\nAnge en tom mapp eller en befintlig Valheim-klient.",
-                "更新会删除清单之外的所有内容，\n因此不会在无关文件夹中运行，且无法绕过。\n请指定空文件夹或已有的 Valheim 客户端。"),
+                "更新会删除清单之外的所有内容，\n因此不会在无关文件夹中运行，且无法绕过。\n请指定空文件夹或已有的 Valheim 客户端。",
+                "Оновлення видаляє з папки все, чого немає в маніфесті,\nтому в сторонню папку воно не запускається. Обходу немає.\nВкажіть порожню папку або наявний клієнт Valheim."),
 
             ["cli.waitOrClose"] = L(
                 "Wait for it to finish or close the other launcher.",
@@ -759,17 +845,18 @@ namespace Odinsons.ValheimLauncher
                 "Aguarde que termine ou feche o outro launcher.",
                 "Дождитесь окончания или закройте другой лаунчер.",
                 "Vänta tills den är klar eller stäng den andra launchern.",
-                "请等待其完成或关闭另一个启动器。"),
+                "请等待其完成或关闭另一个启动器。",
+                "Дочекайтеся завершення або закрийте інший лаунчер."),
 
             ["cli.unexpectedError"] = L(
                 "Unexpected error: {0}", "Unerwarteter Fehler: {0}", "Error inesperado: {0}",
                 "Erreur inattendue : {0}", "Nieoczekiwany błąd: {0}", "Erro inesperado: {0}",
-                "Непредвиденная ошибка: {0}", "Oväntat fel: {0}", "意外错误：{0}"),
+                "Непредвиденная ошибка: {0}", "Oväntat fel: {0}", "意外错误：{0}", "Неочікувана помилка: {0}"),
 
             ["cli.unknownOption"] = L(
                 "Unknown option: {0}", "Unbekannte Option: {0}", "Opción desconocida: {0}",
                 "Option inconnue : {0}", "Nieznana opcja: {0}", "Opção desconhecida: {0}",
-                "Неизвестный параметр: {0}", "Okänd flagga: {0}", "未知参数：{0}"),
+                "Неизвестный параметр: {0}", "Okänd flagga: {0}", "未知参数：{0}", "Невідомий параметр: {0}"),
 
             ["cli.parallelRange"] = L(
                 "--parallel expects a number from 1 to 16.",
@@ -780,12 +867,13 @@ namespace Odinsons.ValheimLauncher
                 "--parallel espera um número de 1 a 16.",
                 "--parallel ожидает число от 1 до 16.",
                 "--parallel förväntar sig ett tal mellan 1 och 16.",
-                "--parallel 需要 1 到 16 之间的数字。"),
+                "--parallel 需要 1 到 16 之间的数字。",
+                "--parallel очікує число від 1 до 16."),
 
             ["cli.optionNeedsValue"] = L(
                 "{0} requires a value.", "{0} erfordert einen Wert.", "{0} requiere un valor.",
                 "{0} nécessite une valeur.", "{0} wymaga wartości.", "{0} requer um valor.",
-                "{0} требует значение.", "{0} kräver ett värde.", "{0} 需要一个值。"),
+                "{0} требует значение.", "{0} kräver ett värde.", "{0} 需要一个值。", "{0} потребує значення."),
 
             ["cli.folderTwice"] = L(
                 "The client folder path is given twice: '{0}' and '{1}'.",
@@ -796,14 +884,15 @@ namespace Odinsons.ValheimLauncher
                 "O caminho da pasta do cliente foi indicado duas vezes: '{0}' e '{1}'.",
                 "Путь к папке клиента указан дважды: '{0}' и '{1}'.",
                 "Sökvägen till klientmappen anges två gånger: '{0}' och '{1}'.",
-                "客户端文件夹路径重复指定：'{0}' 和 '{1}'。"),
+                "客户端文件夹路径重复指定：'{0}' 和 '{1}'。",
+                "Шлях до папки клієнта вказано двічі: '{0}' і '{1}'."),
 
             ["cli.serverNotFound"] = L(
                 "Server '{0}' not found. Available:", "Server '{0}' nicht gefunden. Verfügbar:",
                 "No se encontró el servidor '{0}'. Disponibles:", "Serveur '{0}' introuvable. Disponibles :",
                 "Nie znaleziono serwera '{0}'. Dostępne:", "Servidor '{0}' não encontrado. Disponíveis:",
                 "Сервер '{0}' не найден. Доступные:", "Servern '{0}' hittades inte. Tillgängliga:",
-                "未找到服务器 '{0}'。可用："),
+                "未找到服务器 '{0}'。可用：", "Сервер '{0}' не знайдено. Доступні:"),
 
             ["cli.serverNotSpecified"] = L(
                 "No server specified. Use --server <name>. Available:",
@@ -814,13 +903,15 @@ namespace Odinsons.ValheimLauncher
                 "Nenhum servidor indicado. Use --server <nome>. Disponíveis:",
                 "Не указан сервер. Задайте --server <имя>. Доступные:",
                 "Ingen server angiven. Använd --server <namn>. Tillgängliga:",
-                "未指定服务器。请使用 --server <名称>。可用："),
+                "未指定服务器。请使用 --server <名称>。可用：",
+                "Сервер не вказано. Використайте --server <ім'я>. Доступні:"),
 
             ["cli.done.ready"] = L(
                 "Done. The client is up to date.", "Fertig. Der Client ist aktuell.",
                 "Listo. El cliente está actualizado.", "Terminé. Le client est à jour.",
                 "Gotowe. Klient jest aktualny.", "Concluído. O cliente está atualizado.",
-                "Готово. Клиент актуален.", "Klart. Klienten är uppdaterad.", "完成。客户端已是最新。"),
+                "Готово. Клиент актуален.", "Klart. Klienten är uppdaterad.", "完成。客户端已是最新。",
+                "Готово. Клієнт актуальний."),
 
             // ---------- InjectorLauncher ----------
 
@@ -828,7 +919,8 @@ namespace Odinsons.ValheimLauncher
                 "the game folder was not found", "der Spielordner wurde nicht gefunden",
                 "no se encontró la carpeta del juego", "le dossier du jeu est introuvable",
                 "nie znaleziono folderu gry", "a pasta do jogo não foi encontrada",
-                "папка игры не найдена", "spelmappen hittades inte", "未找到游戏文件夹"),
+                "папка игры не найдена", "spelmappen hittades inte", "未找到游戏文件夹",
+                "папку гри не знайдено"),
 
             ["injector.noExecutable"] = L(
                 "no game executable found in the folder (expected {0})",
@@ -839,7 +931,8 @@ namespace Odinsons.ValheimLauncher
                 "não foi encontrado o executável do jogo na pasta (esperado {0})",
                 "в папке не найден исполняемый файл игры (ожидался {0})",
                 "ingen körbar spelfil hittades i mappen (förväntade {0})",
-                "文件夹中未找到游戏可执行文件（期望 {0}）"),
+                "文件夹中未找到游戏可执行文件（期望 {0}）",
+                "у папці не знайдено виконуваний файл гри (очікувався {0})"),
 
             ["injector.noPreloader"] = L(
                 "BepInEx preloader not found: {0}",
@@ -850,7 +943,8 @@ namespace Odinsons.ValheimLauncher
                 "Preloader do BepInEx não encontrado: {0}",
                 "не найден preloader BepInEx: {0}",
                 "BepInEx-preloader hittades inte: {0}",
-                "未找到 BepInEx 预加载器：{0}"),
+                "未找到 BepInEx 预加载器：{0}",
+                "не знайдено BepInEx preloader: {0}"),
 
             ["injector.noDoorstopLibrary"] = L(
                 "Doorstop library not found: {0}",
@@ -861,7 +955,8 @@ namespace Odinsons.ValheimLauncher
                 "Biblioteca do Doorstop não encontrada: {0}",
                 "не найдена библиотека Doorstop: {0}",
                 "Doorstop-biblioteket hittades inte: {0}",
-                "未找到 Doorstop 库：{0}"),
+                "未找到 Doorstop 库：{0}",
+                "не знайдено бібліотеку Doorstop: {0}"),
 
             ["injector.noProxy"] = L(
                 "the injector library is missing from the profile: {0}",
@@ -872,7 +967,8 @@ namespace Odinsons.ValheimLauncher
                 "falta a biblioteca do injetor no perfil: {0}",
                 "в профиле нет библиотеки инжектора: {0}",
                 "injektorbiblioteket saknas i profilen: {0}",
-                "配置文件中缺少注入库：{0}"),
+                "配置文件中缺少注入库：{0}",
+                "у профілі відсутня бібліотека інжектора: {0}"),
 
             ["injector.prepareFailed"] = L(
                 "could not prepare the game folder: {0}",
@@ -883,7 +979,34 @@ namespace Odinsons.ValheimLauncher
                 "não foi possível preparar a pasta do jogo: {0}",
                 "не удалось подготовить папку игры: {0}",
                 "kunde inte förbereda spelmappen: {0}",
-                "无法准备游戏文件夹：{0}"),
+                "无法准备游戏文件夹：{0}",
+                "не вдалося підготувати папку гри: {0}"),
+
+            // The game folder needed elevation to prepare (commonly: Steam is under Program
+            // Files) and the player declined the UAC prompt — not an error on our side, just "no".
+            ["injector.elevationDeclined"] = L(
+                "Administrator permission is needed to set up the Steam game folder, and was declined.",
+                "Für die Einrichtung des Steam-Spielordners sind Administratorrechte nötig — die Anfrage wurde abgelehnt.",
+                "Se necesitan permisos de administrador para preparar la carpeta del juego de Steam, y se denegaron.",
+                "Des droits administrateur sont nécessaires pour préparer le dossier du jeu Steam, et ont été refusés.",
+                "Do przygotowania folderu gry Steam potrzebne są uprawnienia administratora — odmówiono ich.",
+                "São necessárias permissões de administrador para preparar a pasta do jogo Steam, e foram recusadas.",
+                "Для подготовки папки игры Steam нужны права администратора — в них было отказано.",
+                "Administratörsbehörighet krävs för att förbereda Steam-spelmappen, och nekades.",
+                "准备 Steam 游戏文件夹需要管理员权限，但请求被拒绝。",
+                "Для налаштування ігрової папки Steam потрібні права адміністратора, і в них було відмовлено."),
+
+            ["injector.elevationFailed"] = L(
+                "could not prepare the game folder even with administrator permission: {0}",
+                "der Spielordner konnte auch mit Administratorrechten nicht vorbereitet werden: {0}",
+                "no se pudo preparar la carpeta del juego ni con permisos de administrador: {0}",
+                "impossible de préparer le dossier du jeu même avec les droits administrateur : {0}",
+                "nie udało się przygotować folderu gry nawet z uprawnieniami administratora: {0}",
+                "não foi possível preparar a pasta do jogo mesmo com permissões de administrador: {0}",
+                "не удалось подготовить папку игры даже с правами администратора: {0}",
+                "kunde inte förbereda spelmappen även med administratörsbehörighet: {0}",
+                "即使拥有管理员权限，也无法准备游戏文件夹：{0}",
+                "не вдалося підготувати папку гри навіть із правами адміністратора: {0}"),
 
             ["cli.done.notReady"] = L(
                 "Update finished, but the client is not ready to launch.",
@@ -894,7 +1017,8 @@ namespace Odinsons.ValheimLauncher
                 "Atualização concluída, mas o cliente não está pronto para arrancar.",
                 "Обновление завершено, но клиент не готов к запуску.",
                 "Uppdateringen är klar, men klienten är inte redo att starta.",
-                "更新已完成，但客户端尚未就绪。"),
+                "更新已完成，但客户端尚未就绪。",
+                "Оновлення завершено, але клієнт не готовий до запуску."),
 
             // ---------- GUI: MainWindow ----------
 
@@ -907,7 +1031,8 @@ namespace Odinsons.ValheimLauncher
                 "Todos os servidores estão indisponíveis. O launcher será fechado.",
                 "Все серверы недоступны. Лаунчер будет закрыт.",
                 "Alla servrar är otillgängliga. Launchern stängs.",
-                "所有服务器均不可用。启动器将关闭。"),
+                "所有服务器均不可用。启动器将关闭。",
+                "Усі сервери недоступні. Лаунчер закриється."),
 
             ["gui.configWriteFailed"] = L(
                 "Failed to write config.ini: {0}\nPath: {1}",
@@ -918,7 +1043,8 @@ namespace Odinsons.ValheimLauncher
                 "Não foi possível gravar config.ini: {0}\nCaminho: {1}",
                 "Не удалось записать config.ini: {0}\nПуть: {1}",
                 "Det gick inte att skriva config.ini: {0}\nSökväg: {1}",
-                "无法写入 config.ini：{0}\n路径：{1}"),
+                "无法写入 config.ini：{0}\n路径：{1}",
+                "Не вдалося записати config.ini: {0}\nШлях: {1}"),
 
             ["gui.noServerSelected"] = L(
                 "No server selected. The launcher will close.",
@@ -929,7 +1055,8 @@ namespace Odinsons.ValheimLauncher
                 "Nenhum servidor selecionado. O launcher será fechado.",
                 "Сервер не выбран. Лаунчер будет закрыт.",
                 "Ingen server vald. Launchern stängs.",
-                "未选择服务器。启动器将关闭。"),
+                "未选择服务器。启动器将关闭。",
+                "Сервер не вибрано. Лаунчер закриється."),
 
             ["gui.noServersToChoose"] = L(
                 "No servers available to choose from.",
@@ -940,7 +1067,8 @@ namespace Odinsons.ValheimLauncher
                 "Não há servidores disponíveis para escolher.",
                 "Нет доступных серверов для выбора.",
                 "Inga servrar att välja mellan.",
-                "没有可供选择的服务器。"),
+                "没有可供选择的服务器。",
+                "Немає серверів для вибору."),
 
             ["gui.initError"] = L(
                 "Initialization error: {0}",
@@ -951,7 +1079,8 @@ namespace Odinsons.ValheimLauncher
                 "Erro de inicialização: {0}",
                 "Ошибка при инициализации: {0}",
                 "Initieringsfel: {0}",
-                "初始化错误：{0}"),
+                "初始化错误：{0}",
+                "Помилка інціалізації: {0}"),
 
             ["gui.criticalStartupError"] = L(
                 "Critical error on startup: {0}",
@@ -962,7 +1091,8 @@ namespace Odinsons.ValheimLauncher
                 "Erro crítico na inicialização: {0}",
                 "Критическая ошибка при запуске: {0}",
                 "Kritiskt fel vid start: {0}",
-                "启动时发生严重错误：{0}"),
+                "启动时发生严重错误：{0}",
+                "Критична помилка під час запуску: {0}"),
 
             ["gui.noServersAvailable"] = L(
                 "No servers available.",
@@ -973,7 +1103,8 @@ namespace Odinsons.ValheimLauncher
                 "Nenhum servidor disponível.",
                 "Нет доступных серверов.",
                 "Inga servrar tillgängliga.",
-                "没有可用的服务器。"),
+                "没有可用的服务器。",
+                "Немає доступних серверів."),
 
             ["gui.serverUnavailableAllMirrors"] = L(
                 "Server {0} is unavailable on all mirrors.",
@@ -984,7 +1115,8 @@ namespace Odinsons.ValheimLauncher
                 "O servidor {0} está indisponível em todos os mirrors.",
                 "Сервер {0} недоступен на всех зеркалах.",
                 "Servern {0} är otillgänglig på alla speglar.",
-                "服务器 {0} 在所有镜像上均不可用。"),
+                "服务器 {0} 在所有镜像上均不可用。",
+                "Сервер {0} недоступний на всіх дзеркалах."),
 
             ["gui.serverListLoadFailed"] = L(
                 "Failed to load the server list: {0}",
@@ -995,7 +1127,8 @@ namespace Odinsons.ValheimLauncher
                 "Não foi possível carregar a lista de servidores: {0}",
                 "Не удалось загрузить список серверов: {0}",
                 "Det gick inte att läsa in serverlistan: {0}",
-                "无法加载服务器列表：{0}"),
+                "无法加载服务器列表：{0}",
+                "Не вдалося завантажити список серверів: {0}"),
 
             ["gui.launcherDownloadFailed"] = L(
                 "Failed to download the new launcher.",
@@ -1006,7 +1139,8 @@ namespace Odinsons.ValheimLauncher
                 "Não foi possível baixar o novo launcher.",
                 "Не удалось скачать новый лаунчер.",
                 "Det gick inte att hämta den nya launchern.",
-                "无法下载新的启动器。"),
+                "无法下载新的启动器。",
+                "Не вдалося завантажити новий лаунчер."),
 
             ["gui.launcherUpdateTitle"] = L(
                 "Launcher update {0} available",
@@ -1017,20 +1151,10 @@ namespace Odinsons.ValheimLauncher
                 "Atualização do launcher {0} disponível",
                 "Доступно обновление лончера {0}",
                 "Launcher-uppdatering {0} tillgänglig",
-                "启动器更新 {0} 可用"),
+                "启动器更新 {0} 可用",
+                "Доступне оновлення лаунчера {0}"),
 
             ["gui.launcherUpdateAvailable"] = L(
-                "What's new in {0}:",
-                "Was ist neu in {0}:",
-                "Novedades de {0}:",
-                "Nouveautés de la {0} :",
-                "Co nowego w {0}:",
-                "Novidades da {0}:",
-                "Что нового в {0}:",
-                "Nyheter i {0}:",
-                "{0} 版本更新内容："),
-
-            ["gui.launcherUpdateAvailableNoChangelog"] = L(
                 "A new launcher version ({0}) is available.",
                 "Eine neue Launcher-Version ({0}) ist verfügbar.",
                 "Hay una nueva versión del launcher ({0}) disponible.",
@@ -1039,7 +1163,8 @@ namespace Odinsons.ValheimLauncher
                 "Uma nova versão do launcher ({0}) está disponível.",
                 "Доступна новая версия лончера ({0}).",
                 "En ny launcher-version ({0}) är tillgänglig.",
-                "有新的启动器版本（{0}）可用。"),
+                "有新的启动器版本（{0}）可用。",
+                "Доступна нова версія лаунчера ({0})."),
 
             ["gui.launcherUpdateNow"] = L(
                 "Update now",
@@ -1050,7 +1175,8 @@ namespace Odinsons.ValheimLauncher
                 "Atualizar agora",
                 "Обновить сейчас",
                 "Uppdatera nu",
-                "立即更新"),
+                "立即更新",
+                "Оновити зараз"),
 
             ["gui.launcherUpdateMandatoryNote"] = L(
                 "This update is mandatory — the launcher can't keep working correctly on the old version.",
@@ -1061,7 +1187,8 @@ namespace Odinsons.ValheimLauncher
                 "Esta atualização é obrigatória — o launcher não pode continuar funcionando corretamente na versão antiga.",
                 "Это обязательное обновление — на старой версии лончер больше не сможет работать корректно.",
                 "Den här uppdateringen är obligatorisk — launchern kan inte fortsätta fungera korrekt på den gamla versionen.",
-                "此更新为强制性更新——启动器无法在旧版本上继续正常工作。"),
+                "此更新为强制性更新——启动器无法在旧版本上继续正常工作。",
+                "Це обов'язкове оновлення — на старій версії лаунчер більше не зможе працювати коректно."),
 
             ["gui.launcherPostponeAndExit"] = L(
                 "Postpone and exit",
@@ -1072,7 +1199,8 @@ namespace Odinsons.ValheimLauncher
                 "Adiar e sair",
                 "Отложить и выйти",
                 "Skjut upp och avsluta",
-                "推迟并退出"),
+                "推迟并退出",
+                "Відкласти і вийти"),
 
             ["gui.launcherUpdateLater"] = L(
                 "Not now",
@@ -1083,7 +1211,8 @@ namespace Odinsons.ValheimLauncher
                 "Agora não",
                 "Не сейчас",
                 "Inte nu",
-                "暂不"),
+                "暂不",
+                "Не зараз"),
 
             ["gui.autoUpdateError"] = L(
                 "Auto-update error: {0}",
@@ -1094,7 +1223,8 @@ namespace Odinsons.ValheimLauncher
                 "Erro de atualização automática: {0}",
                 "Ошибка автообновления: {0}",
                 "Fel vid automatisk uppdatering: {0}",
-                "自动更新错误：{0}"),
+                "自动更新错误：{0}",
+                "Помилка автооновлення: {0}"),
 
             ["gui.vikingsCount"] = L(
                 "Vikings: {0}",
@@ -1105,7 +1235,38 @@ namespace Odinsons.ValheimLauncher
                 "Vikings: {0}",
                 "Викингов: {0}",
                 "Vikingar: {0}",
-                "维京人：{0}"),
+                "维京人：{0}",
+                "Вікінгів: {0}"),
+
+            // Placeholder row shown in the player list before the very first server check has
+            // come back — distinct from "no vikings online" (a real, checked answer), which
+            // this used to claim immediately on launch, before anything had actually been asked.
+            ["gui.checkingPlayers"] = L(
+                "Checking…", "Wird geprüft…", "Comprobando…", "Vérification…",
+                "Sprawdzanie…", "A verificar…", "Проверка…", "Kontrollerar…", "正在检查…",
+                "Перевірка…"),
+
+            // ---------- GUI: main tabs ----------
+
+            ["gui.tab.install"] = L(
+                "Install", "Installation", "Instalación", "Installation", "Instalacja",
+                "Instalação", "Установка", "Installation", "安装", "Встановлення"),
+
+            ["gui.tab.server"] = L(
+                "Server", "Server", "Servidor", "Serveur", "Serwer",
+                "Servidor", "Сервер", "Server", "服务器", "Сервер"),
+
+            ["gui.tab.mods"] = L(
+                "Mods", "Mods", "Mods", "Mods", "Mody",
+                "Mods", "Моды", "Mods", "模组", "Моди"),
+
+            ["gui.tab.serverInfo"] = L(
+                "About the server", "Über den Server", "Sobre el servidor", "À propos du serveur", "O serwerze",
+                "Sobre o servidor", "О сервере", "Om servern", "关于服务器", "Про сервер"),
+
+            ["gui.tab.changelog"] = L(
+                "Changelog", "Änderungsprotokoll", "Registro de cambios", "Journal des modifications", "Lista zmian",
+                "Changelog", "Changelog", "Ändringslogg", "更新日志", "Список змін"),
 
             ["gui.clientUnavailableOnMirror"] = L(
                 "The client is unavailable for server {0} on the current mirror.",
@@ -1116,7 +1277,8 @@ namespace Odinsons.ValheimLauncher
                 "O cliente está indisponível para o servidor {0} no mirror atual.",
                 "Клиент не доступен для сервера {0} на текущем зеркале.",
                 "Klienten är inte tillgänglig för servern {0} på den aktuella spegeln.",
-                "在当前镜像上，服务器 {0} 的客户端不可用。"),
+                "在当前镜像上，服务器 {0} 的客户端不可用。",
+                "Клієнт недоступний для сервера {0} на поточному дзеркалі."),
 
             ["gui.updateStoppedPermissions"] = L(
                 "Update stopped: {0}.\n\nFolder: {1}\n\nHow to fix it:\n{2}",
@@ -1127,7 +1289,8 @@ namespace Odinsons.ValheimLauncher
                 "Atualização interrompida: {0}.\n\nPasta: {1}\n\nComo corrigir:\n{2}",
                 "Обновление остановлено: {0}.\n\nПапка: {1}\n\nКак исправить:\n{2}",
                 "Uppdateringen stoppades: {0}.\n\nMapp: {1}\n\nSå här åtgärdar du det:\n{2}",
-                "更新已停止：{0}。\n\n文件夹：{1}\n\n解决方法：\n{2}"),
+                "更新已停止：{0}。\n\n文件夹：{1}\n\n解决方法：\n{2}",
+                "Оновлення зупинено: {0}.\n\nПапка: {1}\n\nЯк виправити:\n{2}"),
 
             ["gui.updateStoppedUnsafe"] = L(
                 "Update stopped: {0}.\n\nFolder: {1}\n\nAn update deletes everything from the client folder that isn't on the server, so it refuses to run against an unrelated folder.",
@@ -1138,7 +1301,8 @@ namespace Odinsons.ValheimLauncher
                 "Atualização interrompida: {0}.\n\nPasta: {1}\n\nUma atualização exclui da pasta do cliente tudo o que não está no servidor, por isso ela se recusa a rodar em uma pasta alheia.",
                 "Обновление остановлено: {0}.\n\nПапка: {1}\n\nОбновление удаляет из папки клиента всё, чего нет на сервере, поэтому в постороннюю папку оно не запускается.",
                 "Uppdateringen stoppades: {0}.\n\nMapp: {1}\n\nEn uppdatering tar bort allt från klientmappen som inte finns på servern, så den vägrar köras mot en främmande mapp.",
-                "更新已停止：{0}。\n\n文件夹：{1}\n\n更新会删除客户端文件夹中服务器上没有的所有内容，因此拒绝在无关文件夹中运行。"),
+                "更新已停止：{0}。\n\n文件夹：{1}\n\n更新会删除客户端文件夹中服务器上没有的所有内容，因此拒绝在无关文件夹中运行。",
+                "Оновлення зупинено: {0}.\n\nПапка: {1}\n\nОновлення видаляє з папки клієнта все, чого немає на сервері, тому воно відмовляється запускатися в сторонній папці."),
 
             ["gui.updateNotStarted"] = L(
                 "Update not started: {0}.\n\nWait for it to finish, or close the other launcher.",
@@ -1149,7 +1313,8 @@ namespace Odinsons.ValheimLauncher
                 "Atualização não iniciada: {0}.\n\nAguarde até terminar ou feche o outro launcher.",
                 "Обновление не начато: {0}.\n\nДождитесь окончания или закройте второй лаунчер.",
                 "Uppdateringen startades inte: {0}.\n\nVänta tills den är klar eller stäng den andra launchern.",
-                "更新未开始：{0}。\n\n请等待其完成，或关闭另一个启动器。"),
+                "更新未开始：{0}。\n\n请等待其完成，或关闭另一个启动器。",
+                "Оновлення не розпочато: {0}.\n\nДочекайтеся завершення або закрийте другий лаунчер."),
 
             ["gui.configUpdateFailed"] = L(
                 "Failed to update config.ini: {0}",
@@ -1160,7 +1325,8 @@ namespace Odinsons.ValheimLauncher
                 "Não foi possível atualizar config.ini: {0}",
                 "Не удалось обновить config.ini: {0}",
                 "Det gick inte att uppdatera config.ini: {0}",
-                "无法更新 config.ini：{0}"),
+                "无法更新 config.ini：{0}",
+                "Не вдалося оновити config.ini: {0}"),
 
             ["gui.changelogUnavailable"] = L(
                 "Changelog unavailable for this server",
@@ -1171,7 +1337,8 @@ namespace Odinsons.ValheimLauncher
                 "Changelog indisponível para este servidor",
                 "Changelog не доступен для этого сервера",
                 "Ändringslogg saknas för den här servern",
-                "此服务器的更新日志不可用"),
+                "此服务器的更新日志不可用",
+                "Список змін недоступний для цього сервера"),
 
             ["gui.changelogLoadError"] = L(
                 "Error loading changelog: {0}",
@@ -1182,62 +1349,48 @@ namespace Odinsons.ValheimLauncher
                 "Erro ao carregar o changelog: {0}",
                 "Ошибка загрузки changelog: {0}",
                 "Fel vid inläsning av ändringsloggen: {0}",
-                "加载更新日志出错：{0}"),
+                "加载更新日志出错：{0}",
+                "Помилка завантаження списку змін: {0}"),
 
-            ["defender.title"] = L(
-                "Speed up file checks",
-                "Dateiprüfungen beschleunigen",
-                "Acelera la comprobación de archivos",
-                "Accélérer la vérification des fichiers",
-                "Przyspiesz sprawdzanie plików",
-                "Acelere a verificação de arquivos",
-                "Ускорить проверку файлов",
-                "Snabba upp filkontrollen",
-                "加快文件检查速度"),
+            ["gui.serverInfoUnavailable"] = L(
+                "Description unavailable for this server",
+                "Beschreibung für diesen Server nicht verfügbar",
+                "Descripción no disponible para este servidor",
+                "Description indisponible pour ce serveur",
+                "Opis niedostępny dla tego serwera",
+                "Descrição indisponível para este servidor",
+                "Описание недоступно для этого сервера",
+                "Beskrivning saknas för den här servern",
+                "此服务器的说明不可用",
+                "Опис недоступний для цього сервера"),
 
+            ["gui.viewModsChangelogTip"] = L(
+                "What's new in the mods for this server",
+                "Was ist neu bei den Mods für diesen Server",
+                "Novedades de los mods de este servidor",
+                "Nouveautés des mods de ce serveur",
+                "Co nowego w modach na tym serwerze",
+                "Novidades dos mods deste servidor",
+                "Что нового в модах этого сервера",
+                "Vad är nytt i modsen för den här servern",
+                "此服务器模组的更新内容",
+                "Що нового в модах цього сервера"),
+
+            // DefenderExclusionCheckBox's tooltip on the Install tab — explains when/why the
+            // checkbox matters. Used to be the body of a one-time popup (ConfirmationWindow,
+            // with defender.title/addButton/notNowButton/uacDeclined/retryButton alongside it);
+            // those are gone along with the popup itself, replaced by this permanent checkbox.
             ["defender.message"] = L(
-                "Windows Defender briefly scans every newly downloaded mod file, which can make the launcher think a file changed when it didn't. Adding this folder to Defender's exclusions avoids that — the game and mod files are still scanned normally by Steam and by Defender's regular full scans.",
-                "Windows Defender scannt kurz jede neu heruntergeladene Mod-Datei, wodurch der Launcher fälschlich annehmen kann, eine Datei habe sich geändert. Diesen Ordner zu den Ausnahmen von Defender hinzuzufügen vermeidet das — Spiel- und Mod-Dateien werden weiterhin normal von Steam und den regulären Voll-Scans von Defender geprüft.",
-                "Windows Defender analiza brevemente cada archivo de mod recién descargado, lo que puede hacer que el launcher piense que un archivo cambió sin haberlo hecho. Añadir esta carpeta a las exclusiones de Defender evita eso — los archivos del juego y los mods siguen siendo analizados normalmente por Steam y por los análisis completos habituales de Defender.",
-                "Windows Defender analyse brièvement chaque fichier de mod nouvellement téléchargé, ce qui peut faire croire au launcher qu'un fichier a changé alors que non. Ajouter ce dossier aux exclusions de Defender évite cela — les fichiers du jeu et des mods restent analysés normalement par Steam et par les analyses complètes habituelles de Defender.",
-                "Windows Defender krótko skanuje każdy nowo pobrany plik moda, przez co launcher może błędnie uznać, że plik się zmienił. Dodanie tego folderu do wykluczeń Defendera temu zapobiega — pliki gry i modów są nadal normalnie skanowane przez Steam i podczas zwykłych pełnych skanów Defendera.",
-                "O Windows Defender examina rapidamente cada arquivo de mod recém-baixado, o que pode fazer o launcher pensar que um arquivo mudou sem ter mudado. Adicionar esta pasta às exclusões do Defender evita isso — os arquivos do jogo e dos mods continuam sendo verificados normalmente pelo Steam e pelas varreduras completas normais do Defender.",
-                "Windows Defender ненадолго сканирует каждый свежескачанный файл мода, из-за чего лончер может решить, что файл изменился, хотя это не так. Добавление этой папки в исключения Defender'а убирает эту проблему — файлы игры и модов по-прежнему проверяются обычным образом через Steam и штатные полные проверки Defender'а.",
-                "Windows Defender skannar hastigt varje nyligen nedladdad moddfil, vilket kan få launchern att tro att en fil ändrats fast den inte gjort det. Att lägga till den här mappen i Defenders undantag löser det — spel- och moddfiler skannas fortfarande normalt av Steam och Defenders vanliga fullständiga skanningar.",
-                "Windows Defender 会短暂扫描每个新下载的模组文件，这可能让启动器误以为文件被更改了。将此文件夹加入 Defender 排除项可以避免这个问题——游戏和模组文件仍会照常被 Steam 以及 Defender 的常规完整扫描检查。"),
-
-            ["defender.addButton"] = L(
-                "Add exclusion",
-                "Ausnahme hinzufügen",
-                "Añadir exclusión",
-                "Ajouter l'exclusion",
-                "Dodaj wykluczenie",
-                "Adicionar exclusão",
-                "Добавить исключение",
-                "Lägg till undantag",
-                "添加排除项"),
-
-            ["defender.notNowButton"] = L(
-                "Not now",
-                "Nicht jetzt",
-                "Ahora no",
-                "Plus tard",
-                "Nie teraz",
-                "Agora não",
-                "Не сейчас",
-                "Inte nu",
-                "暂不"),
-
-            ["defender.uacDeclined"] = L(
-                "The exclusion wasn't added — Windows didn't grant the elevated permission needed.",
-                "Die Ausnahme wurde nicht hinzugefügt — Windows hat die dafür nötige erhöhte Berechtigung nicht erteilt.",
-                "No se añadió la exclusión — Windows no concedió el permiso elevado necesario.",
-                "L'exclusion n'a pas été ajoutée — Windows n'a pas accordé la permission élevée nécessaire.",
-                "Wykluczenie nie zostało dodane — Windows nie przyznał wymaganych uprawnień podwyższonych.",
-                "A exclusão não foi adicionada — o Windows não concedeu a permissão elevada necessária.",
-                "Исключение не добавлено — Windows не выдал нужные повышенные права.",
-                "Undantaget lades inte till — Windows beviljade inte den upphöjda behörighet som krävdes.",
-                "未能添加排除项——Windows 未授予所需的提升权限。"),
+                "Windows Defender scans each newly downloaded mod file, which can make the launcher think it changed. Excluding this folder avoids that — Steam and Defender's regular scans still cover it.",
+                "Windows Defender scannt jede neu heruntergeladene Mod-Datei, was den Launcher glauben lassen kann, sie habe sich geändert. Der Ausschluss dieses Ordners verhindert das — Steam und die regulären Scans von Defender prüfen weiterhin.",
+                "Windows Defender analiza cada archivo de mod recién descargado, lo que puede hacer que el launcher crea que cambió. Excluir esta carpeta evita eso — Steam y los análisis habituales de Defender siguen cubriéndola.",
+                "Windows Defender analyse chaque nouveau fichier de mod téléchargé, ce qui peut faire croire au launcher qu'il a changé. Exclure ce dossier évite cela — Steam et les analyses habituelles de Defender continuent de le couvrir.",
+                "Windows Defender skanuje każdy nowo pobrany plik moda, co może sprawić, że launcher pomyśli, że się zmienił. Wykluczenie tego folderu temu zapobiega — Steam i standardowe skany Defendera nadal go obejmują.",
+                "O Windows Defender analisa cada arquivo de mod recém-baixado, o que pode fazer o launcher pensar que ele mudou. Excluir esta pasta evita isso — o Steam e as varreduras normais do Defender continuam cobrindo-a.",
+                "Windows Defender сканирует каждый скачанный файл мода, из-за чего лончер может решить, что файл изменился. Исключение этой папки убирает проблему — Steam и обычные проверки Defender'а по-прежнему её охватывают.",
+                "Windows Defender skannar varje nyligen nedladdad moddfil, vilket kan få launchern att tro att den ändrats. Att undanta den här mappen förhindrar det — Steam och Defenders vanliga skanningar täcker den ändå.",
+                "Windows Defender 会扫描每个新下载的模组文件，这可能让启动器误以为文件被更改了。将此文件夹排除可以避免这个问题——Steam 和 Defender 的常规扫描仍会覆盖它。",
+                "Windows Defender сканує кожен новий завантажений файл мода, через що лаунчер може вирішити, що файл змінився. Виключення цієї папки усуває проблему — Steam і звичайні перевірки Defender усе одно її охоплюють."),
 
             ["gui.noPlayersOnline"] = L(
                 "No vikings online right now.",
@@ -1248,29 +1401,95 @@ namespace Odinsons.ValheimLauncher
                 "Nenhum viking online no momento.",
                 "Сейчас на сервере никого нет.",
                 "Inga vikingar är online just nu.",
-                "目前没有维京人在线。"),
+                "目前没有维京人在线。",
+                "Наразі на сервері немає вікінгів."),
+
+            // The Start button's own label — used to be baked directly into start.png's pixels
+            // (always Russian, "ИГРАТЬ", regardless of language) until it switched to
+            // start-no-text.png, an unlabelled skin with the text drawn on top instead.
+            ["gui.playButton"] = L(
+                "Play", "Spielen", "Jugar", "Jouer",
+                "Graj", "Jogar", "Играть", "Spela", "开始游戏", "Грати"),
+
+            // Main action button before the player has ever opened the Mods tab — names that
+            // as the next step regardless of which tab is currently showing (see
+            // UpdateWizardButton/MarkModsTabVisited in MainWindow.axaml.cs).
+            ["gui.wizardGoToMods"] = L(
+                "Go to mods", "Zu den Mods", "Ir a mods", "Aller aux mods", "Przejdź do modów",
+                "Ir para mods", "К модам", "Gå till mods", "前往模组", "До модів"),
+
+            // Main action button once Mods has been visited at least once but the client still
+            // isn't (fully) installed, shown from any tab *other* than Install — a navigation
+            // hint ("go there"), not a promise of what happens next, since that depends on
+            // AutoStartAfterValidationCheckBox (see gui.installButton/gui.installAndPlayButton,
+            // used instead once already on the Install tab). Once IsClientInstalled is true all
+            // three switch to gui.playButton.
+            ["gui.wizardGoToInstall"] = L(
+                "Go to install", "Zur Installation", "Ir a instalación", "Aller à l'installation",
+                "Przejdź do instalacji", "Ir para instalação", "К установке",
+                "Gå till installation", "前往安装", "До встановлення"),
+
+            // Main action button on the Install tab itself, not yet installed, with
+            // AutoStartAfterValidationCheckBox unchecked — clicking only checks/installs,
+            // Play stays a separate click.
+            ["gui.installButton"] = L(
+                "Install", "Installieren", "Instalar", "Installer",
+                "Instaluj", "Instalar", "Установить", "Installera", "安装", "Встановити"),
+
+            // Same button, same tab, with AutoStartAfterValidationCheckBox checked instead —
+            // clicking checks/installs and launches right after.
+            ["gui.installAndPlayButton"] = L(
+                "Install & play", "Installieren & spielen", "Instalar y jugar", "Installer et jouer",
+                "Instaluj i graj", "Instalar e jogar", "Установить и играть",
+                "Installera och spela", "安装并游玩", "Встановити і грати"),
+
+            ["gui.autoStartAfterValidation"] = L(
+                "Launch automatically after validation", "Nach der Prüfung automatisch starten",
+                "Iniciar automáticamente tras la validación", "Lancer automatiquement après la validation",
+                "Uruchom automatycznie po weryfikacji", "Iniciar automaticamente após a validação",
+                "Запускать автоматически после проверки", "Starta automatiskt efter kontroll", "验证后自动启动",
+                "Запускати автоматично після перевірки"),
+
+            // Shown on the Install tab before the first check of the session has run, in place
+            // of the injector/classic mode line above (which stays empty until then).
+            ["gui.installStatus.notCheckedYet"] = L(
+                "No check has been run yet.",
+                "Es wurde noch keine Prüfung durchgeführt.",
+                "Aún no se ha realizado ninguna comprobación.",
+                "Aucune vérification n'a encore été effectuée.",
+                "Nie przeprowadzono jeszcze żadnej weryfikacji.",
+                "Ainda não foi feita nenhuma verificação.",
+                "Проверка ещё не выполнялась.",
+                "Ingen kontroll har körts än.",
+                "尚未进行检查。",
+                "Перевірку ще не виконано."),
 
             ["gui.installMode.injector"] = L(
-                "Playing directly from Steam",
-                "Spielt direkt aus Steam",
-                "Se juega directamente desde Steam",
-                "Lancé directement depuis Steam",
-                "Uruchamiane bezpośrednio ze Steam",
-                "Jogando diretamente do Steam",
-                "Запуск прямо из Steam",
-                "Spelas direkt från Steam",
-                "直接从 Steam 运行"),
+                "Playing from your Steam installation",
+                "Läuft über Ihre Steam-Installation",
+                "Se juega desde tu instalación de Steam",
+                "Lancé depuis votre installation Steam",
+                "Uruchamiane z Twojej instalacji Steam",
+                "Jogando a partir da sua instalação do Steam",
+                "Запуск из вашей установки Steam",
+                "Spelas från din Steam-installation",
+                "从您的 Steam 安装运行",
+                "Запуск з вашого встановлення Steam"),
 
+            // Rewritten after feedback that the old wording ("nothing is duplicated…") didn't
+            // actually say where the files come FROM, and that the still-happens validation
+            // step wasn't mentioned at all — both are the two things this tooltip exists for.
             ["gui.installMode.injectorTip"] = L(
-                "The game runs from your own Steam copy at {0} — nothing is duplicated into the launcher's folder.",
-                "Das Spiel läuft von Ihrer eigenen Steam-Kopie unter {0} — nichts wird in den Launcher-Ordner dupliziert.",
-                "El juego se ejecuta desde tu propia copia de Steam en {0} — nada se duplica en la carpeta del launcher.",
-                "Le jeu s'exécute depuis votre propre copie Steam dans {0} — rien n'est dupliqué dans le dossier du launcher.",
-                "Gra działa z Twojej własnej kopii Steam w {0} — nic nie jest duplikowane do folderu launchera.",
-                "O jogo roda a partir da sua própria cópia do Steam em {0} — nada é duplicado na pasta do launcher.",
-                "Игра запускается прямо из вашей копии в Steam ({0}) — ничего не дублируется в папку лончера.",
-                "Spelet körs från din egen Steam-kopia på {0} — inget dubbleras till launcherns mapp.",
-                "游戏直接从您自己的 Steam 副本运行（{0}）——不会在启动器文件夹中重复保存任何内容。"),
+                "The launcher will run the game straight from your existing Steam installation at {0} — it won't copy the files into its own folder. Every file there still gets checked against what's expected first.",
+                "Der Launcher startet das Spiel direkt aus Ihrer vorhandenen Steam-Installation unter {0} — die Dateien werden nicht in den eigenen Ordner kopiert. Trotzdem wird jede Datei dort zuerst gegen die erwarteten Dateien geprüft.",
+                "El launcher ejecutará el juego directamente desde tu instalación de Steam existente en {0} — no copiará los archivos a su propia carpeta. Aun así, comprobará cada archivo ahí contra lo esperado antes de jugar.",
+                "Le launcher lancera le jeu directement depuis votre installation Steam existante dans {0} — il ne copiera pas les fichiers dans son propre dossier. Chaque fichier y est quand même vérifié par rapport à ce qui est attendu avant de jouer.",
+                "Launcher uruchomi grę bezpośrednio z Twojej istniejącej instalacji Steam w {0} — nie skopiuje plików do swojego folderu. Mimo to każdy plik tam zostanie najpierw sprawdzony względem tego, co jest oczekiwane.",
+                "O launcher vai executar o jogo diretamente a partir da sua instalação existente do Steam em {0} — não vai copiar os arquivos para a própria pasta. Mesmo assim, cada arquivo ali é verificado em relação ao esperado antes de jogar.",
+                "Лаунчер запустит игру прямо из вашей существующей установки Steam ({0}) — файлы не будут копироваться в его собственную папку. Тем не менее, каждый файл там всё равно будет сверен с ожидаемым перед запуском.",
+                "Launchern kör spelet direkt från din befintliga Steam-installation på {0} — filerna kopieras inte till launcherns egen mapp. Varje fil där kontrolleras ändå mot det förväntade innan spelet startar.",
+                "启动器将直接从您现有的 Steam 安装（{0}）运行游戏——不会将文件复制到自己的文件夹中。即便如此，这里的每个文件在运行前仍会与预期文件进行校验。",
+                "Лаунчер запустить гру прямо з вашого наявного встановлення Steam ({0}) — файли не копіюватимуться в його власну папку. Попри це, кожен файл там усе одно буде звірено з очікуваним перед запуском."),
 
             ["gui.installMode.classic"] = L(
                 "Playing from the launcher's own copy",
@@ -1281,29 +1500,21 @@ namespace Odinsons.ValheimLauncher
                 "Jogando a partir da própria cópia do launcher",
                 "Запуск из копии лончера",
                 "Spelas från launcherns egen kopia",
-                "从启动器自带副本运行"),
+                "从启动器自带副本运行",
+                "Запуск із власної копії лаунчера"),
 
+            // Same rewrite reasoning as gui.installMode.injectorTip.
             ["gui.installMode.classicTip"] = L(
-                "The game files were verified and copied into the client folder — no matching Steam install was used for this run.",
-                "Die Spieldateien wurden geprüft und in den Client-Ordner kopiert — für diesen Lauf wurde keine passende Steam-Installation verwendet.",
-                "Los archivos del juego se verificaron y copiaron en la carpeta del cliente — no se usó ninguna instalación de Steam compatible en esta ejecución.",
-                "Les fichiers du jeu ont été vérifiés et copiés dans le dossier client — aucune installation Steam correspondante n'a été utilisée pour ce lancement.",
-                "Pliki gry zostały zweryfikowane i skopiowane do folderu klienta — do tego uruchomienia nie użyto pasującej instalacji Steam.",
-                "Os arquivos do jogo foram verificados e copiados para a pasta do cliente — nenhuma instalação do Steam compatível foi usada nesta execução.",
-                "Файлы игры проверены и скопированы в папку клиента — подходящая установка Steam для этого запуска не использовалась.",
-                "Spelfilerna verifierades och kopierades till klientmappen — ingen matchande Steam-installation användes för den här körningen.",
-                "游戏文件已校验并复制到客户端文件夹——本次运行未使用匹配的 Steam 安装。"),
-
-            ["mods.loading"] = L(
-                "Loading the mod list…",
-                "Modliste wird geladen…",
-                "Cargando la lista de mods…",
-                "Chargement de la liste des mods…",
-                "Wczytywanie listy modów…",
-                "A carregar a lista de mods…",
-                "Загружаю список модов…",
-                "Läser in modlistan…",
-                "正在加载模组列表…"),
+                "No matching Steam installation was found, so the launcher keeps its own copy of the game files here in the client folder. Every file there still gets checked against what's expected first.",
+                "Es wurde keine passende Steam-Installation gefunden, daher behält der Launcher seine eigene Kopie der Spieldateien im Client-Ordner. Trotzdem wird jede Datei dort zuerst gegen die erwarteten Dateien geprüft.",
+                "No se encontró ninguna instalación de Steam compatible, así que el launcher guarda su propia copia de los archivos del juego en la carpeta del cliente. Aun así, comprobará cada archivo ahí contra lo esperado antes de jugar.",
+                "Aucune installation Steam correspondante n'a été trouvée, donc le launcher garde sa propre copie des fichiers du jeu dans le dossier client. Chaque fichier y est quand même vérifié par rapport à ce qui est attendu avant de jouer.",
+                "Nie znaleziono pasującej instalacji Steam, więc launcher przechowuje własną kopię plików gry w folderze klienta. Mimo to każdy plik tam zostanie najpierw sprawdzony względem tego, co jest oczekiwane.",
+                "Nenhuma instalação do Steam compatível foi encontrada, então o launcher mantém sua própria cópia dos arquivos do jogo na pasta do cliente. Mesmo assim, cada arquivo ali é verificado em relação ao esperado antes de jogar.",
+                "Подходящая установка Steam не найдена, поэтому лаунчер хранит свою собственную копию файлов игры в папке клиента. Тем не менее, каждый файл там всё равно будет сверен с ожидаемым перед запуском.",
+                "Ingen matchande Steam-installation hittades, så launchern behåller sin egen kopia av spelfilerna i klientmappen. Varje fil där kontrolleras ändå mot det förväntade innan spelet startar.",
+                "未找到匹配的 Steam 安装，因此启动器会在客户端文件夹中保留自己的一份游戏文件副本。即便如此，这里的每个文件在运行前仍会与预期文件进行校验。",
+                "Відповідне встановлення Steam не знайдено, тому лаунчер зберігає власну копію файлів гри в папці клієнта. Попри це, кожен файл там усе одно буде звірено з очікуваним перед запуском."),
 
             ["mods.unavailable"] = L(
                 "Mod list unavailable right now — check your connection and try again.",
@@ -1314,7 +1525,8 @@ namespace Odinsons.ValheimLauncher
                 "Lista de mods indisponível no momento — verifique a sua ligação e tente novamente.",
                 "Список модов сейчас недоступен — проверьте соединение и попробуйте ещё раз.",
                 "Modlistan är inte tillgänglig just nu — kontrollera anslutningen och försök igen.",
-                "模组列表当前不可用——请检查网络连接后重试。"),
+                "模组列表当前不可用——请检查网络连接后重试。",
+                "Список модів зараз недоступний — перевірте з'єднання і спробуйте ще раз."),
 
             ["mods.required"] = L(
                 "Required mods",
@@ -1325,7 +1537,8 @@ namespace Odinsons.ValheimLauncher
                 "Mods obrigatórios",
                 "Обязательные моды",
                 "Obligatoriska mods",
-                "必装模组"),
+                "必装模组",
+                "Обов'язкові моди"),
 
             ["mods.optional"] = L(
                 "Optional mods",
@@ -1336,7 +1549,8 @@ namespace Odinsons.ValheimLauncher
                 "Mods opcionais",
                 "Опциональные моды",
                 "Valfria mods",
-                "可选模组"),
+                "可选模组",
+                "Опціональні моди"),
 
             ["mods.adminOnly"] = L(
                 "Admin-only mods",
@@ -1347,7 +1561,8 @@ namespace Odinsons.ValheimLauncher
                 "Mods somente para admins",
                 "Моды только для админов",
                 "Endast för admins",
-                "仅管理员模组"),
+                "仅管理员模组",
+                "Моди лише для адмінів"),
 
             ["gui.newsLoadFailed"] = L(
                 "Failed to load news: {0}",
@@ -1358,7 +1573,8 @@ namespace Odinsons.ValheimLauncher
                 "Não foi possível carregar as novidades: {0}",
                 "Не удалось загрузить новости: {0}",
                 "Det gick inte att läsa in nyheterna: {0}",
-                "无法加载新闻：{0}"),
+                "无法加载新闻：{0}",
+                "Не вдалося завантажити новини: {0}"),
 
             ["gui.valheimExeNotFound"] = L(
                 "File valheim.exe not found in {0}",
@@ -1369,10 +1585,11 @@ namespace Odinsons.ValheimLauncher
                 "Arquivo valheim.exe não encontrado em {0}",
                 "Файл valheim.exe не найден в {0}",
                 "Filen valheim.exe hittades inte i {0}",
-                "在 {0} 中未找到 valheim.exe 文件"),
+                "在 {0} 中未找到 valheim.exe 文件",
+                "Файл valheim.exe не знайдено в {0}"),
 
             ["gui.title.error"] = L(
-                "Error", "Fehler", "Error", "Erreur", "Błąd", "Erro", "Ошибка", "Fel", "错误"),
+                "Error", "Fehler", "Error", "Erreur", "Błąd", "Erro", "Ошибка", "Fel", "错误", "Помилка"),
 
             ["gui.title.noWriteAccess"] = L(
                 "No write access",
@@ -1383,7 +1600,8 @@ namespace Odinsons.ValheimLauncher
                 "Sem acesso de gravação",
                 "Нет прав на запись",
                 "Ingen skrivbehörighet",
-                "没有写入权限"),
+                "没有写入权限",
+                "Немає прав на запис"),
 
             ["gui.title.folderBusy"] = L(
                 "Folder busy",
@@ -1394,7 +1612,8 @@ namespace Odinsons.ValheimLauncher
                 "Pasta ocupada",
                 "Папка занята",
                 "Mappen upptagen",
-                "文件夹被占用"),
+                "文件夹被占用",
+                "Папка зайнята"),
 
             ["gui.title.launchError"] = L(
                 "Launch error",
@@ -1405,7 +1624,8 @@ namespace Odinsons.ValheimLauncher
                 "Erro ao iniciar",
                 "Ошибка запуска",
                 "Startfel",
-                "启动错误"),
+                "启动错误",
+                "Помилка запуску"),
 
             // ---------- GUI: ServerSelectionWindow ----------
 
@@ -1418,7 +1638,8 @@ namespace Odinsons.ValheimLauncher
                 "Seleção de servidor",
                 "Выбор сервера",
                 "Serverval",
-                "选择服务器"),
+                "选择服务器",
+                "Вибір сервера"),
 
             ["serverSelection.selectAServer"] = L(
                 "Select a server",
@@ -1429,11 +1650,15 @@ namespace Odinsons.ValheimLauncher
                 "Selecione um servidor",
                 "Выберите сервер",
                 "Välj en server",
-                "请选择服务器"),
+                "请选择服务器",
+                "Виберіть сервер"),
 
             ["serverSelection.ok"] = L(
-                "OK", "OK", "Aceptar", "OK", "OK", "OK", "ОК", "OK", "确定"),
+                "OK", "OK", "Aceptar", "OK", "OK", "OK", "ОК", "OK", "确定", "ОК"),
 
+            // Superseded in Avalonia by gui.copyrightLabel + gui.launcherVersionLabel (split
+            // into two lines, only the copyright one clickable) — kept for WPF, which still
+            // shows it as the one combined line.
             ["gui.versionLabel"] = L(
                 "© OdinSons Team, 2026. Launcher version:",
                 "© OdinSons Team, 2026. Launcher-Version:",
@@ -1443,18 +1668,102 @@ namespace Odinsons.ValheimLauncher
                 "© OdinSons Team, 2026. Versão do launcher:",
                 "© OdinSons Team, 2026. Версия лаунчера:",
                 "© OdinSons Team, 2026. Launcherversion:",
-                "© OdinSons Team, 2026年。启动器版本："),
+                "© OdinSons Team, 2026年。启动器版本：",
+                "© OdinSons Team, 2026. Версія лаунчера:"),
+
+            ["gui.copyrightLabel"] = L(
+                "© OdinSons Team, 2026", "© OdinSons Team, 2026", "© OdinSons Team, 2026",
+                "© OdinSons Team, 2026", "© OdinSons Team, 2026", "© OdinSons Team, 2026",
+                "© OdinSons Team, 2026", "© OdinSons Team, 2026", "© OdinSons Team，2026年",
+                "© OdinSons Team, 2026"),
+
+            ["gui.launcherVersionLabel"] = L(
+                "Launcher:", "Launcher:", "Launcher:", "Launcher :",
+                "Launcher:", "Launcher:", "Лаунчер:", "Launcher:", "启动器：", "Лаунчер:"),
 
             ["gui.fullCheckTooltip"] = L(
-                "Client check",
-                "Client-Prüfung",
-                "Verificación del cliente",
-                "Vérification du client",
-                "Sprawdzenie klienta",
-                "Verificação do cliente",
-                "Проверка клиента",
-                "Klientkontroll",
-                "客户端检查")
+                "Full client check",
+                "Vollständige Client-Prüfung",
+                "Verificación completa del cliente",
+                "Vérification complète du client",
+                "Pełne sprawdzenie klienta",
+                "Verificação completa do cliente",
+                "Полная проверка клиента",
+                "Fullständig klientkontroll",
+                "完整客户端检查",
+                "Повна перевірка клієнта"),
+
+            // ---------- GUI: window chrome (tooltips, website link, OK button) ----------
+
+            // Used to be a bare "Наш сайт" literal in MainWindow.axaml, never translated at
+            // all — the one genuinely missing-from-Loc string this project's own audit found.
+            // Shortened from "Our website" to plain "Website" (and its per-language equivalents)
+            // once translated — reads just as clearly without the possessive.
+            ["gui.websiteLink"] = L(
+                "Website", "Website", "Sitio web", "Site web", "Strona",
+                "Site", "Вебсайт", "Webbplats", "网站", "Веб-сайт"),
+
+            // MessageBoxWindow's OK button — same bug as gui.websiteLink, a bare "OK" literal
+            // in MessageBoxWindow.axaml that never went through Loc at all. Same convention as
+            // serverSelection.ok (Spanish "Aceptar" rather than a bare "OK").
+            ["gui.okButton"] = L(
+                "OK", "OK", "Aceptar", "OK", "OK", "OK", "ОК", "OK", "确定", "ОК"),
+
+            ["gui.tooltip.minimize"] = L(
+                "Minimize", "Minimieren", "Minimizar", "Réduire", "Minimalizuj",
+                "Minimizar", "Свернуть", "Minimera", "最小化", "Згорнути"),
+
+            ["gui.tooltip.maximize"] = L(
+                "Maximize", "Maximieren", "Maximizar", "Agrandir", "Maksymalizuj",
+                "Maximizar", "Развернуть", "Maximera", "最大化", "Розгорнути"),
+
+            ["gui.tooltip.restore"] = L(
+                "Restore", "Wiederherstellen", "Restaurar", "Restaurer", "Przywróć",
+                "Restaurar", "Восстановить", "Återställ", "还原", "Відновити"),
+
+            ["gui.tooltip.close"] = L(
+                "Close", "Schließen", "Cerrar", "Fermer", "Zamknij",
+                "Fechar", "Закрыть", "Stäng", "关闭", "Закрити"),
+
+            // Windows only (see AutoStartAfterValidationCheckBox_Click's sibling
+            // DesktopShortcutCheckBox_Click in MainWindow.axaml.cs) — macOS/Linux builds don't
+            // show this checkbox at all, see RuntimePlatform.IsWindows gating in the XAML's
+            // code-behind.
+            ["gui.desktopShortcut"] = L(
+                "Add a desktop shortcut", "Verknüpfung auf dem Desktop erstellen",
+                "Añadir un acceso directo al escritorio", "Ajouter un raccourci sur le bureau",
+                "Dodaj skrót na pulpicie", "Adicionar um atalho na área de trabalho",
+                "Добавить ярлык на рабочий стол", "Lägg till en genväg på skrivbordet", "在桌面添加快捷方式",
+                "Додати ярлик на робочий стіл"),
+
+            // Windows only, same pattern/checkbox group as gui.desktopShortcut — see
+            // LoadStartMenuShortcutState/StartMenuShortcutCheckBox_Click.
+            ["gui.startMenuShortcut"] = L(
+                "Add to the Start menu", "Zum Startmenü hinzufügen",
+                "Añadir al menú Inicio", "Ajouter au menu Démarrer",
+                "Dodaj do menu Start", "Adicionar ao menu Iniciar",
+                "Добавить в меню Пуск", "Lägg till i Start-menyn", "添加到开始菜单",
+                "Додати до меню Пуск"),
+
+            // Windows only, same checkbox group as gui.desktopShortcut/gui.startMenuShortcut —
+            // a permanent, always-reachable equivalent of the one-time
+            // MaybeOfferDefenderExclusionAsync popup (defender.title etc.) a player could
+            // dismiss with "Not now" and then have no way back to.
+            ["gui.defenderExclusionCheckbox"] = L(
+                "Add a Windows Defender exclusion", "Windows Defender-Ausnahme hinzufügen",
+                "Añadir una exclusión de Windows Defender", "Ajouter une exclusion Windows Defender",
+                "Dodaj wykluczenie w Windows Defender", "Adicionar uma exclusão do Windows Defender",
+                "Добавить исключение в Защитник Windows", "Lägg till ett Windows Defender-undantag", "添加 Windows Defender 排除项",
+                "Додати виключення в Захисник Windows"),
+
+            // Collapsible header above the checkbox group on the Install tab (auto-start,
+            // shortcuts, Defender exclusion) — see InstallSettingsHeaderRow in MainWindow.axaml.
+            ["gui.installSettingsHeading"] = L(
+                "Install settings", "Installationseinstellungen",
+                "Ajustes de instalación", "Paramètres d'installation",
+                "Ustawienia instalacji", "Configurações de instalação",
+                "Настройки установки", "Installationsinställningar", "安装设置",
+                "Налаштування встановлення")
         };
     }
 }
