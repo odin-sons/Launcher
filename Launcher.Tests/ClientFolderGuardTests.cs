@@ -77,6 +77,20 @@ namespace Launcher.Tests
         }
 
         [Fact]
+        public void FolderWithOnlyTheGameManifest_IsStillSafe()
+        {
+            // Regression: FileDownloader caches the per-OS game manifest under the local name
+            // "game.info" partway through an update, before any actual game file lands — an
+            // update interrupted right after that download left nothing else behind, and the
+            // next attempt was rejected as "not a client install" (reported by a player).
+            string folder = TempFolder();
+            File.WriteAllText(Path.Combine(folder, "game.info"), "MANIFEST 3 sha256");
+
+            Assert.True(ClientFolderGuard.IsSafeTarget(folder, out string reason));
+            Assert.Null(reason);
+        }
+
+        [Fact]
         public void FolderWithAnUnrelatedFile_IsNotSafe()
         {
             string folder = TempFolder();

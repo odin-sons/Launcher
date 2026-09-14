@@ -44,7 +44,13 @@ namespace Odinsons.ValheimLauncher
             // Written the moment a player toggles an optional mod on the Mods tab — reachable
             // before Install has ever run, so a folder with nothing but this one file is still
             // a fresh install, not foreign content.
-            OptionalModSelection.FileName
+            OptionalModSelection.FileName,
+            // FileDownloader caches the per-OS game manifest under this exact local name on
+            // every platform (game_macos.info/game_linux.info downloaded, but always saved
+            // locally as "game.info" — see FileDownloader.StartUpdateAsync). Written partway
+            // through an update, before any game file itself lands, so a run interrupted right
+            // after this download left nothing else behind is still a fresh/resumable install.
+            "game.info"
         };
 
         static ClientFolderGuard()
