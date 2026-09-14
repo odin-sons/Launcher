@@ -4,6 +4,9 @@ A launcher for a modified Valheim build. It keeps a player's mod set in sync wit
 server, verifies every file by SHA-256, and gets out of the way otherwise — no manual
 patching, no "which mods am I even missing".
 
+The primary GUI is `Launcher.Avalonia`, cross-platform (Windows, macOS, Linux). The
+original WPF-only `Launcher` still exists but is no longer where development happens.
+
 ## Features
 
 ### Keeping mods up to date
@@ -81,6 +84,8 @@ counts when the HTTP status endpoint is unavailable. See
 - **[KG](https://github.com/war3i4i/Valheim-Online_Launcher)** — original author and
   creator of the launcher as an idea and its first version.
 - **MadBomg** — did most of the work on this launcher.
+- **fogrew** — cross-platform (macOS/Linux) support and the Avalonia install-progress
+  overlay.
 
 ## License
 
