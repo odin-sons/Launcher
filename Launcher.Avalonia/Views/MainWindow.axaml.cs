@@ -17,7 +17,6 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
-using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
@@ -2873,23 +2872,35 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             };
         }
 
-        /// <summary>Same dashed-ring look as Ellipse.stepSpinner (see its style comment for why
-        /// it needs a dash pattern at all — a solid ring never visually shows it's rotating),
-        /// but built here as a plain Ellipse instead of that shared class: stepSpinner's
-        /// Style.Animations spins forever the moment the class is applied, with no hook to
-        /// finish the current lap and settle at 0° before stopping — exactly what
-        /// RefreshPlayersButton_Click needs when the refresh completes. Driven by hand instead,
-        /// via the RotateTransform's own Transition (set up in SetupRefreshPlayersButton).</summary>
-        private static Ellipse BuildRefreshPlayersIcon(RotateTransform rotation) => new()
+        /// <summary>Same service.png/service_green.png hover-swap pair as FullCheck's icon
+        /// (Button Image.normalImg/.hoverImg — see Window.Styles). The rotation is applied to
+        /// the wrapping Panel so both layers turn together; driven by hand via the
+        /// RotateTransform's own Transition (set up in SetupRefreshPlayersButton) instead of
+        /// Ellipse.stepSpinner's Style.Animations, which has no hook to finish the current lap
+        /// and settle at 0° before stopping.</summary>
+        private static Control BuildRefreshPlayersIcon(RotateTransform rotation)
         {
-            Width = 14,
-            Height = 14,
-            Stroke = Brushes.White,
-            StrokeThickness = 2,
-            StrokeDashArray = new AvaloniaList<double> { 3, 3.7 },
-            RenderTransform = rotation,
-            RenderTransformOrigin = RelativePoint.Center
-        };
+            var panel = new Panel
+            {
+                Width = 16,
+                Height = 16,
+                RenderTransform = rotation,
+                RenderTransformOrigin = RelativePoint.Center
+            };
+            panel.Children.Add(new Image
+            {
+                Classes = { "normalImg" },
+                Source = LoadBitmap("avares://OdinsonsLauncher/Resources/service.png"),
+                Stretch = Stretch.Fill
+            });
+            panel.Children.Add(new Image
+            {
+                Classes = { "hoverImg" },
+                Source = LoadBitmap("avares://OdinsonsLauncher/Resources/service_green.png"),
+                Stretch = Stretch.Fill
+            });
+            return panel;
+        }
 
         /// <summary>Called once, from the constructor — mirrors SetupInstallSettingsGroup.</summary>
         private void SetupRefreshPlayersButton()
