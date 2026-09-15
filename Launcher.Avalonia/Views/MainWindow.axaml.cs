@@ -869,18 +869,15 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         protected void OnPropertyChanged(string propertyName) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
-        private static void Log(string message)
-        {
-            try
-            {
-                string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                File.AppendAllText(LogFilePath, $"[{timestamp}] {message}\n");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to write to the log: {ex.Message}");
-            }
-        }
+        /// <summary>Info-level shorthand — routes through LauncherLog (see its own doc comment
+        /// for the full level/prefix contract) rather than writing the file directly. Used to
+        /// be its own separate AppendAllText call with a bare "[timestamp] message" prefix, no
+        /// level, no thread id — while Core code (FileDownloader, InjectorLauncher, the "steam:"
+        /// lines below) already wrote through LauncherLog with a fuller prefix, into the SAME
+        /// file (LauncherLog.FilePath is set to this exact path in the constructor, right where
+        /// the truncate-per-launch below used to be its only reader). One file, two prefix
+        /// styles, interleaved — exactly what was reported.</summary>
+        private static void Log(string message) => LauncherLog.Info(message);
 
         private static string ComputeExecutableHash()
         {
@@ -957,7 +954,18 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             LanguageSelector.ItemsSource = LanguageListItems;
             LanguageSelector.SelectedItem = LanguageListItems.FirstOrDefault(i => i.Code == Loc.Language);
 
+            // Fresh log every launch, unlike LauncherLog's own default (append forever, roll
+            // over past 8MB) — players are asked to send this file for support, and a short
+            // single-session log is easier to read than one carrying every previous run too.
             if (File.Exists(LogFilePath)) File.WriteAllText(LogFilePath, string.Empty);
+
+            // Set explicitly, here, rather than relying on FileDownloader.StartUpdateAsync's own
+            // "??= LogFilePath" fallback (Launcher.Cli sets its own copy of this the same way,
+            // at its own startup — this was the one front end that didn't) — that fallback only
+            // fires once an update actually starts, so every LauncherLog.Info/Warn/Error call
+            // made before then (this window's own Log(), the "steam:" lines below) went
+            // nowhere until Install/Play was pressed for the first time.
+            LauncherLog.FilePath = LogFilePath;
 
             // Covers InstallStatusText/PlayersHeading/PlayersList/MaximizeButton's tooltip too —
             // see ApplyLocalizedChrome, which folds in RefreshInstallStatusLocalization/
@@ -984,7 +992,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 if (string.IsNullOrEmpty(ActiveLauncherUrl))
                 {
                     await MessageBoxWindow.ShowAsync(this, Loc.T("gui.allServersDown"));
-                    Log("All mirrors unreachable, closing the launcher");
+                    LauncherLog.Error("All mirrors unreachable, closing the launcher");
                     Close();
                     return;
                 }
@@ -1062,7 +1070,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not load the language preference: {ex.Message}");
+                LauncherLog.Warn("Could not load the language preference", ex);
             }
         }
 
@@ -1081,7 +1089,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not save the language preference: {ex.Message}");
+                LauncherLog.Warn("Could not save the language preference", ex);
             }
         }
 
@@ -1133,12 +1141,12 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
                     if (!retryable || attempt == 3) break;
 
-                    Log($"Mirror {url} busy, retrying in {retryDelay.TotalSeconds:0.0}s");
+                    LauncherLog.Warn($"Mirror {url} busy, retrying in {retryDelay.TotalSeconds:0.0}s");
                     await Task.Delay(retryDelay);
                 }
             }
             ActiveLauncherUrl = string.Empty;
-            Log("All mirrors unreachable");
+            LauncherLog.Error("All mirrors unreachable");
         }
 
         private async Task<(bool available, bool retryable, TimeSpan retryDelay)> CheckMirrorAsync(string url, int attempt = 1)
@@ -1150,7 +1158,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 {
                     bool retryable = HttpRetry.IsRetryableStatus(responseVersion.StatusCode);
                     TimeSpan delay = retryable ? HttpRetry.Delay(attempt, responseVersion) : TimeSpan.Zero;
-                    Log($"version.txt error at {url}: {responseVersion.StatusCode}" +
+                    LauncherLog.Warn($"version.txt error at {url}: {responseVersion.StatusCode}" +
                         (retryable ? $" (retryable, {delay.TotalSeconds:0.0}s)" : ""));
                     return (false, retryable, delay);
                 }
@@ -1160,7 +1168,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 {
                     bool retryable = HttpRetry.IsRetryableStatus(responseServers.StatusCode);
                     TimeSpan delay = retryable ? HttpRetry.Delay(attempt, responseServers) : TimeSpan.Zero;
-                    Log($"servers.json error at {url}: {responseServers.StatusCode}" +
+                    LauncherLog.Warn($"servers.json error at {url}: {responseServers.StatusCode}" +
                         (retryable ? $" (retryable, {delay.TotalSeconds:0.0}s)" : ""));
                     return (false, retryable, delay);
                 }
@@ -1170,17 +1178,17 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (TaskCanceledException)
             {
-                Log($"Timeout checking {url}");
+                LauncherLog.Warn($"Timeout checking {url}");
                 return (false, true, HttpRetry.Delay(attempt, null));
             }
             catch (HttpRequestException ex)
             {
-                Log($"HTTP error checking {url}: {ex.Message}");
+                LauncherLog.Warn($"HTTP error checking {url}", ex);
                 return (false, true, HttpRetry.Delay(attempt, null));
             }
             catch (Exception ex)
             {
-                Log($"Unknown error checking {url}: {ex.Message}");
+                LauncherLog.Warn($"Unknown error checking {url}", ex);
                 return (false, false, TimeSpan.Zero);
             }
         }
@@ -1197,17 +1205,17 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     Log($"update.info for {serverName} is available at {url}");
                     return true;
                 }
-                Log($"update.info error for {serverName} at {url}: {responseUpdate.StatusCode}");
+                LauncherLog.Warn($"update.info error for {serverName} at {url}: {responseUpdate.StatusCode}");
                 return false;
             }
             catch (TaskCanceledException)
             {
-                Log($"Timeout on update.info for {serverName} at {url}");
+                LauncherLog.Warn($"Timeout on update.info for {serverName} at {url}");
                 return false;
             }
             catch (Exception ex)
             {
-                Log($"update.info error for {serverName} at {url}: {ex.Message}");
+                LauncherLog.Warn($"update.info error for {serverName} at {url}", ex);
                 return false;
             }
         }
@@ -1225,7 +1233,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     return true;
                 }
             }
-            Log($"No mirrors available for {serverName}");
+            LauncherLog.Warn($"No mirrors available for {serverName}");
             return false;
         }
 
@@ -1250,7 +1258,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 if (availableServers.Count == 0)
                 {
                     await MessageBoxWindow.ShowAsync(this, Loc.T("gui.noServersAvailable"));
-                    Log("No servers available");
+                    LauncherLog.Error("No servers available");
                     Close();
                     return;
                 }
@@ -1294,7 +1302,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                         }
                         catch (Exception ex)
                         {
-                            Log($"Could not persist server selection to config.ini: {ex.Message}");
+                            LauncherLog.Warn("Could not persist server selection to config.ini", ex);
                         }
                     }
 
@@ -1308,11 +1316,11 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     Log($"Server selected: {SelectedServer}");
                     if (!await CheckServerUpdateAsync(ActiveLauncherUrl, SelectedServer))
                     {
-                        Log($"Server {SelectedServer} unavailable at {ActiveLauncherUrl}, looking for another mirror");
+                        LauncherLog.Warn($"Server {SelectedServer} unavailable at {ActiveLauncherUrl}, looking for another mirror");
                         if (!await TrySwitchMirrorAsync(SelectedServer))
                         {
                             await MessageBoxWindow.ShowAsync(this, Loc.T("gui.serverUnavailableAllMirrors", SelectedServer));
-                            Log($"Server {SelectedServer} unavailable on all mirrors");
+                            LauncherLog.Error($"Server {SelectedServer} unavailable on all mirrors");
                             Close();
                             return;
                         }
@@ -1326,7 +1334,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             catch (Exception ex)
             {
                 await MessageBoxWindow.ShowAsync(this, Loc.T("gui.serverListLoadFailed", ex.Message));
-                Log($"Error loading the server list: {ex.Message}");
+                LauncherLog.Error("Error loading the server list", ex);
                 Close();
             }
         }
@@ -1353,7 +1361,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     if (CompareVersions(serverVer, _currentVersion) == VersionComparison.Older)
                         Log($"A newer launcher build is available ({serverVer}); self-update is Windows-only, skipping");
                 }
-                catch (Exception ex) { Log($"Launcher version check skipped: {ex.Message}"); }
+                catch (Exception ex) { LauncherLog.Warn("Launcher version check skipped", ex); }
                 return;
             }
 
@@ -1438,7 +1446,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     try { File.Delete(tempExePath); } catch { }
                 }
                 await MessageBoxWindow.ShowAsync(this, Loc.T("gui.autoUpdateError", ex.Message));
-                Log($"Auto-update error: {ex.Message}");
+                LauncherLog.Error("Auto-update error", ex);
             }
 #endif
         }
@@ -1487,7 +1495,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     if (!HttpRetry.IsRetryableStatus(response.StatusCode) || lastAttempt) break;
 
                     TimeSpan delay = HttpRetry.Delay(attempt, response);
-                    Log($"version.txt busy ({response.StatusCode}), retrying in {delay.TotalSeconds:0.0}s");
+                    LauncherLog.Warn($"version.txt busy ({response.StatusCode}), retrying in {delay.TotalSeconds:0.0}s");
                     await Task.Delay(delay);
                 }
                 catch (Exception ex) when (ex is TaskCanceledException or HttpRequestException)
@@ -1495,7 +1503,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     if (lastAttempt) throw;
 
                     TimeSpan delay = HttpRetry.Delay(attempt, null);
-                    Log($"version.txt check failed ({ex.GetType().Name}: {ex.Message}), retrying in {delay.TotalSeconds:0.0}s");
+                    LauncherLog.Warn($"version.txt check failed, retrying in {delay.TotalSeconds:0.0}s", ex);
                     await Task.Delay(delay);
                 }
             }
@@ -1761,7 +1769,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not load the auto-start preference: {ex.Message}");
+                LauncherLog.Warn("Could not load the auto-start preference", ex);
             }
         }
 
@@ -1799,7 +1807,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not check for an existing {label} shortcut: {ex.Message}");
+                LauncherLog.Warn($"Could not check for an existing {label} shortcut", ex);
             }
         }
 
@@ -1842,7 +1850,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not update the {label} shortcut: {ex.Message}");
+                LauncherLog.Warn($"Could not update the {label} shortcut", ex);
             }
         }
 
@@ -1909,7 +1917,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not load the mods-visited preference: {ex.Message}");
+                LauncherLog.Warn("Could not load the mods-visited preference", ex);
             }
         }
 
@@ -1931,7 +1939,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not save the mods-visited preference: {ex.Message}");
+                LauncherLog.Warn("Could not save the mods-visited preference", ex);
             }
         }
 
@@ -1946,7 +1954,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not save the auto-start preference: {ex.Message}");
+                LauncherLog.Warn("Could not save the auto-start preference", ex);
             }
 
             // Only actually changes the label while sitting on the Install tab, not installed
@@ -1994,7 +2002,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not read cached server info: {ex.Message}");
+                LauncherLog.Warn("Could not read cached server info", ex);
             }
 
             if (cached is not null)
@@ -2021,7 +2029,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not refresh server info: {ex.Message}");
+                LauncherLog.Warn("Could not refresh server info", ex);
 
                 // Already showing the cached copy — a failed background revalidation isn't
                 // worth alarming the player over. Only genuinely nothing-to-show gets a message.
@@ -2124,7 +2132,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Status probe failed for {serverName}: {ex.Message}");
+                LauncherLog.Warn($"Status probe failed for {serverName}", ex);
                 return false;
             }
         }
@@ -2158,7 +2166,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Error requesting server status for {SelectedServer} via HTTP: {ex.Message}.");
+                LauncherLog.Warn($"Error requesting server status for {SelectedServer} via HTTP", ex);
             }
 
             // Unlike the WPF launcher, there's no SteamQuery UDP fallback here yet — this
@@ -2266,7 +2274,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
             if (!ClientFolderGuard.IsWritable(ClientFolder, out string permReason, out string permAdvice))
             {
-                Log($"No write access: {ClientFolder} — {permReason}");
+                LauncherLog.Error($"No write access: {ClientFolder} — {permReason}");
                 await MessageBoxWindow.ShowAsync(this,
                     Loc.T("gui.updateStoppedPermissions", permReason, Path.GetFullPath(ClientFolder), permAdvice),
                     Loc.T("gui.title.noWriteAccess"));
@@ -2277,7 +2285,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
             if (!ClientFolderGuard.IsSafeTarget(ClientFolder, out string unsafeReason))
             {
-                Log($"Client folder failed validation: {ClientFolder} — {unsafeReason}");
+                LauncherLog.Error($"Client folder failed validation: {ClientFolder} — {unsafeReason}");
                 await MessageBoxWindow.ShowAsync(this,
                     Loc.T("gui.updateStoppedUnsafe", unsafeReason, Path.GetFullPath(ClientFolder)),
                     Loc.T("gui.title.error"));
@@ -2288,7 +2296,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
             if (!UpdateSession.TryBegin(ClientFolder, out UpdateSession session, out string sessionReason))
             {
-                Log($"Could not start the update: {sessionReason}");
+                LauncherLog.Error($"Could not start the update: {sessionReason}");
                 await MessageBoxWindow.ShowAsync(this, Loc.T("gui.updateNotStarted", sessionReason), Loc.T("gui.title.folderBusy"));
                 IsLoading = false;
                 StartButtonGrid.Opacity = 1;
@@ -2299,7 +2307,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             {
                 if (session.PreviousRunInterrupted && !full)
                 {
-                    Log("The previous update didn't finish — running a full check");
+                    LauncherLog.Warn("The previous update didn't finish — running a full check");
                     full = true;
                 }
 
@@ -2348,18 +2356,18 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             catch (Exception ex)
             {
                 await MessageBoxWindow.ShowAsync(this, Loc.T("gui.configUpdateFailed", ex.Message));
-                Log($"Error updating config.ini: {ex.Message}");
+                LauncherLog.Warn("Error updating config.ini", ex);
             }
 
             Directory.CreateDirectory(ClientFolder);
 
             if (!await CheckServerUpdateAsync(ActiveLauncherUrl, SelectedServer))
             {
-                Log($"Server {SelectedServer} unavailable at {ActiveLauncherUrl}, looking for another mirror");
+                LauncherLog.Warn($"Server {SelectedServer} unavailable at {ActiveLauncherUrl}, looking for another mirror");
                 if (!await TrySwitchMirrorAsync(SelectedServer))
                 {
                     await MessageBoxWindow.ShowAsync(this, Loc.T("gui.serverUnavailableAllMirrors", SelectedServer));
-                    Log($"Server {SelectedServer} unavailable on all mirrors");
+                    LauncherLog.Error($"Server {SelectedServer} unavailable on all mirrors");
                     await statusTask;
                     return;
                 }
@@ -2591,7 +2599,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not load {fileName} for the mods panel: {ex.Message}");
+                LauncherLog.Warn($"Could not load {fileName} for the mods panel", ex);
                 return new List<Manifest.Entry>();
             }
         }
@@ -2716,7 +2724,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not load {manifestJsonPath}: {ex.Message}");
+                LauncherLog.Warn($"Could not load {manifestJsonPath}", ex);
                 return new ModRowData(folderKey, folderKey, null, null, thunderstoreUrl, hexiumUrl, null);
             }
         }
@@ -3058,7 +3066,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                         TextWrapping = TextWrapping.Wrap
                     });
                 });
-                Log($"Error loading changelog: {ex.Message}");
+                LauncherLog.Warn("Error loading changelog", ex);
             }
         }
 
@@ -3243,7 +3251,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not restore window placement: {ex.Message}");
+                LauncherLog.Warn("Could not restore window placement", ex);
             }
         }
 
@@ -3268,7 +3276,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Could not save window placement: {ex.Message}");
+                LauncherLog.Warn("Could not save window placement", ex);
             }
         }
 
@@ -3496,7 +3504,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
             catch (Exception ex)
             {
-                Log($"Failed to load player avatar from {url}: {ex.Message}");
+                LauncherLog.Warn($"Failed to load player avatar from {url}", ex);
             }
         }
 
@@ -3539,7 +3547,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                             HideProgress();
                             StartButtonGrid.Opacity = 1;
                         });
-                        Log($"Launch error: no runnable game executable in {ClientFolder}");
+                        LauncherLog.Error($"Launch error: no runnable game executable in {ClientFolder}");
                         return;
                     }
 
@@ -3555,7 +3563,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     HideProgress();
                     StartButtonGrid.Opacity = 1;
                 });
-                Log($"Launch failed: {ex}");
+                LauncherLog.Error("Launch failed", ex);
                 return;
             }
 
