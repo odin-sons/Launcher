@@ -4,6 +4,36 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
+## [2.1.0] — 2026-09-15
+
+### Added
+- A refresh button next to the players list (the same `service.png` icon as the Full Check
+  button) — spins while re-fetching the online count, settles back to rest instead of
+  freezing mid-turn.
+- The install log (grouped step list) now collapses instead of disappearing once a
+  check/install finishes — one click to expand and read it afterward, elapsed times
+  included. The install-source indicator ("Playing from your Steam installation" /
+  "Playing from a copy of the launcher") shows a "Determining install method…" placeholder
+  while a check is running instead of going blank.
+
+### Fixed
+- The self-update check tolerates a slow or temporarily overloaded server: timeout raised
+  from 5s to 20s, with up to 3 retries on a 429/503 or timeout — a brief nginx slowdown
+  during a mass rollout no longer surfaces as a raw "server unreachable" error.
+- `ClientFolderGuard` recognizes `game.info` (the cached per-OS game manifest) as the
+  launcher's own file — an update interrupted right after that file downloaded, before any
+  actual game file landed, was rejected on the next attempt as "not a client install".
+- The launcher's working directory is now pinned to the real `.exe`'s own folder
+  (`Environment.ProcessPath`) on every launch — previously, launching via the Desktop/Start
+  Menu shortcut (a `.url` file with no "Start in" field) could leave the working directory
+  wherever the shell happened to put it, causing the `admin` marker file and the server list
+  to behave differently depending on how the launcher was started.
+- `SingleInstanceGuard`'s activation pipe is now scoped per install folder. A machine with
+  more than one install side by side (a game-bundled copy plus a separate build, several
+  server presets, etc.) could have a second launch activate a *different* install's already-
+  open window instead of ever showing its own — indistinguishable from that second install
+  "remembering" state it never actually loaded.
+
 ## [2.0.1] — 2026-09-14
 
 - Fixed `ClientFolderGuard` rejecting a fresh client folder as "not a Valheim install" when

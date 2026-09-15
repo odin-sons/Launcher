@@ -11,8 +11,8 @@
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <ApplicationIcon>Resources\favicon.ico</ApplicationIcon>
 
-        <Version>2.0.1</Version>
-        <InformationalVersion>2.0.1</InformationalVersion>
+        <Version>2.1.0</Version>
+        <InformationalVersion>2.1.0</InformationalVersion>
 
         <!-- One self-contained executable, like the Windows build. Only engages when a RID is
              passed (dotnet publish -r …), so plain build / run / restore are unaffected. -->
