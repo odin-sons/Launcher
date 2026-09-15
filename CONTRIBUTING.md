@@ -115,3 +115,13 @@ A short map of the pieces most contributions touch, in `Launcher.Core`:
   regardless of what language the accompanying conversation happens to be in.
 - Keep `Launcher.Tests`/`Indexer.Tests`'s README files in sync when adding or renaming a
   test — they're meant to be read before the test source itself, not after.
+- **Branches**: GitFlow-style prefixes — `feature/…` for new capability, `bugfix/…` for a
+  non-urgent fix on top of the last release, `hotfix/…` for an urgent fix branched directly
+  off `master`, `release/…` when cutting a release. `master` is the integration branch —
+  land work through a pull request rather than pushing straight to it.
+- **Commit messages**: [Conventional Commits](https://www.conventionalcommits.org/) —
+  `type: summary`, type one of `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`,
+  `build`, `ci`. No tooling enforces or generates anything from this (no
+  conventional-changelog/semantic-release — this is a .NET repo, not Node) — it's purely
+  for a reader scanning `git log`. `CHANGELOG.md` stays hand-written, Keep a Changelog
+  style, informed by these types but not generated from them.
