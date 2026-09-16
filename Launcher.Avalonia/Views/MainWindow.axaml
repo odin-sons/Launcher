@@ -4,7 +4,7 @@
         x:Class="Odinsons.ValheimLauncher.Avalonia.Views.MainWindow"
         Title="OdinsonsLauncher"
         Width="900" Height="610"
-        MinWidth="662" MinHeight="610"
+        MinWidth="658" MinHeight="610"
         CanResize="True"
         WindowStartupLocation="CenterScreen"
         WindowDecorations="None"
@@ -14,15 +14,15 @@
         FontFamily="avares://OdinsonsLauncher/Resources/Fonts#Montserrat"
         FontWeight="Medium">
 
-    <!-- MinWidth (662) is the header row's own content, added up — nothing narrower can fit it
+    <!-- MinWidth (658) is the header row's own content, added up — nothing narrower can fit it
          without something overlapping or clipping:
-           298 (ServerSelector's left margin, see its own comment below) + 190 (ServerSelector)
+           294 (ServerSelector's left margin, see its own comment below) + 190 (ServerSelector)
          + 20 (gap to the window controls) + 144 (three 48px hit areas, touching edge-to-edge —
          see Minimize/Maximize/Close's own comments) + 10 (right margin — this one doesn't
          match the 20 elsewhere: growing the window-control hit areas pushed Close's own margin
          in to 10, and its icon's visual edge is still exactly 20 from the window edge, same as
          everywhere else, since the icon stays centered in the middle of the (bigger) hit area)
-         = 662 -->
+         = 658 -->
     <!-- Left margin (20) and the central panel/tab card's own left margin (also 20, see the
          Border/TabControl below) are the same value on purpose — logo, tab card, and the
          Play/Stop button row all line up flush against one vertical line now, instead of the
@@ -352,16 +352,15 @@
 
              Each row carries its own online/offline/checking dot (bound to ServerListItem.Status
              in MainWindow.axaml.cs, via the shared ServerRowTemplate in Window.Resources). -->
-        <!-- Left margin (298) matches ServerRightColumn's own left edge (Grid.Column="1" in the
-             Server tab below), not a logo-distance calculation — the selector now sits in the
-             same vertical column as the server info/changelog content under it. Top margin
-             (30) centers it against the logo's own vertical center (16 margin + 61 tall / 2 =
-             46.5) and the window controls' (32 + 28 / 2 = 46) — same row, not the old fixed 20
-             it used to float at. -->
+        <!-- Left margin (294) sits 4px left of ServerRightColumn's own left edge (Grid.Column="1"
+             in the Server tab below, at 298) — not a logo-distance calculation. Top margin (30)
+             centers it against the logo's own vertical center (16 margin + 61 tall / 2 = 46.5)
+             and the window controls' (32 + 28 / 2 = 46) — same row, not the old fixed 20 it
+             used to float at. -->
         <ComboBox Name="ServerSelector"
                   Width="190" Height="34"
                   HorizontalAlignment="Left" VerticalAlignment="Top"
-                  Margin="298,30,0,0"
+                  Margin="294,30,0,0"
                   ItemTemplate="{StaticResource ServerRowTemplate}"
                   SelectionChanged="ServerSelector_SelectionChanged"
                   DropDownOpened="ServerSelector_DropDownOpened"/>
@@ -372,7 +371,7 @@
         <ContentControl Name="SingleServerDisplay"
                          Width="190" Height="34"
                          HorizontalAlignment="Left" VerticalAlignment="Top"
-                         Margin="310,34,0,0"
+                         Margin="306,34,0,0"
                          VerticalContentAlignment="Center"
                          ContentTemplate="{StaticResource ServerRowTemplate}"
                          IsVisible="False"/>
