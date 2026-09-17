@@ -4,6 +4,22 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
+## [2.2.0] — 2026-09-17
+
+### Added
+- The server selector in the header (and the single-server name shown in its place when
+  there's only one server to pick from) now lines up with the Server tab's own info/
+  changelog column below it, instead of floating at an offset derived from the logo's
+  width.
+
+### Fixed
+- Log lines now share one consistent prefix format. `MainWindow`'s own logging used to
+  write a bare `[timestamp] message` line through a separate call, interleaved with
+  `LauncherLog`'s fuller timestamp+level+thread prefix in the same file. About 35 call
+  sites that logged at Info despite representing a transient failure (now Warn) or a
+  player-blocking one — an unwritable/invalid client folder, no runnable game executable,
+  a failed launch (now Error) — are reclassified to match.
+
 ## [2.1.0] — 2026-09-15
 
 ### Added
