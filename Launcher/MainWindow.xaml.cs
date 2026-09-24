@@ -1259,7 +1259,7 @@ namespace Odinsons.ValheimLauncher
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        MessageBox.Show(Loc.T("gui.valheimExeNotFound", ClientFolder), Loc.T("gui.title.launchError"), MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(Loc.T("gui.valheimExeNotFound", InjectorLauncher.PrimaryExecutableName, ClientFolder), Loc.T("gui.title.launchError"), MessageBoxButton.OK, MessageBoxImage.Error);
                         HideProgress();
                         StartButtonGrid.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation
                         {
