@@ -114,6 +114,32 @@ The ledger mechanism itself (`verified.info`).
   `verified.info` doesn't crash the launcher — it's simply treated as "nothing to compare
   against".
 
+## SingleInstanceGuardTests.cs
+
+Keeping only one launcher process running at a time (`launcher-instance.lock` plus a
+named-pipe ping to bring the primary instance to the foreground).
+
+- **FreshFolder_BecomesPrimary_AndWritesTheLockFile** — a clean folder becomes primary and
+  writes the lock file.
+- **SecondAttempt_WhilePrimaryIsAlive_ReturnsNull** — a second attempt against a folder
+  whose primary is still alive gets turned away.
+- **TwoDifferentFolders_BothBecomePrimary_Independently** — two independent installs (their
+  own folders) never contend for the same pipe or lock, each becomes primary on its own.
+- **SecondAttempt_PingsThePrimaryInstanceToActivate** — a turned-away second attempt pings
+  the primary over the named pipe, which raises `ActivateRequested`.
+- **StaleLockFromADeadProcess_IsReplaced** — a lock file naming a PID that's no longer
+  running is recognized as stale and replaced.
+- **Dispose_RemovesTheLockFile_AndFreesTheFolderForANewPrimary** — disposing the primary's
+  guard removes the lock file, so the same folder can become primary again.
+- **RealisticLongTmpdir_PipeStillFitsTheUnixSocketPathLimit** (macOS/Linux) — regression: a
+  typical macOS per-user `$TMPDIR` combined with .NET's Unix-socket pipe path used to
+  overflow `sun_path`'s ~103-char limit, so the very first listen attempt threw before the
+  app ever got to show a window.
+- **PipeCreationFailsRepeatedly_DoesNotBlockTheCallingThread** (macOS/Linux) — regression: a
+  pipe name guaranteed to keep failing no longer hangs `TryBecomePrimary` — the listener
+  runs off the calling thread and gives up after repeated failures instead of spinning
+  forever.
+
 ## InstallStepModelTests.cs
 
 `InstallStepModel` — the state behind the install progress overlay: the flat step list
