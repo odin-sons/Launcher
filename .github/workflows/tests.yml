@@ -2,13 +2,22 @@ name: Tests
 
 on:
   push:
-    branches: [master]
+    branches: [master, "release/**"]
   pull_request:
-    branches: [master]
+    branches: [master, "release/**"]
 
 jobs:
   test:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
@@ -17,9 +26,7 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      # Launcher.Tests и Indexer.Tests оба тянут Launcher.Core как ProjectReference,
-      # поэтому одного restore на каждый тестовый проект достаточно — build/test
-      # сам подтягивает зависимости по цепочке.
+      # Both test projects reference Launcher.Core, so one restore per project is enough.
       - name: Restore
         run: |
           dotnet restore Launcher.Tests/Launcher.Tests.csproj

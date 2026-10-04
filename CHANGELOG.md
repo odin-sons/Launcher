@@ -4,6 +4,25 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
+## [2.3.1] — 2026-10-04
+
+### Changed
+- The tests now run on Windows and macOS, on every push and pull request to `master` and to
+  release branches. The pipe tests no longer override `TMPDIR`: .NET fixes its pipe directory
+  on the first pipe a process creates, so whichever of them ran first broke the others on
+  macOS, depending on test order.
+- The macOS bundles for a release are built in parallel, and the release notes give the
+  first-run steps that work on current macOS — Open Anyway under Privacy & Security, or
+  `xattr -dr com.apple.quarantine` — instead of right-click → Open, which macOS 15 and later
+  no longer allow for apps that aren't notarized.
+
+### Fixed
+- Launching the launcher a second time could fail to bring the first window to the front.
+  The second launch connected to the first one's pipe and hung up straight away, and if the
+  first had not yet reached its accept, the connection failed and the ping was lost — rare on
+  a fast machine, common on a slow or busy one. The second launch now stays connected until
+  the first has accepted and closed its end.
+
 ## [2.3.0] — 2026-10-04
 
 ### Added
