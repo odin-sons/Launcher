@@ -166,7 +166,7 @@ namespace Odinsons.ValheimLauncher
             {
                 try
                 {
-                    using var server = new NamedPipeServerStream(_pipeName, PipeDirection.In, 1,
+                    using var server = new NamedPipeServerStream(_pipeName, PipeDirection.InOut, 1,
                         PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
                     await server.WaitForConnectionAsync(ct);
                     ActivateRequested?.Invoke();
@@ -208,8 +208,11 @@ namespace Odinsons.ValheimLauncher
         {
             try
             {
-                using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.Out);
+                using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
                 client.Connect(1000);
+
+                // Hanging up first can beat the listener's accept and drop the ping.
+                client.ReadAsync(new byte[1]).AsTask().Wait(1000);
             }
             catch
             {

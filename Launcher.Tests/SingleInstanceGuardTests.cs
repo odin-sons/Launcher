@@ -66,6 +66,23 @@ namespace Launcher.Tests
         }
 
         [Fact]
+        public async Task SecondAttemptRightAfterTheListenerStarts_StillActivatesThePrimary()
+        {
+            for (int i = 0; i < 40; i++)
+            {
+                string folder = TempFolder();
+                using SingleInstanceGuard primary = SingleInstanceGuard.TryBecomePrimary(folder);
+                var activated = new TaskCompletionSource();
+                primary.ActivateRequested += () => activated.TrySetResult();
+
+                Assert.Null(SingleInstanceGuard.TryBecomePrimary(folder));
+
+                Task completed = await Task.WhenAny(activated.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+                Assert.True(ReferenceEquals(activated.Task, completed), $"ping {i} never reached the primary");
+            }
+        }
+
+        [Fact]
         public void StaleLockFromADeadProcess_IsReplaced()
         {
             string folder = TempFolder();
