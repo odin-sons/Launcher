@@ -4,6 +4,15 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
+## [2.3.1] — Unreleased
+
+### Fixed
+- Launching the launcher a second time could fail to bring the first window to the front.
+  The second launch connected to the first one's pipe and hung up straight away, and if the
+  first had not yet reached its accept, the connection failed and the ping was lost — rare on
+  a fast machine, common on a slow or busy one. The second launch now stays connected until
+  the first has accepted and closed its end.
+
 ## [2.3.0] — 2026-10-04
 
 ### Added
