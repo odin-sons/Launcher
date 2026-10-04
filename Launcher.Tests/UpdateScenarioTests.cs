@@ -115,6 +115,82 @@ namespace Launcher.Tests
         }
 
         [Fact]
+        public async Task AdminMod_TurnedOffInPanel_IsNotInstalled_AndRequiredStillIs()
+        {
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+            pack.AddFile("BepInEx/plugins/AdminMod/EasySpawner.dll", "admin tool");
+
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteManifest("update_admin.info",
+                "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/plugins/AdminMod/EasySpawner.dll");
+            pack.WriteEmptyGameManifest();
+            pack.WriteEmptyManifest("optional.info");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+            client.AddFile("admin", string.Empty);
+            client.AddFile(OptionalModSelection.FileName, "-AdminMod\n");
+
+            var ui = new RecordingUpdateUi(client.Path);
+            await RunAsync(ui, server.BaseUrl, full: true);
+
+            Assert.False(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/AdminMod/EasySpawner.dll")));
+            Assert.True(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/ReqMod/ReqMod.dll")));
+            Assert.True(ui.CanStartGameAtComplete);
+        }
+
+        [Fact]
+        public async Task AdminMod_TurnedOffInPanel_IsRemovedIfAlreadyInstalled()
+        {
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+            pack.AddFile("BepInEx/plugins/AdminMod/EasySpawner.dll", "admin tool");
+
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteManifest("update_admin.info",
+                "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/plugins/AdminMod/EasySpawner.dll");
+            pack.WriteEmptyGameManifest();
+            pack.WriteEmptyManifest("optional.info");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+            client.AddFile("admin", string.Empty);
+            client.AddFile("BepInEx/plugins/AdminMod/EasySpawner.dll", "admin tool");
+            client.AddFile(OptionalModSelection.FileName, "-AdminMod\n");
+
+            var ui = new RecordingUpdateUi(client.Path);
+            await RunAsync(ui, server.BaseUrl, full: true);
+
+            Assert.False(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/AdminMod/EasySpawner.dll")));
+        }
+
+        [Fact]
+        public async Task AdminMod_NeverTouchedInPanel_StaysOn_AndRequiredCannotBeTurnedOff()
+        {
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+            pack.AddFile("BepInEx/plugins/AdminMod/EasySpawner.dll", "admin tool");
+
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteManifest("update_admin.info",
+                "BepInEx/plugins/ReqMod/ReqMod.dll", "BepInEx/plugins/AdminMod/EasySpawner.dll");
+            pack.WriteEmptyGameManifest();
+            pack.WriteEmptyManifest("optional.info");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+            client.AddFile("admin", string.Empty);
+            client.AddFile(OptionalModSelection.FileName, "-ReqMod\n");
+
+            var ui = new RecordingUpdateUi(client.Path);
+            await RunAsync(ui, server.BaseUrl, full: true);
+
+            Assert.True(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/AdminMod/EasySpawner.dll")));
+            Assert.True(File.Exists(Path.Combine(client.Path, "BepInEx/plugins/ReqMod/ReqMod.dll")));
+        }
+
+        [Fact]
         public async Task ForceCheck_RepairsServerOwnedConfig_LeavesPlayerConfigAlone()
         {
             using var pack = new TestPack();
