@@ -430,7 +430,7 @@
                             <!-- Horizontal, not a Grid's *,Auto columns — the button sits right
                                  next to the count, not pinned to the far edge of the sidebar. -->
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Name="PlayersHeading" Foreground="White" FontSize="15"
+                                <TextBlock Name="PlayersHeading" Foreground="White" FontSize="18"
                                            FontWeight="Bold" VerticalAlignment="Center"/>
                                 <!-- Content filled in code (SetupRefreshPlayersButton) — same
                                      service.png/service_green.png hover-swap pair as FullCheck's
@@ -511,7 +511,7 @@
                             <TextBlock Name="ServerDescriptionText" IsVisible="False"
                                        Foreground="#FFD8D8D8" FontSize="13" TextWrapping="Wrap"/>
 
-                            <TextBlock Name="ServerInfoHeading" Foreground="White" FontSize="15" FontWeight="Bold"/>
+                            <TextBlock Name="ServerInfoHeading" Foreground="White" FontSize="18" FontWeight="Bold"/>
                             <Grid>
                                 <StackPanel Name="ServerInfoContent"/>
 
@@ -525,7 +525,7 @@
                             </Grid>
 
                             <Border Height="1" Background="#1FFFFFFF"/>
-                            <TextBlock Name="ChangelogHeading" Foreground="White" FontSize="15" FontWeight="Bold"/>
+                            <TextBlock Name="ChangelogHeading" Foreground="White" FontSize="18" FontWeight="Bold"/>
                             <StackPanel Name="ChangelogContent"/>
                         </StackPanel>
                     </ScrollViewer>

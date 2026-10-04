@@ -3096,11 +3096,19 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     int headerLevel = line.TakeWhile(c => c == '#').Count();
                     string headerText = line.TrimStart('#').Trim();
 
+                    (double fontSize, double gapAbove, double gapBelow) = headerLevel switch
+                    {
+                        1 => (18.0, 20.0, 8.0),
+                        2 => (16.0, 18.0, 6.0),
+                        3 => (15.0, 12.0, 4.0),
+                        _ => (14.0, 10.0, 4.0)
+                    };
+
                     textBlock.Text = headerText;
-                    textBlock.FontSize = 18 - (headerLevel * 2);
+                    textBlock.FontSize = fontSize;
                     textBlock.FontWeight = FontWeight.Bold;
                     textBlock.Foreground = new SolidColorBrush(Colors.White);
-                    textBlock.Margin = new Thickness(0, 5, 0, 5);
+                    textBlock.Margin = new Thickness(0, target.Children.Count == 0 ? 0 : gapAbove, 0, gapBelow);
                 }
                 else if (line.TrimStart().StartsWith("-") || line.TrimStart().StartsWith("*"))
                 {
