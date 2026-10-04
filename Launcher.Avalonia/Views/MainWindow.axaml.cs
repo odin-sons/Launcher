@@ -2734,6 +2734,10 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         /// 0°→90° (right→down) and the description's own height animates from/to its measured
         /// value, not IsVisible toggling — see the "not yet expanded" comment below for the one
         /// case this doesn't track (a live width change while a row happens to be expanded).</summary>
+        // MinHeight matches the ToggleSwitch's own, so rows with and without one come out the same height.
+        private const double ModRowMinHeight = 32;
+        private const double ModRowGap = 6;
+
         private Control BuildModRow(ModRowData data, bool showToggle, bool isOn)
         {
             bool hasDescription = !string.IsNullOrEmpty(data.Description);
@@ -2804,7 +2808,8 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 // without this, only the actual glyph pixels of the chevron/text register
                 // clicks, which is most of why "hitting the arrow" was so unreliable.
                 Background = Brushes.Transparent,
-                ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto")
+                ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"),
+                MinHeight = ModRowMinHeight
             };
             Grid.SetColumn(toggleZone, 0);
             Grid.SetColumn(linkIcons, 1);
@@ -2834,7 +2839,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 headerRow.Children.Add(toggle);
             }
 
-            var row = new StackPanel { Margin = new Thickness(0, 0, 0, 14) };
+            var row = new StackPanel { Margin = new Thickness(0, 0, 0, ModRowGap) };
             row.Children.Add(headerRow);
 
             if (hasDescription)
