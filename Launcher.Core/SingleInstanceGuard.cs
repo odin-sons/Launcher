@@ -31,6 +31,7 @@ namespace Odinsons.ValheimLauncher
 
         private readonly string _lockPath;
         private readonly string _pipeName;
+        private readonly Func<string, NamedPipeServerStream> _createServer;
         private CancellationTokenSource _listenerCts;
         private bool _disposed;
 
@@ -38,10 +39,11 @@ namespace Odinsons.ValheimLauncher
         /// guaranteed to fire on the UI thread — marshal accordingly.</summary>
         public event Action ActivateRequested;
 
-        private SingleInstanceGuard(string lockPath, string pipeName)
+        private SingleInstanceGuard(string lockPath, string pipeName, Func<string, NamedPipeServerStream> createServer)
         {
             _lockPath = lockPath;
             _pipeName = pipeName;
+            _createServer = createServer;
         }
 
         /// <summary>
@@ -59,11 +61,15 @@ namespace Odinsons.ValheimLauncher
         /// install's window instead of ever showing (or even attempting) one of its own —
         /// looking exactly like it "remembered" settings it never actually loaded.
         /// </summary>
-        public static SingleInstanceGuard TryBecomePrimary(string appFolder)
+        public static SingleInstanceGuard TryBecomePrimary(string appFolder) =>
+            TryBecomePrimary(appFolder, CreateServer);
+
+        /// <summary>Same, with the pipe server created by <paramref name="createServer"/> — a seam for tests.</summary>
+        public static SingleInstanceGuard TryBecomePrimary(string appFolder, Func<string, NamedPipeServerStream> createServer)
         {
             string lockPath = Path.Combine(appFolder, LockFileName);
             string pipeName = PipeNameFor(appFolder);
-            var candidate = new SingleInstanceGuard(lockPath, pipeName);
+            var candidate = new SingleInstanceGuard(lockPath, pipeName, createServer);
 
             if (candidate.TryAcquireLock())
             {
@@ -79,12 +85,15 @@ namespace Odinsons.ValheimLauncher
         /// Full path (not just the folder name) so two differently-named folders never collide,
         /// and a short hash rather than the raw path so it stays within named-pipe length limits
         /// and away from characters pipe names can't contain.</summary>
-        private static string PipeNameFor(string appFolder)
+        public static string PipeNameFor(string appFolder)
         {
             string normalized = Path.GetFullPath(appFolder).TrimEnd(Path.DirectorySeparatorChar).ToUpperInvariant();
             byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
             return PipeNamePrefix + Convert.ToHexString(hash, 0, 4);
         }
+
+        private static NamedPipeServerStream CreateServer(string pipeName) =>
+            new(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
 
         private bool TryAcquireLock()
         {
@@ -166,8 +175,7 @@ namespace Odinsons.ValheimLauncher
             {
                 try
                 {
-                    using var server = new NamedPipeServerStream(_pipeName, PipeDirection.InOut, 1,
-                        PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+                    using NamedPipeServerStream server = _createServer(_pipeName);
                     await server.WaitForConnectionAsync(ct);
                     ActivateRequested?.Invoke();
                     consecutiveFailures = 0;
