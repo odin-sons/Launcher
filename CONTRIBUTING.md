@@ -57,6 +57,22 @@ The result lands in `Launcher/bin/Release/net9.0-windows/win-x64/publish/Odinson
 `dotnet build` output is **not** portable on its own, it depends on loose DLLs sitting next
 to it in the same folder.
 
+## Releasing
+
+Releases are published by the `Release` workflow whenever a `v*` tag is pushed:
+
+1. On the `release/x.y.z` branch, bump `<Version>` in `Launcher.Avalonia/Launcher.Avalonia.csproj`
+   and add a `## [x.y.z] — date` entry to `CHANGELOG.md`. The release page's description is
+   that entry.
+2. Merge the branch into `master`, tag the merge commit (`git tag -s vx.y.z`), push both.
+3. The workflow runs the tests, builds the Windows exe and the macOS arm64 and x64 bundles,
+   and creates the GitHub release with the files and a `SHA256SUMS.txt`. It fails before
+   building anything if the tag doesn't match `<Version>` or `CHANGELOG.md` has no entry for it.
+
+The tag's own commit is what gets built, and the workflow file is read from that commit too. If
+a run fails because of the workflow itself, fix it on `master`, then run the workflow by hand
+(Actions → Release → Run workflow) with the existing tag.
+
 ## Tests
 
 ```bash

@@ -264,6 +264,21 @@ namespace Odinsons.ValheimLauncher
                 Log($"Downloading {CurrentUpdateFile} from {selectedServerDirectory}");
                 await DownloadFileAsync(new Uri(selectedServerDirectory + CurrentUpdateFile), Path.Combine(clientFolder, CurrentUpdateFile));
 
+                if (isAdmin)
+                {
+                    string requiredListPath = Path.Combine(clientFolder, "update.info");
+                    try
+                    {
+                        await DownloadFileAsync(new Uri(selectedServerDirectory + "update.info"), requiredListPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        LauncherLog.Info($"update.info not available ({ex.Message}); admin-only mods cannot be told " +
+                                         "apart from required ones, so none can be turned off this run");
+                        SafeDeleteFile(requiredListPath);
+                    }
+                }
+
                 // === Downloading force_check.txt (optional) ===
                 //
                 // A list of files that are always checked, even during an ordinary run.
@@ -561,6 +576,19 @@ namespace Odinsons.ValheimLauncher
             return File.Exists(stashed) ? _clientHashCache.GetHash(relativePath, stashed) : null;
         }
 
+        private static HashSet<string> TurnedOffAdminOnlyPaths(
+            IEnumerable<string> adminManifestPaths, ISet<string> requiredPaths, OptionalModSelection selection)
+        {
+            var turnedOff = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            IEnumerable<string> adminOnly = adminManifestPaths.Where(path => !requiredPaths.Contains(path));
+
+            foreach (KeyValuePair<string, List<string>> mod in ModGrouping.GroupByPluginFolder(adminOnly))
+                if (!selection.IsEnabled(mod.Key, enabledByDefault: true))
+                    turnedOff.UnionWith(mod.Value);
+
+            return turnedOff;
+        }
+
         private static bool ShouldExcludeFile(string fileDir, bool fullCheck)
         {
             if (fullCheck) return false;
@@ -601,6 +629,31 @@ namespace Odinsons.ValheimLauncher
                 _downloadTracker = null;
 
                 foreach (Manifest.Entry entry in fileList) allFiles.Add(entry.Path);
+
+                string requiredManifestPath = Path.Combine(clientFolder, "update.info");
+                if (CurrentUpdateFile == UpdateFileAdmin && File.Exists(requiredManifestPath))
+                {
+                    try
+                    {
+                        var requiredPaths = new HashSet<string>(
+                            Manifest.ReadFile(requiredManifestPath).Select(entry => entry.Path),
+                            StringComparer.OrdinalIgnoreCase);
+                        HashSet<string> turnedOff = TurnedOffAdminOnlyPaths(
+                            fileList.Select(entry => entry.Path), requiredPaths, OptionalModSelection.Load(clientFolder));
+
+                        if (turnedOff.Count > 0)
+                        {
+                            fileList.RemoveAll(entry => turnedOff.Contains(entry.Path));
+                            allFiles.RemoveWhere(turnedOff.Contains);
+                            LauncherLog.Info($"{turnedOff.Count} file(s) of admin-only mod(s) turned off in the panel " +
+                                             "dropped from the check list — they get removed as extra files");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LauncherLog.Warn("Could not read update.info to tell admin-only mods apart; all of them stay on", ex);
+                    }
+                }
 
                 // Game files arrive as a separate manifest, and they absolutely need to be
                 // folded into the general list. Otherwise it goes doubly wrong: the game

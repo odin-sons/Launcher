@@ -2490,16 +2490,16 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     optionalColumn.Children.Add(BuildModRow(modData[folder], showToggle: true, isOn: selection.IsSelected(folder)));
             }
 
+            if (isAdmin && adminGroups.Count > 0)
+            {
+                optionalColumn.Children.Add(NewTrackedSectionHeader("mods.adminOnly", topGap: optionalColumn.Children.Count > 0));
+                foreach (string folder in adminGroups.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
+                    optionalColumn.Children.Add(BuildModRow(modData[folder], showToggle: true, isOn: selection.IsEnabled(folder, enabledByDefault: true)));
+            }
+
             var finalContent = new StackPanel();
             if (requiredColumn.Children.Count > 0 || optionalColumn.Children.Count > 0)
                 finalContent.Children.Add(BuildResponsiveModColumns(requiredColumn, optionalColumn));
-
-            if (isAdmin && adminGroups.Count > 0)
-            {
-                finalContent.Children.Add(NewTrackedSectionHeader("mods.adminOnly"));
-                foreach (string folder in adminGroups.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
-                    finalContent.Children.Add(BuildModRow(modData[folder], showToggle: false, isOn: true));
-            }
 
             ModsContent.Children.Clear();
             ModsContent.Children.Add(finalContent);
@@ -2734,6 +2734,10 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         /// 0°→90° (right→down) and the description's own height animates from/to its measured
         /// value, not IsVisible toggling — see the "not yet expanded" comment below for the one
         /// case this doesn't track (a live width change while a row happens to be expanded).</summary>
+        // MinHeight matches the ToggleSwitch's own, so rows with and without one come out the same height.
+        private const double ModRowMinHeight = 32;
+        private const double ModRowGap = 6;
+
         private Control BuildModRow(ModRowData data, bool showToggle, bool isOn)
         {
             bool hasDescription = !string.IsNullOrEmpty(data.Description);
@@ -2804,7 +2808,8 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 // without this, only the actual glyph pixels of the chevron/text register
                 // clicks, which is most of why "hitting the arrow" was so unreliable.
                 Background = Brushes.Transparent,
-                ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto")
+                ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"),
+                MinHeight = ModRowMinHeight
             };
             Grid.SetColumn(toggleZone, 0);
             Grid.SetColumn(linkIcons, 1);
@@ -2834,7 +2839,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 headerRow.Children.Add(toggle);
             }
 
-            var row = new StackPanel { Margin = new Thickness(0, 0, 0, 14) };
+            var row = new StackPanel { Margin = new Thickness(0, 0, 0, ModRowGap) };
             row.Children.Add(headerRow);
 
             if (hasDescription)
@@ -3091,11 +3096,19 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     int headerLevel = line.TakeWhile(c => c == '#').Count();
                     string headerText = line.TrimStart('#').Trim();
 
+                    (double fontSize, double gapAbove, double gapBelow) = headerLevel switch
+                    {
+                        1 => (18.0, 20.0, 8.0),
+                        2 => (16.0, 18.0, 6.0),
+                        3 => (15.0, 12.0, 4.0),
+                        _ => (14.0, 10.0, 4.0)
+                    };
+
                     textBlock.Text = headerText;
-                    textBlock.FontSize = 18 - (headerLevel * 2);
+                    textBlock.FontSize = fontSize;
                     textBlock.FontWeight = FontWeight.Bold;
                     textBlock.Foreground = new SolidColorBrush(Colors.White);
-                    textBlock.Margin = new Thickness(0, 5, 0, 5);
+                    textBlock.Margin = new Thickness(0, target.Children.Count == 0 ? 0 : gapAbove, 0, gapBelow);
                 }
                 else if (line.TrimStart().StartsWith("-") || line.TrimStart().StartsWith("*"))
                 {
@@ -3543,7 +3556,8 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                         Dispatcher.UIThread.Invoke(() =>
                         {
                             _ = MessageBoxWindow.ShowAsync(this,
-                                Loc.T("gui.valheimExeNotFound", ClientFolder), Loc.T("gui.title.launchError"));
+                                Loc.T("gui.valheimExeNotFound", InjectorLauncher.PrimaryExecutableName, ClientFolder),
+                                Loc.T("gui.title.launchError"));
                             HideProgress();
                             StartButtonGrid.Opacity = 1;
                         });

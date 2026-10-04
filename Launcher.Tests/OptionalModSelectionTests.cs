@@ -56,6 +56,27 @@ namespace Launcher.Tests
             Assert.False(selection.IsSelected("anything"));
         }
 
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void IsEnabled_NeverMentionedFolder_FollowsTheDefault(bool enabledByDefault)
+        {
+            var selection = OptionalModSelection.Load(TempFolder());
+
+            Assert.Equal(enabledByDefault, selection.IsEnabled("VNEI", enabledByDefault));
+        }
+
+        [Fact]
+        public void IsEnabled_ExplicitChoice_BeatsTheDefault()
+        {
+            var selection = OptionalModSelection.Load(TempFolder());
+            selection.SetSelected("On", true);
+            selection.SetSelected("Off", false);
+
+            Assert.True(selection.IsEnabled("On", enabledByDefault: false));
+            Assert.False(selection.IsEnabled("Off", enabledByDefault: true));
+        }
+
         [Fact]
         public void NeverMentionedFolder_IsNotKnown()
         {
