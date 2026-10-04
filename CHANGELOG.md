@@ -4,6 +4,36 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
+## [2.3.0] — 2026-10-04
+
+### Added
+- Admin-only mods get the same on/off switch as optional mods in the Mods tab, on by
+  default. ValheimEnforcer lets an admin connect without them, so turning one off just
+  stops the launcher installing it and removes it at the next update. The choice is kept in
+  `optional_selected.txt` alongside the optional mods'; a required mod can't be switched
+  off whatever that file says. To tell admin-only mods from required ones, admins now also
+  fetch `update.info` — if it can't be fetched, every admin-only mod stays on.
+
+### Changed
+- Mods tab: the admin-only list moved from a full-width section below both columns to the
+  right column, under the optional mods.
+- Mod rows in both lists now share one height and spacing. Rows with a switch used to sit
+  46px apart against 32px for rows without, because the switch is taller than the name.
+- Markdown headings in the server info and changelog step 18/16/15px instead of 16/14/12 —
+  level 3 used to be smaller than the 14px body text. Every heading has a gap above it, so
+  changelog days no longer run together, and level 3 a small gap below. The Players, About
+  and Changelog column titles are 18px, matching the Mods tab headings.
+
+### Fixed
+- macOS: the launcher no longer hangs at startup without ever opening a window. The
+  single-instance pipe's Unix socket path could exceed the ~103-character limit under a
+  typical per-user `$TMPDIR`, and the failed listen was retried in a tight loop on the
+  calling thread. The pipe name is shorter, the listener runs off the calling thread, and it
+  gives up after repeated failures instead of spinning.
+- The "game executable not found" message names the file actually searched for on the
+  player's OS (`valheim.exe`, `valheim.x86_64` or `valheim.app`) instead of always saying
+  `valheim.exe`.
+
 ## [2.2.0] — 2026-09-17
 
 ### Added
