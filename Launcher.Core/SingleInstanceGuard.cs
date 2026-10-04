@@ -24,7 +24,10 @@ namespace Odinsons.ValheimLauncher
     public sealed class SingleInstanceGuard : IDisposable
     {
         public const string LockFileName = "launcher-instance.lock";
-        private const string PipeNamePrefix = "OdinsonsLauncher.SingleInstance.";
+
+        // Short on purpose: on macOS/Linux this becomes part of a Unix socket path
+        // ($TMPDIR/CoreFxPipe_<name>), and $TMPDIR alone can already be 50+ chars.
+        private const string PipeNamePrefix = "Odinsons.";
 
         private readonly string _lockPath;
         private readonly string _pipeName;
@@ -80,7 +83,7 @@ namespace Odinsons.ValheimLauncher
         {
             string normalized = Path.GetFullPath(appFolder).TrimEnd(Path.DirectorySeparatorChar).ToUpperInvariant();
             byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
-            return PipeNamePrefix + Convert.ToHexString(hash, 0, 8);
+            return PipeNamePrefix + Convert.ToHexString(hash, 0, 4);
         }
 
         private bool TryAcquireLock()
@@ -143,14 +146,22 @@ namespace Odinsons.ValheimLauncher
             }
         }
 
+        private const int MaxConsecutiveFailures = 5;
+
         private void StartListening()
         {
             _listenerCts = new CancellationTokenSource();
-            _ = ListenLoopAsync(_listenerCts.Token);
+            // Off the calling thread: NamedPipeServerStream's constructor can throw
+            // synchronously (e.g. socket path too long), and that used to happen before this
+            // method's first await, blocking whoever called TryBecomePrimary — the app's own
+            // startup — forever.
+            _ = Task.Run(() => ListenLoopAsync(_listenerCts.Token));
         }
 
         private async Task ListenLoopAsync(CancellationToken ct)
         {
+            int consecutiveFailures = 0;
+
             while (!ct.IsCancellationRequested)
             {
                 try
@@ -159,15 +170,34 @@ namespace Odinsons.ValheimLauncher
                         PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
                     await server.WaitForConnectionAsync(ct);
                     ActivateRequested?.Invoke();
+                    consecutiveFailures = 0;
                 }
                 catch (OperationCanceledException)
                 {
                     return;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // A stray pipe failure shouldn't take the listener down for the rest of
-                    // the run — just try again.
+                    consecutiveFailures++;
+                    LauncherLog.Warn(
+                        $"SingleInstanceGuard: activation listener failed ({consecutiveFailures}/{MaxConsecutiveFailures})",
+                        ex);
+
+                    if (consecutiveFailures >= MaxConsecutiveFailures)
+                    {
+                        LauncherLog.Error("SingleInstanceGuard: giving up on the activation listener after repeated failures; " +
+                                           "later launch attempts won't be able to bring this window to the foreground.");
+                        return;
+                    }
+
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(200 * consecutiveFailures), ct);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
                 }
             }
         }
