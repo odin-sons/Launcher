@@ -2490,16 +2490,16 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     optionalColumn.Children.Add(BuildModRow(modData[folder], showToggle: true, isOn: selection.IsSelected(folder)));
             }
 
+            if (isAdmin && adminGroups.Count > 0)
+            {
+                optionalColumn.Children.Add(NewTrackedSectionHeader("mods.adminOnly", topGap: optionalColumn.Children.Count > 0));
+                foreach (string folder in adminGroups.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
+                    optionalColumn.Children.Add(BuildModRow(modData[folder], showToggle: true, isOn: selection.IsEnabled(folder, enabledByDefault: true)));
+            }
+
             var finalContent = new StackPanel();
             if (requiredColumn.Children.Count > 0 || optionalColumn.Children.Count > 0)
                 finalContent.Children.Add(BuildResponsiveModColumns(requiredColumn, optionalColumn));
-
-            if (isAdmin && adminGroups.Count > 0)
-            {
-                finalContent.Children.Add(NewTrackedSectionHeader("mods.adminOnly"));
-                foreach (string folder in adminGroups.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
-                    finalContent.Children.Add(BuildModRow(modData[folder], showToggle: false, isOn: true));
-            }
 
             ModsContent.Children.Clear();
             ModsContent.Children.Add(finalContent);

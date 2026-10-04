@@ -36,6 +36,9 @@ namespace Odinsons.ValheimLauncher
 
         public bool IsSelected(string folderKey) => _known.TryGetValue(folderKey, out bool on) && on;
 
+        public bool IsEnabled(string folderKey, bool enabledByDefault) =>
+            _known.TryGetValue(folderKey, out bool on) ? on : enabledByDefault;
+
         /// <summary>Whether the player has ever acted on this mod through the panel — as opposed
         /// to one that simply sits in the folder because the player put it there themselves.</summary>
         public bool IsKnown(string folderKey) => _known.ContainsKey(folderKey);
