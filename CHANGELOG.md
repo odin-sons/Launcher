@@ -4,7 +4,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
-## [2.3.1] — Unreleased
+## [2.3.1] — 2026-10-04
 
 ### Changed
 - The tests now run on Windows and macOS, on every push and pull request to `master` and to
