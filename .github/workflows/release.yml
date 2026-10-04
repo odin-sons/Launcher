@@ -13,8 +13,8 @@ env:
   TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
 jobs:
-  verify:
-    runs-on: windows-latest
+  check:
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
 
@@ -35,6 +35,24 @@ jobs:
             exit 1
           }
           "version=$version" >> $env:GITHUB_OUTPUT
+
+  test:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -57,7 +75,7 @@ jobs:
         run: dotnet test Indexer.Tests/Indexer.Tests.csproj --no-build --configuration Release
 
   build-windows:
-    needs: verify
+    needs: [check, test]
     runs-on: windows-latest
 
     steps:
@@ -76,7 +94,7 @@ jobs:
       - name: Name the asset
         shell: pwsh
         env:
-          VERSION: ${{ needs.verify.outputs.version }}
+          VERSION: ${{ needs.check.outputs.version }}
         run: |
           New-Item -ItemType Directory -Force -Path assets | Out-Null
           Copy-Item Launcher.Avalonia/dist/OdinsonsLauncher.exe "assets/OdinsonsLauncher-$env:VERSION-win-x64.exe"
@@ -88,7 +106,11 @@ jobs:
           if-no-files-found: error
 
   build-macos:
-    needs: verify
+    needs: [check, test]
+    strategy:
+      matrix:
+        arch: [arm64, x64]
+
     runs-on: macos-latest
 
     steps:
@@ -100,24 +122,23 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      - name: Build and zip each architecture
+      - name: Build and zip
         env:
-          VERSION: ${{ needs.verify.outputs.version }}
+          VERSION: ${{ needs.check.outputs.version }}
+          ARCH: ${{ matrix.arch }}
         run: |
           mkdir assets
-          for arch in arm64 x64; do
-            bash ./Launcher.Avalonia/build-macos.sh --arch "$arch"
-            ditto -c -k --keepParent Launcher.Avalonia/dist/OdinsonsLauncher.app "assets/OdinsonsLauncher-$VERSION-macos-$arch.zip"
-          done
+          bash ./Launcher.Avalonia/build-macos.sh --arch "$ARCH"
+          ditto -c -k --keepParent Launcher.Avalonia/dist/OdinsonsLauncher.app "assets/OdinsonsLauncher-$VERSION-macos-$ARCH.zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos
+          name: macos-${{ matrix.arch }}
           path: assets/*
           if-no-files-found: error
 
   release:
-    needs: [verify, build-windows, build-macos]
+    needs: [check, build-windows, build-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -134,7 +155,7 @@ jobs:
 
       - name: Release notes from CHANGELOG.md
         env:
-          VERSION: ${{ needs.verify.outputs.version }}
+          VERSION: ${{ needs.check.outputs.version }}
         run: |
           awk -v ver="$VERSION" '
             index($0, "## [" ver "]") == 1 { found = 1; next }
@@ -167,7 +188,7 @@ jobs:
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.verify.outputs.version }}
+          VERSION: ${{ needs.check.outputs.version }}
         run: |
           title="Odinsons Launcher $VERSION"
           if gh release view "$TAG" > /dev/null 2>&1; then
