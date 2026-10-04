@@ -140,6 +140,16 @@ named-pipe ping to bring the primary instance to the foreground).
   runs off the calling thread and gives up after repeated failures instead of spinning
   forever.
 
+## LocTests.cs
+
+Localized strings whose text is expected to reflect OS-specific facts, not just be
+translated.
+
+- **ValheimExeNotFoundMessage_NamesThisOssExecutable** (×Windows/macOS/Linux) —
+  regression: `gui.valheimExeNotFound` used to hardcode "valheim.exe" in the message text
+  itself regardless of OS; it now names whatever `InjectorLauncher.PrimaryExecutableName`
+  actually is for the current platform (`valheim.app` on macOS, `valheim.x86_64` on Linux).
+
 ## InstallStepModelTests.cs
 
 `InstallStepModel` — the state behind the install progress overlay: the flat step list

@@ -3543,7 +3543,8 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                         Dispatcher.UIThread.Invoke(() =>
                         {
                             _ = MessageBoxWindow.ShowAsync(this,
-                                Loc.T("gui.valheimExeNotFound", ClientFolder), Loc.T("gui.title.launchError"));
+                                Loc.T("gui.valheimExeNotFound", InjectorLauncher.PrimaryExecutableName, ClientFolder),
+                                Loc.T("gui.title.launchError"));
                             HideProgress();
                             StartButtonGrid.Opacity = 1;
                         });

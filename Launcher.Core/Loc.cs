@@ -1588,16 +1588,16 @@ namespace Odinsons.ValheimLauncher
                 "Не вдалося завантажити новини: {0}"),
 
             ["gui.valheimExeNotFound"] = L(
-                "File valheim.exe not found in {0}",
-                "Datei valheim.exe nicht gefunden in {0}",
-                "No se encontró el archivo valheim.exe en {0}",
-                "Fichier valheim.exe introuvable dans {0}",
-                "Nie znaleziono pliku valheim.exe w {0}",
-                "Arquivo valheim.exe não encontrado em {0}",
-                "Файл valheim.exe не найден в {0}",
-                "Filen valheim.exe hittades inte i {0}",
-                "在 {0} 中未找到 valheim.exe 文件",
-                "Файл valheim.exe не знайдено в {0}"),
+                "File {0} not found in {1}",
+                "Datei {0} nicht gefunden in {1}",
+                "No se encontró el archivo {0} en {1}",
+                "Fichier {0} introuvable dans {1}",
+                "Nie znaleziono pliku {0} w {1}",
+                "Arquivo {0} não encontrado em {1}",
+                "Файл {0} не найден в {1}",
+                "Filen {0} hittades inte i {1}",
+                "在 {1} 中未找到 {0} 文件",
+                "Файл {0} не знайдено в {1}"),
 
             ["gui.title.error"] = L(
                 "Error", "Fehler", "Error", "Erreur", "Błąd", "Erro", "Ошибка", "Fel", "错误", "Помилка"),
