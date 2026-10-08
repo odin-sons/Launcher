@@ -10,6 +10,10 @@ version bumps of its own.
 - The buttons of the confirmation dialogs (the launcher update, the Defender exclusion) have the
   width of their labels instead of a fixed one, so a longer translation such as "Отложить и выйти"
   is no longer cut off. Two buttons that don't fit side by side wrap onto two lines.
+- The empty Game folder field in Install settings said "Same as the profile folder", which is
+  only half of it: with a matching Steam copy the game runs from Steam and isn't copied at all.
+  It now reads "Automatic: Steam if its version fits, otherwise the profile folder", and the
+  tooltip says the same.
 
 ## [2.4.0] — 2026-10-09
 
