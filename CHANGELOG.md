@@ -10,6 +10,13 @@ version bumps of its own.
 - The game bundle can live apart from the mod profile. A game manifest names its version in a
   `# game: <depot>_<manifest>` header line, and the launcher downloads the game's files from
   `Game/<version>/` at the site root, one level above `Launcher`; without the line nothing changes.
+- The game can live in a folder of its own, apart from the mods: Install settings now has a
+  profile folder (per server, `clients/<server>` by default) and a game folder (one for all
+  servers, the profile folder by default). A folder must be empty or already a Valheim client and
+  writable. With a separate game folder the game is started from it with the mods injected, the
+  way injector mode does; pointing it at the Steam install changes nothing and never writes to
+  Steam. The Defender exclusion covers both folders, and the console launcher has
+  `--game-folder <dir>`.
 - The Indexer takes `--profile <folder>` and one `--game-root <folder>` per depot (Windows, macOS,
   Linux), each producing its own game manifest. The game folders are
   remembered in `game_source.txt`, so later runs for a mod update don't need the flag.

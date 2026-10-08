@@ -256,6 +256,9 @@ namespace Odinsons.ValheimLauncher
             _bytesTakenLocally = 0;
             _injectorPlan = null;
             _gameFolder = string.IsNullOrWhiteSpace(gameFolder) ? null : Path.GetFullPath(gameFolder);
+            if (_gameFolder is not null && SamePath(_gameFolder, clientFolder))
+                _gameFolder = null;
+
             if (_gameFolder is not null && _steamGameFolder is not null && SamePath(_gameFolder, _steamGameFolder))
             {
                 LauncherLog.Info("the game folder is the Steam install itself: it is used the default way and never written to");

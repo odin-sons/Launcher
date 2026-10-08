@@ -239,3 +239,24 @@ The first three run for Windows, macOS and Linux.
   the game is downloaded into the client folder.
 - **TheGameExecutable_IsStashedInTheGameFolder_AndComesBackBeforeTheUpdateReportsReady** — the
   executable is hidden away where it really lives for the duration of the update.
+
+## LauncherPathsTests.cs
+
+The profile folder (a server's mods) and the game folder a player can set in Install settings,
+kept in `config.ini`.
+
+- **NothingSet_MeansTheDefaults** — no setting: `clients/<server>` for the profile, no game
+  folder (the game lives in the profile folder).
+- **TheProfileFolder_IsPerServer_AndSurvivesARestart** — one server's profile folder doesn't
+  touch the others'.
+- **TheGameFolder_IsOneForAllServers_AndSurvivesARestart** — the game folder is shared.
+- **AnEmptyValue_GoesBackToTheDefault** — "Default" in the settings clears the stored value.
+- **TheOtherSettings_AreLeftAlone** — saving a folder keeps the server choice and the rest.
+- **ANewFolder_IsUsable** / **AnEmptyFolder_IsUsable** / **AFolderThatAlreadyHoldsAClient_IsUsable**
+  — what the launcher accepts as a profile or game folder.
+- **AFolderWithSomeoneElsesFiles_IsRefused** — a folder that is neither empty nor a Valheim
+  client is refused and the offending names are shown, so the update can never clean it out.
+- **NoPath_IsRefused** — an empty path is not a folder.
+- **OneFolderInsideTheOther_IsNesting_InEitherOrder** / **SiblingsWithACommonPrefix_AreNotNesting**
+  / **TheSameFolder_IsNotNesting_ButIsTheSame** — the game and profile folders may not lie inside
+  one another; the same folder just means the default, and `Game` next to `Game2` is not nesting.
