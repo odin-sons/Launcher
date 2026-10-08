@@ -6,8 +6,8 @@ using Odinsons.ValheimLauncher;
 namespace Indexer
 {
     /// <summary>
-    /// The folder holding the vanilla game, kept apart from the mod build. A path passed with
-    /// <c>--game-root</c> is remembered in <c>game_source.txt</c> inside the build folder, so
+    /// The folder holding the vanilla game, kept apart from the mod profile. A path passed with
+    /// <c>--game-root</c> is remembered in <c>game_source.txt</c> inside the profile folder, so
     /// later runs (a mod update, say) index the same game without repeating the flag. The
     /// folder is named after the game version, <c>&lt;depot&gt;_&lt;manifest&gt;</c>.
     /// </summary>
@@ -16,21 +16,21 @@ namespace Indexer
         public const string FileName = "game_source.txt";
         public const string CacheFileName = "hashes_game.cache";
 
-        /// <summary>Written relative to the build folder when possible, so the file survives a move of the whole tree.</summary>
-        public static void Write(string buildFolder, string gameRoot)
+        /// <summary>Written relative to the profile folder when possible, so the file survives a move of the whole tree.</summary>
+        public static void Write(string profileFolder, string gameRoot)
         {
-            string stored = Path.GetRelativePath(buildFolder, gameRoot).Replace(Path.DirectorySeparatorChar, '/');
-            File.WriteAllText(Path.Combine(buildFolder, FileName), stored + "\n");
+            string stored = Path.GetRelativePath(profileFolder, gameRoot).Replace(Path.DirectorySeparatorChar, '/');
+            File.WriteAllText(Path.Combine(profileFolder, FileName), stored + "\n");
         }
 
         /// <returns>The absolute game folder, or null when nothing has been remembered.</returns>
-        public static string Read(string buildFolder)
+        public static string Read(string profileFolder)
         {
-            string file = Path.Combine(buildFolder, FileName);
+            string file = Path.Combine(profileFolder, FileName);
             if (!File.Exists(file)) return null;
 
             string stored = RuleFile.Parse(File.ReadAllLines(file)).FirstOrDefault();
-            return stored is null ? null : Path.GetFullPath(Path.Combine(buildFolder, stored));
+            return stored is null ? null : Path.GetFullPath(Path.Combine(profileFolder, stored));
         }
 
         public static bool TryGetVersion(string gameRoot, out string version)
@@ -40,13 +40,13 @@ namespace Indexer
         }
 
         /// <summary>Where the launcher looks for this version: <c>Game/&lt;version&gt;</c> next to the server folders.</summary>
-        public static string ExpectedLocation(string buildFolder, string version) =>
-            Path.GetFullPath(Path.Combine(buildFolder, "..", GameLocation.FolderName, version));
+        public static string ExpectedLocation(string profileFolder, string version) =>
+            Path.GetFullPath(Path.Combine(profileFolder, "..", GameLocation.FolderName, version));
 
-        public static bool IsAtExpectedLocation(string buildFolder, string gameRoot, string version) =>
+        public static bool IsAtExpectedLocation(string profileFolder, string gameRoot, string version) =>
             string.Equals(
                 Path.GetFullPath(gameRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
-                ExpectedLocation(buildFolder, version).TrimEnd(Path.DirectorySeparatorChar),
+                ExpectedLocation(profileFolder, version).TrimEnd(Path.DirectorySeparatorChar),
                 StringComparison.OrdinalIgnoreCase);
     }
 }

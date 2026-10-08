@@ -20,22 +20,22 @@ namespace Indexer.Tests
         }
 
         [Fact]
-        public void EmptyAdminOnlyList_IsNotReportedAsAProblem()
+        public void EmptyAdminOnlyList_IsNotReportedAsAnError()
         {
             Program.AdminOnlyMods.Clear();
 
             var files = new List<string> { "a" };
             var filesAdmin = new List<string> { "a" }; // identical: no admin-only mods exist
             var hashes = HashesFor("a");
-            var problems = new List<string>();
+            var errors = new List<string>();
 
-            Program.CheckInvariants(files, filesAdmin, new List<string>(), new List<string>(), hashes, problems);
+            Program.CheckInvariants(files, filesAdmin, new List<string>(), new List<string>(), hashes, errors);
 
-            Assert.Empty(problems);
+            Assert.Empty(errors);
         }
 
         [Fact]
-        public void NonEmptyAdminOnlyListMatchingNothing_IsStillReportedAsAProblem()
+        public void NonEmptyAdminOnlyListMatchingNothing_IsStillReportedAsAnError()
         {
             // A rule that matches nothing in either build — the exact shape of the original
             // incident: the list wasn't empty, it just never took effect.
@@ -45,11 +45,11 @@ namespace Indexer.Tests
             var files = new List<string> { "a" };
             var filesAdmin = new List<string> { "a" }; // still identical — the rule matched nothing
             var hashes = HashesFor("a");
-            var problems = new List<string>();
+            var errors = new List<string>();
 
-            Program.CheckInvariants(files, filesAdmin, new List<string>(), new List<string>(), hashes, problems);
+            Program.CheckInvariants(files, filesAdmin, new List<string>(), new List<string>(), hashes, errors);
 
-            Assert.Contains(problems, p => p.Contains("identical"));
+            Assert.Contains(errors, p => p.Contains("identical"));
         }
     }
 }

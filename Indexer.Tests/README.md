@@ -31,7 +31,7 @@ Comparing file lists between two Indexer runs.
 
 ## GameManifestFlagTests.cs
 
-`--game-manifest <name>` renames the game-file manifest so a macOS/Linux build folder
+`--game-manifest <name>` renames the game-file manifest so a macOS/Linux profile folder
 produces `game_macos.info` / `game_linux.info` instead of overwriting the Windows one.
 
 - **Default_IsGameInfo** — with no flag, the game manifest is `game.info`.
@@ -58,7 +58,7 @@ The four forms an exclusion rule (`ignore_patterns.txt` and its siblings) can ta
 
 ## GameSourceTests.cs
 
-The game folder kept apart from the mod build: `--game-root` is remembered in
+The game folder kept apart from the mod profile: `--game-root` is remembered in
 `game_source.txt`, so later runs index the same game without the flag.
 
 - **NothingRemembered_MeansNoSeparateGame** — no file, no separate game folder.
@@ -66,11 +66,11 @@ The game folder kept apart from the mod build: `--game-root` is remembered in
   path.
 - **ANewerPath_ReplacesTheRememberedOne** — moving to a new game version is one run with the
   new folder.
-- **TheRememberedPath_IsStoredRelativeToTheBuildFolder** — stored as `../Game/<version>`, so
+- **TheRememberedPath_IsStoredRelativeToTheProfileFolder** — stored as `../Game/<version>`, so
   the file survives moving the whole tree.
 - **OnlyADepotUnderscoreManifestFolderNameIsAVersion** — the folder name doubles as the
   version written to `game.info`, so it has to be `<depot>_<manifest>`.
 - **TheGameFolder_IsExpectedNextToTheServerFolders** — the folder must sit at `Game/` beside
-  the build folder, where the launcher looks for it.
-- **BuildFlag_TakesThePathAfterIt** — `--build <folder>` (and any `--flag value` pair) is read
+  the profile folder, where the launcher looks for it.
+- **ProfileFlag_TakesThePathAfterIt** — `--profile <folder>` (and any `--flag value` pair) is read
   from anywhere among the arguments; a trailing flag with no value is ignored.

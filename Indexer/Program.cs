@@ -48,7 +48,7 @@ namespace Indexer
             new ParallelOptions { MaxDegreeOfParallelism = Math.Min(4, Environment.ProcessorCount) };
 
         /// <summary>
-        /// The game-file manifest is per-OS: <c>game.info</c> for a Windows build folder,
+        /// The game-file manifest is per-OS: <c>game.info</c> for a Windows profile folder,
         /// <c>game_macos.info</c> for a macOS one, <c>game_linux.info</c> for Linux. The file
         /// layouts don't overlap, so the launcher fetches the one that matches the player's OS.
         /// Everything else (update.info, optional.info, …) is shared and keeps its name.
@@ -79,13 +79,13 @@ namespace Indexer
             bool useCache = !args.Any(a => string.Equals(a, "--no-cache", StringComparison.OrdinalIgnoreCase));
             string gameManifestName = ParseGameManifestName(args);
 
-            string buildDir = Path.GetFullPath(ParseValue(args, "--build") ?? Environment.CurrentDirectory);
-            if (!Directory.Exists(buildDir)) return Fail($"build folder not found: {buildDir}");
+            string profileDir = Path.GetFullPath(ParseValue(args, "--profile") ?? Environment.CurrentDirectory);
+            if (!Directory.Exists(profileDir)) return Fail($"profile folder not found: {profileDir}");
 
             string gameRootFlag = ParseValue(args, "--game-root");
             if (gameRootFlag is not null) gameRootFlag = Path.GetFullPath(gameRootFlag);
 
-            Environment.CurrentDirectory = buildDir;
+            Environment.CurrentDirectory = profileDir;
 
             string gameRoot = gameRootFlag;
             if (gameRoot is not null)
@@ -94,18 +94,18 @@ namespace Indexer
                 if (!GameSource.TryGetVersion(gameRoot, out string flagVersion))
                     return Fail($"the game folder must be named <depot>_<manifest>, got '{flagVersion}' ({gameRoot})");
 
-                GameSource.Write(buildDir, gameRoot);
+                GameSource.Write(profileDir, gameRoot);
                 Console.WriteLine($"Game folder remembered in {GameSource.FileName}");
             }
             else
             {
-                gameRoot = GameSource.Read(buildDir);
+                gameRoot = GameSource.Read(profileDir);
                 if (gameRoot is not null && !Directory.Exists(gameRoot))
                     return Fail($"game folder from {GameSource.FileName} not found: {gameRoot}");
             }
 
             string gameVersion = null;
-            var problems = new List<string>();
+            var errors = new List<string>();
 
             if (gameRoot is not null)
             {
@@ -114,8 +114,8 @@ namespace Indexer
 
                 Console.WriteLine($"Game folder: {gameRoot} (version {gameVersion})");
 
-                if (!GameSource.IsAtExpectedLocation(buildDir, gameRoot, gameVersion))
-                    problems.Add($"the launcher looks for this game in '{GameSource.ExpectedLocation(buildDir, gameVersion)}', " +
+                if (!GameSource.IsAtExpectedLocation(profileDir, gameRoot, gameVersion))
+                    errors.Add($"the launcher looks for this game in '{GameSource.ExpectedLocation(profileDir, gameVersion)}', " +
                                  $"but the folder is '{gameRoot}'");
             }
 
@@ -173,7 +173,7 @@ namespace Indexer
             // them from the player's own Steam install.
             //
             // With a separate game folder the list is everything in that folder, and game_files.txt
-            // only keeps stray copies of the game in the build folder out of the mod manifests.
+            // only keeps stray copies of the game in the profile folder out of the mod manifests.
             var gameFiles = (gameRoot is null
                     ? allFiles.Where(f => ShouldInclude(f, adminOnly: true) && IsGameFile(f))
                     : Directory.GetFiles(gameRoot, "*.*", SearchOption.AllDirectories))
@@ -220,22 +220,22 @@ namespace Indexer
                               files, filesAdmin, optionalFiles, gameFiles, hashes);
             ReportAdminPlayerTransitions(previousPlayer, previousAdmin, files, filesAdmin, hashes);
 
-            CheckInvariants(files, filesAdmin, optionalFiles, gameFiles, hashes, problems);
+            CheckInvariants(files, filesAdmin, optionalFiles, gameFiles, hashes, errors);
 
             Console.WriteLine();
 
             int exitCode;
-            if (problems.Count == 0)
+            if (errors.Count == 0)
             {
                 Console.WriteLine("RESULT: OK");
                 exitCode = 0;
             }
             else
             {
-                foreach (string problem in problems)
-                    Console.WriteLine($"PROBLEM: {problem}");
+                foreach (string error in errors)
+                    Console.WriteLine($"ERROR: {error}");
 
-                Console.WriteLine($"RESULT: {problems.Count} problem(s) found");
+                Console.WriteLine($"RESULT: {errors.Count} error(s) found");
                 exitCode = 2;
             }
 
@@ -274,7 +274,7 @@ namespace Indexer
         /// </summary>
         internal static void CheckInvariants(
             List<string> files, List<string> filesAdmin, List<string> optionalFiles, List<string> gameFiles,
-            Dictionary<string, Odinsons.ValheimLauncher.Manifest.Entry> hashes, List<string> problems)
+            Dictionary<string, Odinsons.ValheimLauncher.Manifest.Entry> hashes, List<string> errors)
         {
             var playerPaths = new HashSet<string>(files.Select(f => hashes[f].Path), StringComparer.OrdinalIgnoreCase);
             var adminPaths = new HashSet<string>(filesAdmin.Select(f => hashes[f].Path), StringComparer.OrdinalIgnoreCase);
@@ -294,7 +294,7 @@ namespace Indexer
                 {
                     if (RuleMatches(rule, path, fileName, pathWithSlash))
                     {
-                        problems.Add($"admin-only path leaked to players: {path} (matches rule '{rule}')");
+                        errors.Add($"admin-only path leaked to players: {path} (matches rule '{rule}')");
                         break;
                     }
                 }
@@ -303,16 +303,16 @@ namespace Indexer
             // 2: optional mods must not end up in either of the two main manifests —
             // otherwise the launcher would force-install them for everyone.
             foreach (string path in playerPaths.Intersect(optionalPaths, StringComparer.OrdinalIgnoreCase))
-                problems.Add($"optional mod leaked into update.info: {path}");
+                errors.Add($"optional mod leaked into update.info: {path}");
 
             foreach (string path in adminPaths.Intersect(optionalPaths, StringComparer.OrdinalIgnoreCase))
-                problems.Add($"optional mod leaked into update_admin.info: {path}");
+                errors.Add($"optional mod leaked into update_admin.info: {path}");
 
             // 3: game files must not be duplicated in update.info.
             foreach (string path in playerPaths.Intersect(gamePaths, StringComparer.OrdinalIgnoreCase))
-                problems.Add($"game file duplicated in update.info: {path}");
+                errors.Add($"game file duplicated in update.info: {path}");
 
-            // 4: the list is empty. Not a problem by itself — a build can genuinely have no
+            // 4: the list is empty. Not an error by itself — a build can genuinely have no
             // admin-only mods (a vanilla/game-file-only index, for instance) — just worth
             // saying out loud so it's never a silent assumption. The real hazard this used to
             // guard against was admin_only_patterns.txt going missing on a build that DOES
@@ -326,7 +326,7 @@ namespace Indexer
             // out identical. Usually a typo in a path inside admin_only_patterns.txt,
             // not "there really are no admin mods right now".
             if (AdminOnlyMods.Count > 0 && files.Count == filesAdmin.Count)
-                problems.Add("admin-only mod list is non-empty, but update.info and update_admin.info are " +
+                errors.Add("admin-only mod list is non-empty, but update.info and update_admin.info are " +
                              "identical (no rule matched any file — check the paths in admin_only_patterns.txt)");
         }
 

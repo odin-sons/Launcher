@@ -36,7 +36,7 @@ exactly one set of manifests to keep current.
 
 ## How to (re)generate one manifest
 
-The Indexer takes `--game-manifest <name>` (default `game.info`). Run it in a build folder
+The Indexer takes `--game-manifest <name>` (default `game.info`). Run it in a profile folder
 that contains a **vanilla** install for that OS plus the rule files:
 
 ```bash
@@ -83,14 +83,14 @@ Not built yet; do before 2026-09-09:
       beta/branch if the build is available early) so injector mode never breaks for a
       window after the update.
 
-## Keeping the game apart from the mod build
+## Keeping the game apart from the mod profile
 
-The game doesn't have to sit inside the mod build folder. Put each version in its own folder
+The game doesn't have to sit inside the mod profile folder. Put each version in its own folder
 named after its Steam depot and manifest, next to the server folders:
 
 ```
 Launcher/
-  Lite_v2/                  mod build: update.info, game.info, ...
+  Lite_v2/                  mod profile: update.info, game.info, ...
   Game/892972_<manifestid>/ vanilla Windows files (depot 892972)
 ```
 
@@ -110,14 +110,14 @@ server folder as before. Older launchers read the line as a comment.
 ### Indexing
 
 ```bash
-Indexer --build Lite_v2 --game-root Game/892972_<manifestid>
+Indexer --profile Lite_v2 --game-root Game/892972_<manifestid>
 ```
 
-`--game-root` is remembered in `game_source.txt` in the build folder, so later runs (a mod
-update) just use `Indexer --build Lite_v2`. A new game version is the same command with the new
+`--game-root` is remembered in `game_source.txt` in the profile folder, so later runs (a mod
+update) just use `Indexer --profile Lite_v2`. A new game version is the same command with the new
 folder, once. Paths inside `game.info` are relative to the game folder. `game_files.txt` still
-keeps stray copies of the game in the build folder out of the mod manifests; without a game
-folder the Indexer works as before, splitting the game out of the build folder by that list.
-The folder must be named `<depot>_<manifest>` and sit at `Game/` next to the build folder, or
-the run reports a problem. `steam_appid.txt` is not part of the Steam depot: keep it in the mod
+keeps stray copies of the game in the profile folder out of the mod manifests; without a game
+folder the Indexer works as before, splitting the game out of the profile folder by that list.
+The folder must be named `<depot>_<manifest>` and sit at `Game/` next to the profile folder, or
+the run reports an error. `steam_appid.txt` is not part of the Steam depot: keep it in the mod
 build, off the `game_files.txt` list.
