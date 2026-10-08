@@ -53,9 +53,9 @@ original WPF-only `Launcher` still exists but is no longer where development hap
   configured, the player picks which to play on, and the choice is remembered.
 - **Live status.** An online/offline indicator and current player count for the selected
   server, with a fallback path (SteamQuery) if the primary status endpoint isn't reachable.
-- **Multi-mirror resilience.** Several independent mirrors (a Cloudflare-fronted domain
-  with Encrypted Client Hello enabled, a direct domain, and a bare-IP fallback) are tried in
-  order, so a problem reaching any single one of them doesn't mean the game is unreachable.
+- **Multi-mirror resilience.** Independent mirrors (a Cloudflare-fronted domain with
+  Encrypted Client Hello enabled, and a direct domain) are tried in order, so a problem
+  reaching any single one of them doesn't mean the game is unreachable.
 - **Self-updating.** The launcher checks its own version against the server and replaces
   itself automatically when a newer build is published.
 - **Resilient networking.** Rate-limit and server-error responses (HTTP 429/503) are

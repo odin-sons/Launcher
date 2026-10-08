@@ -22,6 +22,10 @@ version bumps of its own.
   remembered in `game_source.txt`, so later runs for a mod update don't need the flag.
   Unknown or valueless flags are an error instead of being ignored.
 
+### Removed
+- The bare-IP mirror is gone from the mirror list: it was plain HTTP, so everything fetched
+  through it, including the launcher update, travelled unprotected.
+
 ## [2.3.1] — 2026-10-04
 
 ### Changed
