@@ -4,7 +4,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
-## [Unreleased]
+## [2.4.0] — 2026-10-09
 
 ### Added
 - The game bundle can live apart from the mod profile. A game manifest names its version in a
