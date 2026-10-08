@@ -17,17 +17,17 @@
                 <SelectableTextBlock x:Name="MessageText" Foreground="White" FontSize="14"
                                      TextWrapping="Wrap" TextAlignment="Center"/>
             </ScrollViewer>
-            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
-                        Margin="0,16,0,0" Spacing="12">
-                <Button x:Name="NoButton" Content="No" Width="110" Height="30"
+            <WrapPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
+                       Margin="0,16,0,0" ItemSpacing="12" LineSpacing="8">
+                <Button x:Name="NoButton" Content="No" MinWidth="110" Height="30" Padding="16,0"
                         HorizontalContentAlignment="Center"
                         Background="#FF4A4A4A" Foreground="White" FontSize="14"
                         CornerRadius="5" Click="NoButton_Click"/>
-                <Button x:Name="YesButton" Content="Yes" Width="150" Height="30"
+                <Button x:Name="YesButton" Content="Yes" MinWidth="150" Height="30" Padding="16,0"
                         HorizontalContentAlignment="Center"
                         Background="Chocolate" Foreground="White" FontSize="14"
                         CornerRadius="5" Click="YesButton_Click"/>
-            </StackPanel>
+            </WrapPanel>
         </Grid>
     </Border>
 </Window>

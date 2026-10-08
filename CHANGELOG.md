@@ -4,6 +4,13 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
+## [Unreleased]
+
+### Fixed
+- The buttons of the confirmation dialogs (the launcher update, the Defender exclusion) have the
+  width of their labels instead of a fixed one, so a longer translation such as "Отложить и выйти"
+  is no longer cut off. Two buttons that don't fit side by side wrap onto two lines.
+
 ## [2.4.0] — 2026-10-09
 
 ### Added
