@@ -86,16 +86,18 @@ Not built yet; do before 2026-09-09:
 ## Keeping the game apart from the mod profile
 
 The game doesn't have to sit inside the mod profile folder. Put each version in its own folder
-named after its Steam depot and manifest, next to the server folders:
+named after its Steam depot and manifest, at the site root, one level above `Launcher`:
 
 ```
-Launcher/
-  Lite_v2/                  mod profile: update.info, game.info, ...
-  Game/892972_<manifestid>/ vanilla Windows files (depot 892972)
+<site root>/
+  Launcher/
+    Indexer.exe
+    Lite_v2/                  mod profile: update.info, game.info, ...
+  Game/892972_<manifestid>/   vanilla Windows files (depot 892972)
 ```
 
 `game.info` then carries the version in its header, and the launcher downloads the manifest's
-files from `Game/<version>/` on the same mirror:
+files from `Game/<version>/` on the same host as the mirror it is using:
 
 ```
 MANIFEST 3 sha256
@@ -105,12 +107,13 @@ MANIFEST 3 sha256
 
 The launcher builds that address itself and accepts only a plain `<depot>_<manifest>` name, so
 the manifest can't point it elsewhere. Without the directive, game files are served from the
-server folder as before. Older launchers read the line as a comment.
+profile folder as before. Older launchers read the line as a comment. Every mirror has to serve
+`/Game/` as well as `/Launcher/`.
 
 ### Indexing
 
 ```bash
-Indexer --profile Lite_v2 --game-root Game/892972_<manifestid>
+Indexer --profile Lite_v2 --game-root ../Game/892972_<manifestid>
 ```
 
 `--game-root` is remembered in `game_source.txt` in the profile folder, so later runs (a mod
@@ -118,6 +121,6 @@ update) just use `Indexer --profile Lite_v2`. A new game version is the same com
 folder, once. Paths inside `game.info` are relative to the game folder. `game_files.txt` still
 keeps stray copies of the game in the profile folder out of the mod manifests; without a game
 folder the Indexer works as before, splitting the game out of the profile folder by that list.
-The folder must be named `<depot>_<manifest>` and sit at `Game/` next to the profile folder, or
-the run reports an error. `steam_appid.txt` is not part of the Steam depot: keep it in the mod
-build, off the `game_files.txt` list.
+The folder must be named `<depot>_<manifest>` and sit at `Game/` at the site root, or the run
+reports an error. `steam_appid.txt` is not part of the Steam depot: keep it in the mod profile,
+off the `game_files.txt` list.

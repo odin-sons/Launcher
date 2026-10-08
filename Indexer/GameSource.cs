@@ -39,9 +39,9 @@ namespace Indexer
             return GameLocation.IsValidVersion(version);
         }
 
-        /// <summary>Where the launcher looks for this version: <c>Game/&lt;version&gt;</c> next to the server folders.</summary>
+        /// <summary>Where the launcher looks for this version: <c>Game/&lt;version&gt;</c> at the site root, one level above Launcher.</summary>
         public static string ExpectedLocation(string profileFolder, string version) =>
-            Path.GetFullPath(Path.Combine(profileFolder, "..", GameLocation.FolderName, version));
+            Path.GetFullPath(Path.Combine(profileFolder, "..", "..", GameLocation.FolderName, version));
 
         public static bool IsAtExpectedLocation(string profileFolder, string gameRoot, string version) =>
             string.Equals(

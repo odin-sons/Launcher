@@ -6,7 +6,7 @@ namespace Indexer.Tests
     public sealed class GameSourceTests : System.IDisposable
     {
         private readonly string _web = Directory.CreateTempSubdirectory("indexer-web-").FullName;
-        private string ProfileFolder => Path.Combine(_web, "Lite_v2");
+        private string ProfileFolder => Path.Combine(_web, "Launcher", "Lite_v2");
         private string GameFolder(string version) => Path.Combine(_web, "Game", version);
 
         public GameSourceTests()
@@ -51,7 +51,7 @@ namespace Indexer.Tests
             Indexer.GameSource.Write(ProfileFolder, GameFolder("892972_111"));
 
             string stored = File.ReadAllText(Path.Combine(ProfileFolder, Indexer.GameSource.FileName)).Trim();
-            Assert.Equal("../Game/892972_111", stored);
+            Assert.Equal("../../Game/892972_111", stored);
         }
 
         [Theory]
@@ -66,11 +66,11 @@ namespace Indexer.Tests
         }
 
         [Fact]
-        public void TheGameFolder_IsExpectedNextToTheServerFolders()
+        public void TheGameFolder_IsExpectedAtTheSiteRoot()
         {
             Assert.True(Indexer.GameSource.IsAtExpectedLocation(ProfileFolder, GameFolder("892972_111"), "892972_111"));
             Assert.False(Indexer.GameSource.IsAtExpectedLocation(
-                ProfileFolder, Path.Combine(ProfileFolder, "Game", "892972_111"), "892972_111"));
+                ProfileFolder, Path.Combine(_web, "Launcher", "Game", "892972_111"), "892972_111"));
         }
 
         [Fact]

@@ -207,11 +207,11 @@ and the biggest-remaining-first short list.
 ## GameLocationTests.cs
 
 Where the vanilla game's files are served from. A game manifest names only the version
-(`# game: <depot>_<manifest>`); the folder URL is built in `GameLocation`, next to the server
-directories.
+(`# game: <depot>_<manifest>`); the folder URL is built in `GameLocation`, one level above the
+launcher folder.
 
-- **Version_BecomesAFolderNextToTheServerDirectories** — `892972_123` resolves to
-  `<launcher root>/Game/892972_123/`, so each mirror gets its own host.
+- **Version_BecomesAFolderAtTheSiteRoot** — `892972_123` resolves to
+  `<site root>/Game/892972_123/`, so each mirror gets its own host.
 - **ANameThatIsNotDepotUnderscoreManifest_IsRejected** — anything but two numbers joined by
   `_` (paths, `..`, trailing slashes, empty) never becomes a URL, so a manifest can't steer
   the launcher to some other folder.

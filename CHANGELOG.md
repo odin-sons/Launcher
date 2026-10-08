@@ -9,7 +9,7 @@ version bumps of its own.
 ### Added
 - The game bundle can live apart from the mod profile. A game manifest names its version in a
   `# game: <depot>_<manifest>` header line, and the launcher downloads the game's files from
-  `Game/<version>/` next to the server folders; without the line nothing changes.
+  `Game/<version>/` at the site root, one level above `Launcher`; without the line nothing changes.
 - The Indexer takes `--profile <folder>` and `--game-root <folder>`. The game folder is
   remembered in `game_source.txt`, so later runs for a mod update don't need the flag.
 

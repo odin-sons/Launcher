@@ -66,11 +66,11 @@ The game folder kept apart from the mod profile: `--game-root` is remembered in
   path.
 - **ANewerPath_ReplacesTheRememberedOne** — moving to a new game version is one run with the
   new folder.
-- **TheRememberedPath_IsStoredRelativeToTheProfileFolder** — stored as `../Game/<version>`, so
+- **TheRememberedPath_IsStoredRelativeToTheProfileFolder** — stored as `../../Game/<version>`, so
   the file survives moving the whole tree.
 - **OnlyADepotUnderscoreManifestFolderNameIsAVersion** — the folder name doubles as the
   version written to `game.info`, so it has to be `<depot>_<manifest>`.
-- **TheGameFolder_IsExpectedNextToTheServerFolders** — the folder must sit at `Game/` beside
-  the profile folder, where the launcher looks for it.
+- **TheGameFolder_IsExpectedAtTheSiteRoot** — the folder must sit at `Game/` at the site root, above
+  the `Launcher` folder, where the launcher looks for it.
 - **ProfileFlag_TakesThePathAfterIt** — `--profile <folder>` (and any `--flag value` pair) is read
   from anywhere among the arguments; a trailing flag with no value is ignored.

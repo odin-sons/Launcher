@@ -9,9 +9,9 @@ namespace Launcher.Tests
         private const string ServerDir = "https://mirror.example/Launcher/Lite_v2/";
 
         [Fact]
-        public void Version_BecomesAFolderNextToTheServerDirectories()
+        public void Version_BecomesAFolderAtTheSiteRoot()
         {
-            Assert.Equal("https://mirror.example/Launcher/Game/892972_123/",
+            Assert.Equal("https://mirror.example/Game/892972_123/",
                 GameLocation.UrlFor(ServerDir, "892972_123"));
         }
 
@@ -57,7 +57,7 @@ namespace Launcher.Tests
             string web = Directory.CreateTempSubdirectory("odinsons-web-").FullName;
             try
             {
-                using var mods = new TestPack(Path.Combine(web, "Lite_v2"));
+                using var mods = new TestPack(Path.Combine(web, "Launcher", "Lite_v2"));
                 using var game = new TestPack(Path.Combine(web, GameLocation.FolderName, "892972_123"));
 
                 mods.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
@@ -77,7 +77,7 @@ namespace Launcher.Tests
                     var worker = new BackgroundWorker { WorkerReportsProgress = true, WorkerSupportsCancellation = true };
 
                     await FileDownloader.StartUpdateAsync(worker, ui, full: true, startGame: false,
-                        server.BaseUrl + "Lite_v2/", ownExecutableName: "test-launcher.exe",
+                        server.BaseUrl + "Launcher/Lite_v2/", ownExecutableName: "test-launcher.exe",
                         maxConcurrentDownloads: 3, steamGameFolder: null, session: null);
 
                     Assert.True(File.Exists(Path.Combine(clientPath, "BepInEx/plugins/ReqMod/ReqMod.dll")));
