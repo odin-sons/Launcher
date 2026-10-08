@@ -23,6 +23,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
@@ -1034,6 +1035,13 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             FullCheckLabel.Text = Loc.T("gui.fullCheckTooltip");
             InstallSettingsHeaderText.Text = Loc.T("gui.installSettingsHeading");
             AutoStartAfterValidationCheckBox.Content = Loc.T("gui.autoStartAfterValidation");
+            ProfilePathLabel.Text = Loc.T("gui.path.profile");
+            GamePathLabel.Text = Loc.T("gui.path.game");
+            ToolTip.SetTip(ProfilePathLabel, Loc.T("gui.path.profileTip"));
+            ToolTip.SetTip(GamePathLabel, Loc.T("gui.path.gameTip"));
+            ProfilePathBrowseButton.Content = GamePathBrowseButton.Content = Loc.T("gui.path.browse");
+            ProfilePathResetButton.Content = GamePathResetButton.Content = Loc.T("gui.path.reset");
+            RefreshPathSettings();
             if (RuntimePlatform.IsWindows)
             {
                 DesktopShortcutCheckBox.Content = Loc.T("gui.desktopShortcut");
@@ -1288,7 +1296,8 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 {
                     SelectedServer = initialItem.Name;
                     SelectedServerDirectory = _serverDirectories[SelectedServer];
-                    ClientFolder = Path.Combine("clients", SelectedServer);
+                    ClientFolder = ResolveProfileFolder(SelectedServer);
+                    RefreshPathSettings();
                     Directory.CreateDirectory(ClientFolder);
 
                     // First run (or the stored server disappeared): persist the effective choice
@@ -1864,15 +1873,20 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             DefenderExclusionCheckBox.IsVisible = RuntimePlatform.IsWindows;
             if (!RuntimePlatform.IsWindows || string.IsNullOrEmpty(ClientFolder)) return;
 
-            string clientFolder = ClientFolder;
-            bool excluded = await Task.Run(() => DefenderExclusion.IsExcluded(clientFolder));
+            string[] folders = DefenderFolders();
+            bool excluded = await Task.Run(() => folders.All(DefenderExclusion.IsExcluded));
 
-            // The selected server (and so ClientFolder) could have changed again while this
+            // The selected server (and so its folders) could have changed again while this
             // ran — don't let a slow, now-stale check overwrite a newer one's result.
-            if (clientFolder != ClientFolder) return;
+            if (!folders.SequenceEqual(DefenderFolders())) return;
 
             DefenderExclusionCheckBox.IsChecked = excluded;
         }
+
+        /// <summary>The profile folder, and the game folder when it is a folder of its own — the
+        /// game's winhttp.dll proxy is what antivirus tends to flag.</summary>
+        private string[] DefenderFolders() =>
+            new[] { ClientFolder, ResolveGameFolder() }.OfType<string>().Where(folder => folder.Length > 0).ToArray();
 
         /// <summary>Unlike the shortcut checkboxes, adding (or removing) a Defender exclusion
         /// needs a UAC prompt and can take a moment — disabled while that runs so a second
@@ -1882,15 +1896,15 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         {
             if (string.IsNullOrEmpty(ClientFolder)) return;
 
-            string clientFolder = ClientFolder;
+            string[] folders = DefenderFolders();
             bool wantExcluded = DefenderExclusionCheckBox.IsChecked == true;
 
             DefenderExclusionCheckBox.IsEnabled = false;
             try
             {
-                bool succeeded = await Task.Run(() => wantExcluded
-                    ? DefenderExclusion.TryAddExclusion(clientFolder)
-                    : DefenderExclusion.TryRemoveExclusion(clientFolder));
+                bool succeeded = await Task.Run(() => folders.All(folder => wantExcluded
+                    ? DefenderExclusion.TryAddExclusion(folder)
+                    : DefenderExclusion.TryRemoveExclusion(folder)));
 
                 if (!succeeded) DefenderExclusionCheckBox.IsChecked = !wantExcluded;
             }
@@ -2272,29 +2286,25 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 return;
             }
 
-            if (!ClientFolderGuard.IsWritable(ClientFolder, out string permReason, out string permAdvice))
+            string? gameFolder = ResolveGameFolder();
+
+            bool foldersUsable = await UpdateFolderUsableAsync(ClientFolder)
+                                 && (gameFolder is null || await UpdateFolderUsableAsync(gameFolder));
+
+            if (foldersUsable && gameFolder is not null && LauncherPaths.AreNested(gameFolder, ClientFolder))
             {
-                LauncherLog.Error($"No write access: {ClientFolder} — {permReason}");
-                await MessageBoxWindow.ShowAsync(this,
-                    Loc.T("gui.updateStoppedPermissions", permReason, Path.GetFullPath(ClientFolder), permAdvice),
-                    Loc.T("gui.title.noWriteAccess"));
+                await MessageBoxWindow.ShowAsync(this, Loc.T("path.nested"), Loc.T("gui.title.error"));
+                foldersUsable = false;
+            }
+
+            if (!foldersUsable)
+            {
                 IsLoading = false;
                 StartButtonGrid.Opacity = 1;
                 return;
             }
 
-            if (!ClientFolderGuard.IsSafeTarget(ClientFolder, out string unsafeReason))
-            {
-                LauncherLog.Error($"Client folder failed validation: {ClientFolder} — {unsafeReason}");
-                await MessageBoxWindow.ShowAsync(this,
-                    Loc.T("gui.updateStoppedUnsafe", unsafeReason, Path.GetFullPath(ClientFolder)),
-                    Loc.T("gui.title.error"));
-                IsLoading = false;
-                StartButtonGrid.Opacity = 1;
-                return;
-            }
-
-            if (!UpdateSession.TryBegin(ClientFolder, out UpdateSession session, out string sessionReason))
+            if (!UpdateSession.TryBegin(ClientFolder, out UpdateSession session, out string sessionReason, gameFolder))
             {
                 LauncherLog.Error($"Could not start the update: {sessionReason}");
                 await MessageBoxWindow.ShowAsync(this, Loc.T("gui.updateNotStarted", sessionReason), Loc.T("gui.title.folderBusy"));
@@ -2328,9 +2338,170 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
                 await FileDownloader.StartUpdateAsync(_worker, this, full, start, SelectedServerDirectory,
                     Path.GetFileName(Environment.ProcessPath ?? "OdinsonsLauncher.exe"), maxConcurrentDownloads: 8,
-                    steamGameFolder: steamGameFolder, session: session);
+                    steamGameFolder: steamGameFolder, session: session, gameFolder: gameFolder);
             }
         }
+
+        /// <summary>The write-access and "not someone else's files" checks an update needs before it
+        /// touches a folder, each with its own dialog. Shown for the client folder and, when one is
+        /// set, the game folder.</summary>
+        private async Task<bool> UpdateFolderUsableAsync(string folder)
+        {
+            if (!ClientFolderGuard.IsWritable(folder, out string permReason, out string permAdvice))
+            {
+                LauncherLog.Error($"No write access: {folder} — {permReason}");
+                await MessageBoxWindow.ShowAsync(this,
+                    Loc.T("gui.updateStoppedPermissions", permReason, Path.GetFullPath(folder), permAdvice),
+                    Loc.T("gui.title.noWriteAccess"));
+                return false;
+            }
+
+            if (!ClientFolderGuard.IsSafeTarget(folder, out string unsafeReason))
+            {
+                LauncherLog.Error($"Folder failed validation: {folder} — {unsafeReason}");
+                await MessageBoxWindow.ShowAsync(this,
+                    Loc.T("gui.updateStoppedUnsafe", unsafeReason, Path.GetFullPath(folder)),
+                    Loc.T("gui.title.error"));
+                return false;
+            }
+
+            return true;
+        }
+
+        private static string ConfigPath => Path.Combine(Environment.CurrentDirectory, "config.ini");
+
+        private string ResolveProfileFolder(string server)
+        {
+            try
+            {
+                var config = new IniFile(ConfigPath);
+                config.Load();
+                return LauncherPaths.ProfileFolder(config, server);
+            }
+            catch (Exception ex)
+            {
+                LauncherLog.Warn("Could not read the profile folder from config.ini", ex);
+                return LauncherPaths.DefaultProfileFolder(server);
+            }
+        }
+
+        private string? ResolveGameFolder()
+        {
+            try
+            {
+                var config = new IniFile(ConfigPath);
+                config.Load();
+                return LauncherPaths.GameFolder(config);
+            }
+            catch (Exception ex)
+            {
+                LauncherLog.Warn("Could not read the game folder from config.ini", ex);
+                return null;
+            }
+        }
+
+        /// <summary>Shows the current profile and game folders in Install settings, and greys out
+        /// "Default" where the folder already is the default.</summary>
+        private void RefreshPathSettings() => Dispatcher.UIThread.Invoke(() =>
+        {
+            string? gameFolder = ResolveGameFolder();
+
+            ProfilePathBox.Text = string.IsNullOrEmpty(ClientFolder) ? string.Empty : Path.GetFullPath(ClientFolder);
+            ProfilePathResetButton.IsEnabled = !string.IsNullOrEmpty(SelectedServer) &&
+                                               ClientFolder != LauncherPaths.DefaultProfileFolder(SelectedServer);
+
+            GamePathBox.Text = gameFolder is null ? string.Empty : Path.GetFullPath(gameFolder);
+            GamePathBox.PlaceholderText = Loc.T("gui.path.gameDefault");
+            GamePathResetButton.IsEnabled = gameFolder is not null;
+        });
+
+        private async Task<string?> PickFolderAsync(string title)
+        {
+            var folders = await StorageProvider.OpenFolderPickerAsync(
+                new FolderPickerOpenOptions { Title = title, AllowMultiple = false });
+
+            return folders.Count == 0 ? null : folders[0].TryGetLocalPath();
+        }
+
+        private async Task<bool> CanUseFolderAsync(string folder, string? otherFolder)
+        {
+            if (!LauncherPaths.CanUse(folder, out string reason))
+            {
+                await MessageBoxWindow.ShowAsync(this, reason, Loc.T("gui.title.error"));
+                return false;
+            }
+
+            if (otherFolder is not null && LauncherPaths.AreNested(folder, otherFolder))
+            {
+                await MessageBoxWindow.ShowAsync(this, Loc.T("path.nested"), Loc.T("gui.title.error"));
+                return false;
+            }
+
+            return true;
+        }
+
+        private void SavePath(Action<IniFile> change)
+        {
+            try
+            {
+                var config = new IniFile(ConfigPath);
+                config.Load();
+                change(config);
+            }
+            catch (Exception ex)
+            {
+                LauncherLog.Warn("Could not save the folder settings to config.ini", ex);
+                _ = MessageBoxWindow.ShowAsync(this, Loc.T("gui.configUpdateFailed", ex.Message));
+            }
+        }
+
+        private void AfterPathsChanged()
+        {
+            RefreshPathSettings();
+            _modsPanelLoadedForServer = null;
+            _ = RefreshDefenderExclusionCheckboxAsync();
+            RefreshFullCheckVisibility();
+        }
+
+        /// <param name="folder">Null goes back to the default.</param>
+        private async Task ChangeProfileFolderAsync(string? folder)
+        {
+            string newFolder = folder ?? LauncherPaths.DefaultProfileFolder(SelectedServer);
+            if (!await CanUseFolderAsync(newFolder, ResolveGameFolder())) return;
+
+            SavePath(config => LauncherPaths.SetProfileFolder(config, SelectedServer, folder));
+            ClientFolder = newFolder;
+            Directory.CreateDirectory(ClientFolder);
+            AfterPathsChanged();
+        }
+
+        /// <param name="folder">Null goes back to the default, the game inside the profile folder.</param>
+        private async Task ChangeGameFolderAsync(string? folder)
+        {
+            if (folder is not null && LauncherPaths.AreSame(folder, ClientFolder)) folder = null;
+            if (folder is not null && !await CanUseFolderAsync(folder, ClientFolder)) return;
+
+            SavePath(config => LauncherPaths.SetGameFolder(config, folder));
+            AfterPathsChanged();
+        }
+
+        private async void ProfilePathBrowseButton_Click(object? sender, RoutedEventArgs e)
+        {
+            string? picked = await PickFolderAsync(Loc.T("gui.path.pickProfile"));
+            if (picked is not null) await ChangeProfileFolderAsync(picked);
+        }
+
+        private async void ProfilePathResetButton_Click(object? sender, RoutedEventArgs e) =>
+            await ChangeProfileFolderAsync(null);
+
+        private async void GamePathBrowseButton_Click(object? sender, RoutedEventArgs e)
+        {
+            string? picked = await PickFolderAsync(Loc.T("gui.path.pickGame"));
+            if (picked is not null) await ChangeGameFolderAsync(picked);
+        }
+
+        private async void GamePathResetButton_Click(object? sender, RoutedEventArgs e) =>
+            await ChangeGameFolderAsync(null);
 
         private async void ServerSelector_SelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
@@ -2339,7 +2510,8 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
             SelectedServer = selectedItem.Name;
             SelectedServerDirectory = _serverDirectories[SelectedServer];
-            ClientFolder = Path.Combine("clients", SelectedServer);
+            ClientFolder = ResolveProfileFolder(SelectedServer);
+            RefreshPathSettings();
             _ = RefreshDefenderExclusionCheckboxAsync();
 
             // Doesn't depend on the mirror/news chain below at all — it queries the game
@@ -2409,7 +2581,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         }
 
         /// <summary>
-        /// Builds the mods panel straight from this project's own build manifests
+        /// Builds the mods panel straight from this project's own profile manifests
         /// (update.info / update_admin.info / optional.info) — the same files the update
         /// pipeline already fetches, re-requested here read-only over HTTP rather than
         /// touching the real client folder or an update session/lock. Required and

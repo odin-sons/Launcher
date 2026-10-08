@@ -8,7 +8,7 @@
 | `Launcher` | legacy GUI launcher (WPF, Windows-only) — superseded by `Launcher.Avalonia`, no longer where development happens |
 | `Launcher.Cli` | console version of the same update pipeline — Windows/Linux/macOS |
 | `Launcher.Core` | shared logic: downloading, manifest verification, Steam detection, injector mode, client folder safety, localization |
-| `Indexer` | server-side tool — lays out a build into the manifests the launcher consumes |
+| `Indexer` | server-side tool — lays out a profile into the manifests the launcher consumes |
 | `Launcher.Avalonia.Tests` | headless smoke tests for `Launcher.Avalonia` (constructs `MainWindow` via Avalonia.Headless to catch runtime-only XAML errors) |
 | `Launcher.Tests` | tests for `Launcher.Core` — see [its README](Launcher.Tests/README.md) for what each one covers |
 | `Indexer.Tests` | tests for `Indexer` — see [its README](Indexer.Tests/README.md) for what each one covers |
@@ -91,7 +91,7 @@ since most of those tests exist specifically to pin down a past regression.
 
 - **CLI**: `dotnet run --project Launcher.Cli -- --url https://your-test-server/launcher/`
   points the whole pipeline at a specific mirror instead of auto-detecting one — the
-  fastest way to exercise real download/verification logic against a build you control,
+  fastest way to exercise real download/verification logic against a profile you control,
   without touching the GUI at all.
 - **GUI**: the mirror list is hardcoded in `Launcher.Core/ServerModels.cs`
   (`LauncherMirrors.Default`) — there's no runtime override yet. For local testing against

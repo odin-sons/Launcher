@@ -1,7 +1,7 @@
 # Indexer.Tests
 
-Server-side tests: exclusion-rule matching, the added/removed path diff between builds, and
-grouping changed files by mod folder for the build report.
+Server-side tests: exclusion-rule matching, the added/removed path diff between profiles, and
+grouping changed files by mod folder for the report.
 
 ## ModFolderGroupingTests.cs
 
@@ -31,7 +31,7 @@ Comparing file lists between two Indexer runs.
 
 ## GameManifestFlagTests.cs
 
-`--game-manifest <name>` renames the game-file manifest so a macOS/Linux build folder
+`--game-manifest <name>` renames the game-file manifest so a macOS/Linux profile folder
 produces `game_macos.info` / `game_linux.info` instead of overwriting the Windows one.
 
 - **Default_IsGameInfo** — with no flag, the game manifest is `game.info`.
@@ -55,3 +55,46 @@ The four forms an exclusion rule (`ignore_patterns.txt` and its siblings) can ta
   everything underneath it.
 - **MaskRule_StillMatchesByPathWhenItContainsASlash** — a mask rule (`*.old`) that contains
   a slash still matches by the full path.
+
+## ArgumentsTests.cs
+
+The Indexer's command line: `--profile`, `--game-folder`, `--game-manifest` (each with a value)
+and `--no-cache`. Anything else is an error rather than being ignored, because an ignored flag
+could quietly index the wrong thing.
+
+- **NoArguments_AreFine** / **EveryKnownFlag_IsAccepted_InAnyOrder** / **FlagsAreCaseInsensitive**
+  — what is accepted.
+- **AnUnknownOrOutdatedFlag_IsAnError_NamedInTheMessage** — a renamed or misspelt flag (such as
+  the old `--game-root`) is refused, named in the message together with the valid options.
+- **AStrayArgument_IsAnError** — a value that no flag owns is refused.
+- **AFlagWithNoValue_IsAnError** / **AFlagFollowedByAnotherFlag_HasNoValue** — a flag must be
+  followed by its value.
+
+## GameSourceTests.cs
+
+The game folders kept apart from the mod profile, one per Steam depot: `--game-folder` is
+remembered in `game_source.txt`, so later runs index the same games without the flags.
+
+- **NothingRemembered_MeansNoSeparateGame** — no file, no separate game folders.
+- **PathsPassedOnce_AreReadBackOnLaterRuns** — every remembered path comes back as an
+  absolute path.
+- **TheRememberedPaths_AreStoredRelativeToTheProfileFolder** — stored as
+  `../../Game/<version>`, so the file survives moving the whole tree.
+- **ANewVersionOfADepot_ReplacesTheRememberedOne_AndLeavesTheOtherDepotsAlone** — moving to a
+  new game version is one run with the new folder; the other OSes keep their folders.
+- **ADepotNotRememberedYet_IsAdded** — a folder for a new depot joins the remembered ones.
+- **OnlyADepotUnderscoreManifestFolderNameIsAVersion** — the folder name doubles as the
+  version written to the game manifest, so it has to be `<depot>_<manifest>`.
+- **TheDepot_DecidesWhichGameManifestTheFolderProduces** — 892972 gives `game.info`, 892973
+  `game_macos.info`, 892971 `game_linux.info`.
+- **ADepotThatIsNotValheim_IsRejected** / **AMissingFolder_IsRejected** — a folder that
+  can't be indexed is an error, not a silent empty manifest.
+- **TheGameFolder_IsExpectedAtTheSiteRoot** — the folder must sit at `Game/` at the site
+  root, above the `Launcher` folder, where the launcher looks for it.
+- **TheIndexersOwnFiles_AreNeverPartOfAManifest** — `game_source.txt` and the per-depot hash
+  caches stay out of the mod manifests.
+- **EachDepot_HasItsOwnHashCache** — Windows and Linux share relative paths such as
+  `valheim_Data/...`, so their caches can't be one file.
+- **ProfileFlag_TakesThePathAfterIt** — `--profile <folder>` (and any `--flag value` pair) is
+  read from anywhere among the arguments; a trailing flag with no value is ignored.
+- **GameFolderFlag_CanBeRepeated** — `--game-folder` can be given once per depot.

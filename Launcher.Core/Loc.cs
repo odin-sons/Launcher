@@ -1779,7 +1779,91 @@ namespace Odinsons.ValheimLauncher
                 "Ajustes de instalación", "Paramètres d'installation",
                 "Ustawienia instalacji", "Configurações de instalação",
                 "Настройки установки", "Installationsinställningar", "安装设置",
-                "Налаштування встановлення")
+                "Налаштування встановлення"),
+
+            // ---------- Profile / game folder settings (LauncherPaths, Install settings) ----------
+
+            ["path.rejected"] = L(
+                "This folder can't be used: {0}",
+                "Dieser Ordner kann nicht verwendet werden: {0}",
+                "No se puede usar esta carpeta: {0}",
+                "Ce dossier ne peut pas être utilisé : {0}",
+                "Tego folderu nie można użyć: {0}",
+                "Esta pasta não pode ser usada: {0}",
+                "Эту папку нельзя использовать: {0}",
+                "Den här mappen kan inte användas: {0}",
+                "无法使用此文件夹：{0}",
+                "Цю папку не можна використовувати: {0}"),
+
+            ["path.nested"] = L(
+                "The game folder and the profile folder can't be inside one another.",
+                "Spielordner und Profilordner dürfen nicht ineinander liegen.",
+                "La carpeta del juego y la del perfil no pueden estar una dentro de la otra.",
+                "Le dossier du jeu et le dossier du profil ne peuvent pas être l'un dans l'autre.",
+                "Folder gry i folder profilu nie mogą znajdować się jeden w drugim.",
+                "A pasta do jogo e a pasta do perfil não podem estar uma dentro da outra.",
+                "Папка игры и папка профиля не могут находиться одна внутри другой.",
+                "Spelmappen och profilmappen får inte ligga i varandra.",
+                "游戏文件夹和配置文件文件夹不能互相嵌套。",
+                "Папка гри та папка профілю не можуть бути одна всередині іншої."),
+
+            ["gui.path.profile"] = L(
+                "Profile folder (mods)", "Profilordner (Mods)", "Carpeta del perfil (mods)",
+                "Dossier du profil (mods)", "Folder profilu (mody)", "Pasta do perfil (mods)",
+                "Папка профиля (моды)", "Profilmapp (moddar)", "配置文件文件夹（模组）",
+                "Папка профілю (моди)"),
+
+            ["gui.path.game"] = L(
+                "Game folder", "Spielordner", "Carpeta del juego", "Dossier du jeu", "Folder gry",
+                "Pasta do jogo", "Папка игры", "Spelmapp", "游戏文件夹", "Папка гри"),
+
+            ["gui.path.browse"] = L(
+                "Browse…", "Durchsuchen…", "Examinar…", "Parcourir…", "Przeglądaj…", "Procurar…",
+                "Обзор…", "Bläddra…", "浏览…", "Огляд…"),
+
+            ["gui.path.reset"] = L(
+                "Default", "Standard", "Predeterminado", "Par défaut", "Domyślny", "Padrão",
+                "По умолчанию", "Standard", "默认", "За замовчуванням"),
+
+            ["gui.path.gameDefault"] = L(
+                "Same as the profile folder", "Wie der Profilordner", "Igual que la carpeta del perfil",
+                "Identique au dossier du profil", "Taki sam jak folder profilu", "Igual à pasta do perfil",
+                "Как папка профиля", "Samma som profilmappen", "与配置文件文件夹相同",
+                "Як папка профілю"),
+
+            ["gui.path.pickProfile"] = L(
+                "Choose the profile folder", "Profilordner wählen", "Elige la carpeta del perfil",
+                "Choisissez le dossier du profil", "Wybierz folder profilu", "Escolha a pasta do perfil",
+                "Выберите папку профиля", "Välj profilmapp", "选择配置文件文件夹", "Виберіть папку профілю"),
+
+            ["gui.path.pickGame"] = L(
+                "Choose the game folder", "Spielordner wählen", "Elige la carpeta del juego",
+                "Choisissez le dossier du jeu", "Wybierz folder gry", "Escolha a pasta do jogo",
+                "Выберите папку игры", "Välj spelmapp", "选择游戏文件夹", "Виберіть папку гри"),
+
+            ["gui.path.profileTip"] = L(
+                "Where this server's mods and their settings live. Changing it doesn't move files already there.",
+                "Hier liegen die Mods dieses Servers und ihre Einstellungen. Eine Änderung verschiebt vorhandene Dateien nicht.",
+                "Aquí están los mods de este servidor y sus ajustes. Cambiarla no mueve los archivos existentes.",
+                "Ici se trouvent les mods de ce serveur et leurs réglages. La changer ne déplace pas les fichiers existants.",
+                "Tu znajdują się mody tego serwera i ich ustawienia. Zmiana nie przenosi istniejących plików.",
+                "Aqui ficam os mods deste servidor e as suas configurações. Alterar não move os arquivos existentes.",
+                "Здесь лежат моды этого сервера и их настройки. Смена папки не переносит уже имеющиеся файлы.",
+                "Här finns den här serverns moddar och deras inställningar. Att ändra den flyttar inte befintliga filer.",
+                "此服务器的模组及其设置存放在这里。更改文件夹不会移动已有文件。",
+                "Тут лежать моди цього сервера та їхні налаштування. Зміна папки не переносить наявні файли."),
+
+            ["gui.path.gameTip"] = L(
+                "Where the game itself is installed. By default it sits in the profile folder, together with the mods.",
+                "Hier ist das Spiel selbst installiert. Standardmäßig liegt es zusammen mit den Mods im Profilordner.",
+                "Aquí se instala el propio juego. De forma predeterminada está en la carpeta del perfil, junto con los mods.",
+                "C'est ici que le jeu lui-même est installé. Par défaut, il se trouve dans le dossier du profil, avec les mods.",
+                "Tu zainstalowana jest sama gra. Domyślnie leży w folderze profilu razem z modami.",
+                "Aqui fica instalado o próprio jogo. Por padrão ele fica na pasta do perfil, junto com os mods.",
+                "Здесь установлена сама игра. По умолчанию она лежит в папке профиля вместе с модами.",
+                "Här är själva spelet installerat. Som standard ligger det i profilmappen tillsammans med moddarna.",
+                "游戏本体安装在这里。默认与模组一起放在配置文件文件夹中。",
+                "Тут встановлена сама гра. За замовчуванням вона лежить у папці профілю разом із модами.")
         };
     }
 }

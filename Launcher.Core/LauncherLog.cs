@@ -183,7 +183,7 @@ namespace Odinsons.ValheimLauncher
             }
         }
 
-        /// <summary>One previous file is kept: Trace writes a lot on a 2.7 GB build.</summary>
+        /// <summary>One previous file is kept: Trace writes a lot on a 2.7 GB profile.</summary>
         private static void RollIfTooBig()
         {
             try

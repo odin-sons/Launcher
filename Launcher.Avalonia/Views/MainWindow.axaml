@@ -637,6 +637,28 @@
                                 <CheckBox Name="DefenderExclusionCheckBox"
                                            Foreground="#FFD6D6D6" FontSize="13"
                                            Click="DefenderExclusionCheckBox_Click"/>
+
+                                <!-- Where the profile (mods) and the game live — see LauncherPaths. Unset,
+                                     the profile is clients/<server> and the game sits inside it. -->
+                                <StackPanel Name="PathSettingsStack" Spacing="3" Margin="0,8,0,0">
+                                    <TextBlock Name="ProfilePathLabel" Foreground="#FFD6D6D6" FontSize="13"/>
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                                        <TextBox Name="ProfilePathBox" Grid.Column="0" IsReadOnly="True" FontSize="12"/>
+                                        <Button Name="ProfilePathBrowseButton" Grid.Column="1" FontSize="12"
+                                                Click="ProfilePathBrowseButton_Click"/>
+                                        <Button Name="ProfilePathResetButton" Grid.Column="2" FontSize="12"
+                                                Click="ProfilePathResetButton_Click"/>
+                                    </Grid>
+
+                                    <TextBlock Name="GamePathLabel" Foreground="#FFD6D6D6" FontSize="13" Margin="0,4,0,0"/>
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                                        <TextBox Name="GamePathBox" Grid.Column="0" IsReadOnly="True" FontSize="12"/>
+                                        <Button Name="GamePathBrowseButton" Grid.Column="1" FontSize="12"
+                                                Click="GamePathBrowseButton_Click"/>
+                                        <Button Name="GamePathResetButton" Grid.Column="2" FontSize="12"
+                                                Click="GamePathResetButton_Click"/>
+                                    </Grid>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                         </StackPanel>
