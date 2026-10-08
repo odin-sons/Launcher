@@ -7,11 +7,11 @@ using Odinsons.ValheimLauncher;
 namespace Indexer
 {
     /// <summary>One vanilla-game folder: <c>&lt;depot&gt;_&lt;manifest&gt;</c>, and the game manifest it produces.</summary>
-    internal sealed record GameRoot(string Path, string Version, string Depot, string ManifestName);
+    internal sealed record GameFolder(string Path, string Version, string Depot, string ManifestName);
 
     /// <summary>
     /// The folders holding the vanilla game, kept apart from the mod profile, one per Steam depot
-    /// (Windows, macOS, Linux). A path passed with <c>--game-root</c> is remembered in
+    /// (Windows, macOS, Linux). A path passed with <c>--game-folder</c> is remembered in
     /// <c>game_source.txt</c> inside the profile folder, replacing the remembered folder of the
     /// same depot, so later runs (a mod update, say) index the same games without repeating the
     /// flags. Each folder is named after the game version, <c>&lt;depot&gt;_&lt;manifest&gt;</c>.
@@ -33,10 +33,10 @@ namespace Indexer
                 && relativePath.IndexOf('/') < 0);
 
         /// <summary>Written relative to the profile folder when possible, so the file survives a move of the whole tree.</summary>
-        public static void Write(string profileFolder, IEnumerable<string> gameRoots)
+        public static void Write(string profileFolder, IEnumerable<string> gameFolders)
         {
-            var lines = gameRoots.Select(root =>
-                Path.GetRelativePath(profileFolder, root).Replace(Path.DirectorySeparatorChar, '/'));
+            var lines = gameFolders.Select(folder =>
+                Path.GetRelativePath(profileFolder, folder).Replace(Path.DirectorySeparatorChar, '/'));
 
             File.WriteAllText(Path.Combine(profileFolder, FileName), string.Join("\n", lines) + "\n");
         }
@@ -59,35 +59,35 @@ namespace Indexer
             var givenDepots = givenList.Select(DepotOrNull).Where(depot => depot is not null).ToHashSet();
 
             return remembered
-                .Where(root => !givenDepots.Contains(DepotOrNull(root)))
+                .Where(folder => !givenDepots.Contains(DepotOrNull(folder)))
                 .Concat(givenList)
                 .ToList();
         }
 
-        private static string DepotOrNull(string gameRoot) =>
-            TryGetVersion(gameRoot, out string version) ? GameLocation.DepotOf(version) : null;
+        private static string DepotOrNull(string gameFolder) =>
+            TryGetVersion(gameFolder, out string version) ? GameLocation.DepotOf(version) : null;
 
-        public static bool TryGetVersion(string gameRoot, out string version)
+        public static bool TryGetVersion(string gameFolder, out string version)
         {
-            version = Path.GetFileName(Path.GetFullPath(gameRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            version = Path.GetFileName(Path.GetFullPath(gameFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
             return GameLocation.IsValidVersion(version);
         }
 
         /// <param name="error">Why the folder can't be indexed, when it can't.</param>
-        public static bool TryDescribe(string gameRoot, out GameRoot root, out string error)
+        public static bool TryDescribe(string gameFolder, out GameFolder folder, out string error)
         {
-            root = null;
+            folder = null;
             error = null;
 
-            if (!Directory.Exists(gameRoot))
+            if (!Directory.Exists(gameFolder))
             {
-                error = $"game folder not found: {gameRoot}";
+                error = $"game folder not found: {gameFolder}";
                 return false;
             }
 
-            if (!TryGetVersion(gameRoot, out string version))
+            if (!TryGetVersion(gameFolder, out string version))
             {
-                error = $"the game folder must be named <depot>_<manifest>, got '{version}' ({gameRoot})";
+                error = $"the game folder must be named <depot>_<manifest>, got '{version}' ({gameFolder})";
                 return false;
             }
 
@@ -96,11 +96,11 @@ namespace Indexer
 
             if (manifestName is null)
             {
-                error = $"depot {depot} is not one of the Valheim depots ({gameRoot})";
+                error = $"depot {depot} is not one of the Valheim depots ({gameFolder})";
                 return false;
             }
 
-            root = new GameRoot(Path.GetFullPath(gameRoot).TrimEnd(Path.DirectorySeparatorChar), version, depot, manifestName);
+            folder = new GameFolder(Path.GetFullPath(gameFolder).TrimEnd(Path.DirectorySeparatorChar), version, depot, manifestName);
             return true;
         }
 
@@ -108,9 +108,9 @@ namespace Indexer
         public static string ExpectedLocation(string profileFolder, string version) =>
             Path.GetFullPath(Path.Combine(profileFolder, "..", "..", GameLocation.FolderName, version));
 
-        public static bool IsAtExpectedLocation(string profileFolder, string gameRoot, string version) =>
+        public static bool IsAtExpectedLocation(string profileFolder, string gameFolder, string version) =>
             string.Equals(
-                Path.GetFullPath(gameRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                Path.GetFullPath(gameFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
                 ExpectedLocation(profileFolder, version).TrimEnd(Path.DirectorySeparatorChar),
                 StringComparison.OrdinalIgnoreCase);
     }

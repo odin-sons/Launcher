@@ -122,13 +122,13 @@ There is one folder per Steam depot, and the depot decides the manifest it produ
 
 ```bash
 Indexer --profile Lite_v2 \
-  --game-root ../Game/892972_<manifestid> \
-  --game-root ../Game/892973_<manifestid> \
-  --game-root ../Game/892971_<manifestid>
+  --game-folder ../Game/892972_<manifestid> \
+  --game-folder ../Game/892973_<manifestid> \
+  --game-folder ../Game/892971_<manifestid>
 ```
 
 The folders are remembered in `game_source.txt` in the profile folder, so later runs (a mod
-update) just use `Indexer --profile Lite_v2`. A new game version is `--game-root` with the new
+update) just use `Indexer --profile Lite_v2`. A new game version is `--game-folder` with the new
 folder, once: it replaces the remembered folder of the same depot and leaves the others alone.
 Paths inside each game manifest are relative to its game folder, and each depot keeps its own
 hash cache (`hashes_game_<depot>.cache`). `game_files.txt` still keeps stray copies of the game

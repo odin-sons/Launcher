@@ -58,7 +58,7 @@ The four forms an exclusion rule (`ignore_patterns.txt` and its siblings) can ta
 
 ## GameSourceTests.cs
 
-The game folders kept apart from the mod profile, one per Steam depot: `--game-root` is
+The game folders kept apart from the mod profile, one per Steam depot: `--game-folder` is
 remembered in `game_source.txt`, so later runs index the same games without the flags.
 
 - **NothingRemembered_MeansNoSeparateGame** — no file, no separate game folders.
@@ -83,4 +83,4 @@ remembered in `game_source.txt`, so later runs index the same games without the 
   `valheim_Data/...`, so their caches can't be one file.
 - **ProfileFlag_TakesThePathAfterIt** — `--profile <folder>` (and any `--flag value` pair) is
   read from anywhere among the arguments; a trailing flag with no value is ignored.
-- **GameRootFlag_CanBeRepeated** — `--game-root` can be given once per depot.
+- **GameFolderFlag_CanBeRepeated** — `--game-folder` can be given once per depot.

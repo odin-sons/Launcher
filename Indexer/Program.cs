@@ -94,35 +94,35 @@ namespace Indexer
             string profileDir = Path.GetFullPath(ParseValue(args, "--profile") ?? Environment.CurrentDirectory);
             if (!Directory.Exists(profileDir)) return Fail($"profile folder not found: {profileDir}");
 
-            List<string> givenRoots = ParseValues(args, "--game-root").Select(Path.GetFullPath).ToList();
+            List<string> givenFolders = ParseValues(args, "--game-folder").Select(Path.GetFullPath).ToList();
 
             Environment.CurrentDirectory = profileDir;
 
-            List<string> rootPaths = GameSource.Read(profileDir);
+            List<string> folderPaths = GameSource.Read(profileDir);
 
-            if (givenRoots.Count > 0)
+            if (givenFolders.Count > 0)
             {
-                foreach (string given in givenRoots)
+                foreach (string given in givenFolders)
                     if (!GameSource.TryDescribe(given, out _, out string givenError))
                         return Fail(givenError);
 
-                rootPaths = GameSource.Merge(rootPaths, givenRoots);
-                GameSource.Write(profileDir, rootPaths);
+                folderPaths = GameSource.Merge(folderPaths, givenFolders);
+                GameSource.Write(profileDir, folderPaths);
                 Console.WriteLine($"Game folders remembered in {GameSource.FileName}");
             }
 
-            var gameRoots = new List<GameRoot>();
+            var gameFolders = new List<GameFolder>();
             var errors = new List<string>();
 
-            foreach (string rootPath in rootPaths)
+            foreach (string folderPath in folderPaths)
             {
-                if (!GameSource.TryDescribe(rootPath, out GameRoot described, out string rootError))
-                    return Fail($"{GameSource.FileName}: {rootError}");
+                if (!GameSource.TryDescribe(folderPath, out GameFolder described, out string folderError))
+                    return Fail($"{GameSource.FileName}: {folderError}");
 
-                if (gameRoots.Any(r => r.Depot == described.Depot))
+                if (gameFolders.Any(r => r.Depot == described.Depot))
                     return Fail($"{GameSource.FileName} lists depot {described.Depot} twice");
 
-                gameRoots.Add(described);
+                gameFolders.Add(described);
                 Console.WriteLine($"Game folder: {described.Path} (version {described.Version} -> {described.ManifestName})");
 
                 if (!GameSource.IsAtExpectedLocation(profileDir, described.Path, described.Version))
@@ -137,16 +137,16 @@ namespace Indexer
             List<Odinsons.ValheimLauncher.Manifest.Entry> previousPlayer = TryReadManifest("update.info");
             List<Odinsons.ValheimLauncher.Manifest.Entry> previousAdmin = TryReadManifest("update_admin.info");
             List<Odinsons.ValheimLauncher.Manifest.Entry> previousOptional = TryReadManifest("optional.info");
-            List<Odinsons.ValheimLauncher.Manifest.Entry> previousGame = (gameRoots.Count == 0
+            List<Odinsons.ValheimLauncher.Manifest.Entry> previousGame = (gameFolders.Count == 0
                     ? new[] { gameManifestName }
-                    : gameRoots.Select(r => r.ManifestName))
+                    : gameFolders.Select(r => r.ManifestName))
                 .SelectMany(TryReadManifest)
                 .ToList();
 
             string currentDir = Environment.CurrentDirectory;
-            string[] rootPrefixes = gameRoots.Select(r => r.Path + Path.DirectorySeparatorChar).ToArray();
+            string[] folderPrefixes = gameFolders.Select(r => r.Path + Path.DirectorySeparatorChar).ToArray();
             var allFiles = Directory.GetFiles(currentDir, "*.*", SearchOption.AllDirectories)
-                .Where(f => !rootPrefixes.Any(prefix => f.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+                .Where(f => !folderPrefixes.Any(prefix => f.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
                 .ToArray();
 
             // Game files go into a separate manifest and do NOT go into update.info:
@@ -195,13 +195,13 @@ namespace Indexer
                 .ThenBy(f => f)
                 .ToList();
 
-            var gameSets = gameRoots.Count == 0
-                ? new List<(string ManifestName, GameRoot Root, List<string> Files)>
+            var gameSets = gameFolders.Count == 0
+                ? new List<(string ManifestName, GameFolder Root, List<string> Files)>
                   {
                       (gameManifestName, null,
                        Ordered(allFiles.Where(f => ShouldInclude(f, adminOnly: true) && IsGameFile(f))))
                   }
-                : gameRoots
+                : gameFolders
                     .Select(r => (ManifestName: r.ManifestName, Root: r,
                                   Files: Ordered(Directory.GetFiles(r.Path, "*.*", SearchOption.AllDirectories))))
                     .ToList();
@@ -214,7 +214,7 @@ namespace Indexer
             // manifests only differ in which lines they include; the checksums themselves
             // are shared.
             var hashes = ComputeHashes(
-                gameRoots.Count == 0
+                gameFolders.Count == 0
                     ? new[] { files, filesAdmin, optionalFiles, gameFiles }
                     : new[] { files, filesAdmin, optionalFiles },
                 currentDir, useCache);
@@ -246,7 +246,7 @@ namespace Indexer
                 Console.WriteLine($"{set.ManifestName,-17} {set.Files.Count} files, {gameBytes / 1024.0 / 1024.0:0.0} MB");
             }
 
-            if (gameRoots.Count == 0 && GameFileRules.Count == 0)
+            if (gameFolders.Count == 0 && GameFileRules.Count == 0)
                 Console.WriteLine("WARNING: no game-file rules — game.info is empty.");
 
             ReportAddedRemoved(previousPlayer, previousAdmin, previousOptional, previousGame,

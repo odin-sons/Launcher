@@ -85,8 +85,8 @@ namespace Indexer.Tests
             string path = GameFolder(folder);
             Directory.CreateDirectory(path);
 
-            Assert.True(Indexer.GameSource.TryDescribe(path, out Indexer.GameRoot? root, out _));
-            Assert.Equal(manifestName, root!.ManifestName);
+            Assert.True(Indexer.GameSource.TryDescribe(path, out Indexer.GameFolder? described, out _));
+            Assert.Equal(manifestName, described!.ManifestName);
         }
 
         [Fact]
@@ -135,14 +135,14 @@ namespace Indexer.Tests
             Assert.Equal("some/profile",
                 Indexer.Program.ParseValue(new[] { "--no-cache", "--profile", "some/profile" }, "--profile"));
             Assert.Null(Indexer.Program.ParseValue(new[] { "--profile" }, "--profile"));
-            Assert.Null(Indexer.Program.ParseValue(new[] { "--no-cache" }, "--game-root"));
+            Assert.Null(Indexer.Program.ParseValue(new[] { "--no-cache" }, "--game-folder"));
         }
 
         [Fact]
-        public void GameRootFlag_CanBeRepeated()
+        public void GameFolderFlag_CanBeRepeated()
         {
             var roots = Indexer.Program.ParseValues(
-                new[] { "--game-root", "a", "--no-cache", "--game-root", "b", "--game-root" }, "--game-root");
+                new[] { "--game-folder", "a", "--no-cache", "--game-folder", "b", "--game-folder" }, "--game-folder");
 
             Assert.Equal(new[] { "a", "b" }, roots.ToArray());
         }

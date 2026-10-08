@@ -17,7 +17,7 @@ version bumps of its own.
   way injector mode does; pointing it at the Steam install changes nothing and never writes to
   Steam. The Defender exclusion covers both folders, and the console launcher has
   `--game-folder <dir>`.
-- The Indexer takes `--profile <folder>` and one `--game-root <folder>` per depot (Windows, macOS,
+- The Indexer takes `--profile <folder>` and one `--game-folder <folder>` per depot (Windows, macOS,
   Linux), each producing its own game manifest. The game folders are
   remembered in `game_source.txt`, so later runs for a mod update don't need the flag.
 
