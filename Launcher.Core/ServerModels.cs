@@ -22,7 +22,7 @@ namespace Odinsons.ValheimLauncher
         public List<Server> Servers { get; set; }
     }
 
-    /// <summary>Mirrors that servers.info and build files are fetched from.</summary>
+    /// <summary>Mirrors that servers.info and profile files are fetched from.</summary>
     public static class LauncherMirrors
     {
         public static readonly IReadOnlyList<string> Default = new[]

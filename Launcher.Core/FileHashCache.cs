@@ -11,7 +11,7 @@ namespace Odinsons.ValheimLauncher
     /// <summary>
     /// Remembers a file's hash between launcher runs, keyed by its relative path together with
     /// size and exact write time — the same technique Indexer's own HashCache already uses on
-    /// the build side (see Indexer/HashCache.cs) to avoid rehashing gigabytes for a couple of
+    /// the server side (see Indexer/HashCache.cs) to avoid rehashing gigabytes for a couple of
     /// changed mods. The launcher re-hashes its entire client folder (and, separately, the
     /// player's Steam install for the game-file check) on every single run, including ones
     /// where nothing changed at all — that repeated full read-and-hash is the actual cost,

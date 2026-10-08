@@ -158,9 +158,37 @@ namespace Odinsons.ValheimLauncher.Cli
                 return ExitUnsafeTarget;
             }
 
+            string gameFolder = options.GameFolder;
+
+            if (gameFolder is not null)
+            {
+                if (!ClientFolderGuard.IsWritable(gameFolder, out string gamePermReason, out string gamePermAdvice))
+                {
+                    Console.Error.WriteLine(Loc.T("cli.refused", Path.GetFullPath(gameFolder)));
+                    Console.Error.WriteLine($"  {gamePermReason}");
+                    Console.Error.WriteLine("  " + gamePermAdvice);
+                    return ExitNoWriteAccess;
+                }
+
+                if (!ClientFolderGuard.IsSafeTarget(gameFolder, out string gameUnsafeReason))
+                {
+                    Console.Error.WriteLine(Loc.T("cli.refused", Path.GetFullPath(gameFolder)));
+                    Console.Error.WriteLine($"  {gameUnsafeReason}");
+                    return ExitUnsafeTarget;
+                }
+
+                if (LauncherPaths.AreNested(gameFolder, clientFolder))
+                {
+                    Console.Error.WriteLine(Loc.T("path.nested"));
+                    return ExitUnsafeTarget;
+                }
+
+                Directory.CreateDirectory(gameFolder);
+            }
+
             Directory.CreateDirectory(clientFolder);
 
-            if (!UpdateSession.TryBegin(clientFolder, out UpdateSession session, out string sessionReason))
+            if (!UpdateSession.TryBegin(clientFolder, out UpdateSession session, out string sessionReason, gameFolder))
             {
                 Console.Error.WriteLine(Loc.T("cli.refused", sessionReason));
                 Console.Error.WriteLine("  " + Loc.T("cli.waitOrClose"));
@@ -215,7 +243,8 @@ namespace Odinsons.ValheimLauncher.Cli
                     ownExecutableName: Path.GetFileName(Environment.ProcessPath ?? string.Empty),
                     maxConcurrentDownloads: options.Parallel,
                     steamGameFolder: steamGameFolder,
-                    session: session);
+                    session: session,
+                    gameFolder: gameFolder);
 
                 if (worker.CancellationPending) return ExitCancelled;
                 return ui.CanStartGame == true ? ExitOk : ExitNotReady;
@@ -361,6 +390,8 @@ namespace Odinsons.ValheimLauncher.Cli
                   --server <name>       Server name from servers.info.
                                         Default: the value from config.ini, or the only one available.
                   --url <address>       Use a specific mirror instead of auto-detection.
+                  --game-folder <dir>   Keep the game in its own folder instead of inside the
+                                        client folder; the mods stay in the client folder.
                   --full                Full check (verify everything, ignoring exclusions).
                   --parallel <N>        Concurrent downloads, 8 by default.
                   --list                Print the server list and exit.
@@ -393,6 +424,7 @@ namespace Odinsons.ValheimLauncher.Cli
         {
             public string Server { get; private init; }
             public string ClientFolder { get; private init; }
+            public string GameFolder { get; private init; }
             public string Url { get; private init; }
             public bool Full { get; private init; }
             public bool List { get; private init; }
@@ -403,7 +435,7 @@ namespace Odinsons.ValheimLauncher.Cli
 
             public static Options Parse(string[] args)
             {
-                string server = null, clientFolder = null, url = null, checkManifest = null;
+                string server = null, clientFolder = null, gameFolder = null, url = null, checkManifest = null;
                 bool full = false, list = false, help = false;
                 int parallel = 8;
                 LogLevel? logLevel = null;
@@ -417,6 +449,9 @@ namespace Odinsons.ValheimLauncher.Cli
                             break;
                         case "--url":
                             url = Next(args, ref i, "--url");
+                            break;
+                        case "--game-folder":
+                            gameFolder = Next(args, ref i, "--game-folder");
                             break;
                         case "--parallel":
                             string raw = Next(args, ref i, "--parallel");
@@ -463,6 +498,7 @@ namespace Odinsons.ValheimLauncher.Cli
                 {
                     Server = server,
                     ClientFolder = clientFolder,
+                    GameFolder = gameFolder,
                     Url = url,
                     Full = full,
                     List = list,

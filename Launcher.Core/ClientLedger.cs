@@ -65,7 +65,7 @@ namespace Odinsons.ValheimLauncher
 
         /// <summary>
         /// Rewrites the ledger from scratch out of whatever was confirmed THIS run —
-        /// without merging in the old content. A file that dropped out of the build or was
+        /// without merging in the old content. A file that dropped out of the profile or was
         /// deleted by the player naturally washes out of the ledger, no separate cleanup needed.
         /// </summary>
         public void Save(string clientFolder)

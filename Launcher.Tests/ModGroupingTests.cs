@@ -34,7 +34,7 @@ namespace Launcher.Tests
         [Fact]
         public void GroupByPluginFolder_IgnoresBepInExConfig()
         {
-            // Regression: BepInEx/config used to be grouped too. Real builds routinely have
+            // Regression: BepInEx/config used to be grouped too. Real profiles routinely have
             // a loose single .cfg file sitting directly in BepInEx/config with no subfolder
             // at all — grouping by "the third path segment" there means grouping by
             // filename, producing one fake single-file "mod" per config. And even a real

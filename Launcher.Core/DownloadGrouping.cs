@@ -6,7 +6,7 @@ namespace Odinsons.ValheimLauncher
     /// Which mod/data bucket a to-be-downloaded file belongs to, for the download progress
     /// list. Display-only — unlike <see cref="ModGrouping"/> (which backs the optional-mod
     /// toggle and deliberately ignores <c>BepInEx/config</c>), this one groups config
-    /// subfolders too, because on a real build those hold hundreds of MB (music, textures)
+    /// subfolders too, because on a real profile those hold hundreds of MB (music, textures)
     /// and are the opposite of a fast tail.
     ///
     /// Rule: the folder right under <c>BepInEx/plugins/</c> or <c>BepInEx/config/</c>. A file

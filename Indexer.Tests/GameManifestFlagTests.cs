@@ -4,7 +4,7 @@ namespace Indexer.Tests
 {
     /// <summary>
     /// <c>--game-manifest &lt;name&gt;</c> renames the game-file manifest the Indexer writes,
-    /// so a macOS/Linux build folder can produce <c>game_macos.info</c> / <c>game_linux.info</c>
+    /// so a macOS/Linux profile folder can produce <c>game_macos.info</c> / <c>game_linux.info</c>
     /// instead of overwriting the Windows <c>game.info</c>.
     /// </summary>
     public sealed class GameManifestFlagTests

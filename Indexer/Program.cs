@@ -20,7 +20,7 @@ namespace Indexer
         /// Original-game paths (game_files.txt).
         ///
         /// Note: rules here are read DIFFERENTLY from ignore_patterns.txt.
-        /// An entry ending in a slash is a path prefix from the build root ("valheim_Data/").
+        /// An entry ending in a slash is a path prefix from the profile root ("valheim_Data/").
         /// An entry without a slash is an exact relative path, also from the root ("valheim.exe").
         /// This is deliberately stricter: in the exclusion list, a name without a slash matches
         /// a file anywhere in the tree, and that's dangerous for game files.
@@ -35,7 +35,7 @@ namespace Indexer
 
         /// <summary>
         /// Where optional mods used to live before the list was moved to a file (back then
-        /// this was called the greylist, in Azuanticheat's terms). Builds without
+        /// this was called the greylist, in Azuanticheat's terms). Profiles without
         /// optional_patterns.txt must behave exactly as before.
         /// </summary>
         private const string HistoricOptionalFolder = "Bepinex/config/Azuanticheat_greylist/";
@@ -48,25 +48,125 @@ namespace Indexer
             new ParallelOptions { MaxDegreeOfParallelism = Math.Min(4, Environment.ProcessorCount) };
 
         /// <summary>
-        /// The game-file manifest is per-OS: <c>game.info</c> for a Windows build folder,
+        /// The game-file manifest is per-OS: <c>game.info</c> for a Windows profile folder,
         /// <c>game_macos.info</c> for a macOS one, <c>game_linux.info</c> for Linux. The file
         /// layouts don't overlap, so the launcher fetches the one that matches the player's OS.
         /// Everything else (update.info, optional.info, …) is shared and keeps its name.
         /// Chosen with <c>--game-manifest &lt;name&gt;</c>; defaults to <c>game.info</c>.
         /// </summary>
-        internal static string ParseGameManifestName(string[] args)
+        internal static string ParseGameManifestName(string[] args) =>
+            ParseValue(args, "--game-manifest") ?? "game.info";
+
+        /// <summary>The value after <paramref name="flag"/>, or null when the flag is absent or last.</summary>
+        internal static string ParseValue(string[] args, string flag)
         {
             for (int i = 0; i + 1 < args.Length; i++)
-                if (string.Equals(args[i], "--game-manifest", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(args[i], flag, StringComparison.OrdinalIgnoreCase))
                     return args[i + 1];
 
-            return "game.info";
+            return null;
+        }
+
+        /// <summary>Every value after <paramref name="flag"/>, for flags that may be given several times.</summary>
+        internal static List<string> ParseValues(string[] args, string flag)
+        {
+            var values = new List<string>();
+
+            for (int i = 0; i + 1 < args.Length; i++)
+                if (string.Equals(args[i], flag, StringComparison.OrdinalIgnoreCase))
+                    values.Add(args[i + 1]);
+
+            return values;
+        }
+
+        private static readonly string[] FlagsWithValue = { "--profile", "--game-folder", "--game-manifest" };
+        private const string NoCacheFlag = "--no-cache";
+
+        /// <summary>
+        /// Rejects what the Indexer doesn't understand, so a misspelt or outdated flag is an error
+        /// instead of being ignored — an ignored one could quietly index the wrong thing.
+        /// </summary>
+        /// <returns>What is wrong with the arguments, or null when they are fine.</returns>
+        internal static string ValidateArgs(string[] args)
+        {
+            string usage = $"options are {string.Join(" <value>, ", FlagsWithValue)} <value> and {NoCacheFlag}";
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                string arg = args[i];
+
+                if (string.Equals(arg, NoCacheFlag, StringComparison.OrdinalIgnoreCase)) continue;
+
+                if (FlagsWithValue.Any(flag => string.Equals(arg, flag, StringComparison.OrdinalIgnoreCase)))
+                {
+                    if (i + 1 >= args.Length || args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                        return $"{arg} expects a value";
+
+                    i++;
+                    continue;
+                }
+
+                return arg.StartsWith('-')
+                    ? $"unknown option '{arg}' ({usage})"
+                    : $"unexpected argument '{arg}' ({usage})";
+            }
+
+            return null;
+        }
+
+        private static int Fail(string message)
+        {
+            Console.WriteLine($"ERROR: {message}");
+            WaitForKeyIfInteractive();
+            return 1;
         }
 
         public static int Main(string[] args)
         {
+            string argsError = ValidateArgs(args);
+            if (argsError is not null) return Fail(argsError);
+
             bool useCache = !args.Any(a => string.Equals(a, "--no-cache", StringComparison.OrdinalIgnoreCase));
             string gameManifestName = ParseGameManifestName(args);
+
+            string profileDir = Path.GetFullPath(ParseValue(args, "--profile") ?? Environment.CurrentDirectory);
+            if (!Directory.Exists(profileDir)) return Fail($"profile folder not found: {profileDir}");
+
+            List<string> givenFolders = ParseValues(args, "--game-folder").Select(Path.GetFullPath).ToList();
+
+            Environment.CurrentDirectory = profileDir;
+
+            List<string> folderPaths = GameSource.Read(profileDir);
+
+            if (givenFolders.Count > 0)
+            {
+                foreach (string given in givenFolders)
+                    if (!GameSource.TryDescribe(given, out _, out string givenError))
+                        return Fail(givenError);
+
+                folderPaths = GameSource.Merge(folderPaths, givenFolders);
+                GameSource.Write(profileDir, folderPaths);
+                Console.WriteLine($"Game folders remembered in {GameSource.FileName}");
+            }
+
+            var gameFolders = new List<GameFolder>();
+            var errors = new List<string>();
+
+            foreach (string folderPath in folderPaths)
+            {
+                if (!GameSource.TryDescribe(folderPath, out GameFolder described, out string folderError))
+                    return Fail($"{GameSource.FileName}: {folderError}");
+
+                if (gameFolders.Any(r => r.Depot == described.Depot))
+                    return Fail($"{GameSource.FileName} lists depot {described.Depot} twice");
+
+                gameFolders.Add(described);
+                Console.WriteLine($"Game folder: {described.Path} (version {described.Version} -> {described.ManifestName})");
+
+                if (!GameSource.IsAtExpectedLocation(profileDir, described.Path, described.Version))
+                    errors.Add($"the launcher looks for this game in '{GameSource.ExpectedLocation(profileDir, described.Version)}', " +
+                               $"but the folder is '{described.Path}'");
+            }
 
             LoadRuleLists();
 
@@ -75,10 +175,17 @@ namespace Indexer
             List<Odinsons.ValheimLauncher.Manifest.Entry> previousPlayer = TryReadManifest("update.info");
             List<Odinsons.ValheimLauncher.Manifest.Entry> previousAdmin = TryReadManifest("update_admin.info");
             List<Odinsons.ValheimLauncher.Manifest.Entry> previousOptional = TryReadManifest("optional.info");
-            List<Odinsons.ValheimLauncher.Manifest.Entry> previousGame = TryReadManifest(gameManifestName);
+            List<Odinsons.ValheimLauncher.Manifest.Entry> previousGame = (gameFolders.Count == 0
+                    ? new[] { gameManifestName }
+                    : gameFolders.Select(r => r.ManifestName))
+                .SelectMany(TryReadManifest)
+                .ToList();
 
             string currentDir = Environment.CurrentDirectory;
-            var allFiles = Directory.GetFiles(currentDir, "*.*", SearchOption.AllDirectories);
+            string[] folderPrefixes = gameFolders.Select(r => r.Path + Path.DirectorySeparatorChar).ToArray();
+            var allFiles = Directory.GetFiles(currentDir, "*.*", SearchOption.AllDirectories)
+                .Where(f => !folderPrefixes.Any(prefix => f.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+                .ToArray();
 
             // Game files go into a separate manifest and do NOT go into update.info:
             // the launcher takes them from the Steam install, and only pulls from the
@@ -90,7 +197,7 @@ namespace Indexer
                 .ThenBy(f => f)
                 .ToList();
 
-            // update_admin.info — the admin build (only the general rules are excluded)
+            // update_admin.info — the admin variant (only the general rules are excluded)
             var filesAdmin = allFiles
                 .Where(f => ShouldInclude(f, adminOnly: false) && !IsGameFile(f) && !IsOptionalMod(f))
                 .OrderBy(f => f.Split(Path.DirectorySeparatorChar).Length)
@@ -117,57 +224,89 @@ namespace Indexer
             // game.info — original-game files, split out of update.info.
             // The launcher folds them into the general list itself, first trying to take
             // them from the player's own Steam install.
-            var gameFiles = allFiles
-                .Where(f => ShouldInclude(f, adminOnly: true) && IsGameFile(f))
+            //
+            // With separate game folders each manifest lists everything in its folder, and
+            // game_files.txt only keeps stray copies of the game in the profile folder out of the
+            // mod manifests.
+            static List<string> Ordered(IEnumerable<string> paths) => paths
                 .OrderBy(f => f.Split(Path.DirectorySeparatorChar).Length)
                 .ThenBy(f => f)
                 .ToList();
 
+            var gameSets = gameFolders.Count == 0
+                ? new List<(string ManifestName, GameFolder Root, List<string> Files)>
+                  {
+                      (gameManifestName, null,
+                       Ordered(allFiles.Where(f => ShouldInclude(f, adminOnly: true) && IsGameFile(f))))
+                  }
+                : gameFolders
+                    .Select(r => (ManifestName: r.ManifestName, Root: r,
+                                  Files: Ordered(Directory.GetFiles(r.Path, "*.*", SearchOption.AllDirectories))))
+                    .ToList();
+
+            var gameFiles = gameSets.SelectMany(s => s.Files).ToList();
+
             // Hash ONCE for all manifests. Every WriteToFile call used to compute its own
             // checksums, so a file present in both update.info and update_admin.info got
-            // read from disk twice — meaning the whole build was hashed twice over. The
+            // read from disk twice — meaning the whole profile was hashed twice over. The
             // manifests only differ in which lines they include; the checksums themselves
             // are shared.
-            var hashes = ComputeHashes(new[] { files, filesAdmin, optionalFiles, gameFiles },
-                                       currentDir, useCache);
+            var hashes = ComputeHashes(
+                gameFolders.Count == 0
+                    ? new[] { files, filesAdmin, optionalFiles, gameFiles }
+                    : new[] { files, filesAdmin, optionalFiles },
+                currentDir, useCache);
+
+            foreach (var set in gameSets.Where(s => s.Root is not null))
+                foreach (var pair in ComputeHashes(new[] { set.Files }, set.Root.Path, useCache,
+                                                   Path.Combine(currentDir, GameSource.CacheFileNameFor(set.Root.Depot))))
+                    hashes[pair.Key] = pair.Value;
 
             WriteToFile("update.info", files, hashes);
             WriteToFile("update_admin.info", filesAdmin, hashes);
             WriteToFile("optional.info", optionalFiles, hashes);
-            WriteToFile(gameManifestName, gameFiles, hashes);
 
-            long gameBytes = gameFiles.Sum(f => hashes[f].Size);
+            foreach (var set in gameSets)
+                WriteToFile(set.ManifestName, set.Files, hashes,
+                    set.Root is null
+                        ? null
+                        : new[] { new KeyValuePair<string, string>(
+                            Odinsons.ValheimLauncher.GameLocation.VersionDirective, set.Root.Version) });
 
             Console.WriteLine();
             Console.WriteLine($"update.info:       {files.Count} files");
             Console.WriteLine($"update_admin.info: {filesAdmin.Count} files");
             Console.WriteLine($"optional.info:     {optionalFiles.Count} files");
-            Console.WriteLine($"{gameManifestName,-17} {gameFiles.Count} files, {gameBytes / 1024.0 / 1024.0:0.0} MB");
 
-            if (GameFileRules.Count == 0)
+            foreach (var set in gameSets)
+            {
+                long gameBytes = set.Files.Sum(f => hashes[f].Size);
+                Console.WriteLine($"{set.ManifestName,-17} {set.Files.Count} files, {gameBytes / 1024.0 / 1024.0:0.0} MB");
+            }
+
+            if (gameFolders.Count == 0 && GameFileRules.Count == 0)
                 Console.WriteLine("WARNING: no game-file rules — game.info is empty.");
 
             ReportAddedRemoved(previousPlayer, previousAdmin, previousOptional, previousGame,
                               files, filesAdmin, optionalFiles, gameFiles, hashes);
             ReportAdminPlayerTransitions(previousPlayer, previousAdmin, files, filesAdmin, hashes);
 
-            var problems = new List<string>();
-            CheckInvariants(files, filesAdmin, optionalFiles, gameFiles, hashes, problems);
+            CheckInvariants(files, filesAdmin, optionalFiles, gameFiles, hashes, errors);
 
             Console.WriteLine();
 
             int exitCode;
-            if (problems.Count == 0)
+            if (errors.Count == 0)
             {
                 Console.WriteLine("RESULT: OK");
                 exitCode = 0;
             }
             else
             {
-                foreach (string problem in problems)
-                    Console.WriteLine($"PROBLEM: {problem}");
+                foreach (string error in errors)
+                    Console.WriteLine($"ERROR: {error}");
 
-                Console.WriteLine($"RESULT: {problems.Count} problem(s) found");
+                Console.WriteLine($"RESULT: {errors.Count} error(s) found");
                 exitCode = 2;
             }
 
@@ -201,12 +340,12 @@ namespace Indexer
         /// the list came up empty, and nine admin mods silently shipped to players — that was
         /// reported as a single WARNING line among thousands of lines of output; now a
         /// non-empty list that matches nothing is a failure with a non-zero exit code.
-        /// An empty list by itself (invariant 4) isn't that same mistake — a build can
+        /// An empty list by itself (invariant 4) isn't that same mistake — a profile can
         /// genuinely have no admin-only mods — so it's a NOTE, not a failure.
         /// </summary>
         internal static void CheckInvariants(
             List<string> files, List<string> filesAdmin, List<string> optionalFiles, List<string> gameFiles,
-            Dictionary<string, Odinsons.ValheimLauncher.Manifest.Entry> hashes, List<string> problems)
+            Dictionary<string, Odinsons.ValheimLauncher.Manifest.Entry> hashes, List<string> errors)
         {
             var playerPaths = new HashSet<string>(files.Select(f => hashes[f].Path), StringComparer.OrdinalIgnoreCase);
             var adminPaths = new HashSet<string>(filesAdmin.Select(f => hashes[f].Path), StringComparer.OrdinalIgnoreCase);
@@ -226,7 +365,7 @@ namespace Indexer
                 {
                     if (RuleMatches(rule, path, fileName, pathWithSlash))
                     {
-                        problems.Add($"admin-only path leaked to players: {path} (matches rule '{rule}')");
+                        errors.Add($"admin-only path leaked to players: {path} (matches rule '{rule}')");
                         break;
                     }
                 }
@@ -235,30 +374,30 @@ namespace Indexer
             // 2: optional mods must not end up in either of the two main manifests —
             // otherwise the launcher would force-install them for everyone.
             foreach (string path in playerPaths.Intersect(optionalPaths, StringComparer.OrdinalIgnoreCase))
-                problems.Add($"optional mod leaked into update.info: {path}");
+                errors.Add($"optional mod leaked into update.info: {path}");
 
             foreach (string path in adminPaths.Intersect(optionalPaths, StringComparer.OrdinalIgnoreCase))
-                problems.Add($"optional mod leaked into update_admin.info: {path}");
+                errors.Add($"optional mod leaked into update_admin.info: {path}");
 
             // 3: game files must not be duplicated in update.info.
             foreach (string path in playerPaths.Intersect(gamePaths, StringComparer.OrdinalIgnoreCase))
-                problems.Add($"game file duplicated in update.info: {path}");
+                errors.Add($"game file duplicated in update.info: {path}");
 
-            // 4: the list is empty. Not a problem by itself — a build can genuinely have no
+            // 4: the list is empty. Not an error by itself — a profile can genuinely have no
             // admin-only mods (a vanilla/game-file-only index, for instance) — just worth
             // saying out loud so it's never a silent assumption. The real hazard this used to
-            // guard against was admin_only_patterns.txt going missing on a build that DOES
+            // guard against was admin_only_patterns.txt going missing on a profile that DOES
             // have admin mods (nine of them shipped to players once); invariant 5 below still
             // catches that shape of mistake — a non-empty list that matches nothing.
             if (AdminOnlyMods.Count == 0)
-                Console.WriteLine("NOTE: no admin-only mods for this build — " +
+                Console.WriteLine("NOTE: no admin-only mods for this profile — " +
                                    "update.info and update_admin.info are identical.");
 
             // 5: the list isn't empty, but no rule matched anything — both manifests come
             // out identical. Usually a typo in a path inside admin_only_patterns.txt,
             // not "there really are no admin mods right now".
             if (AdminOnlyMods.Count > 0 && files.Count == filesAdmin.Count)
-                problems.Add("admin-only mod list is non-empty, but update.info and update_admin.info are " +
+                errors.Add("admin-only mod list is non-empty, but update.info and update_admin.info are " +
                              "identical (no rule matched any file — check the paths in admin_only_patterns.txt)");
         }
 
@@ -280,7 +419,7 @@ namespace Indexer
         }
 
         /// <summary>
-        /// Warns if a mod switched between the player build and the admin build since the
+        /// Warns if a mod switched between the player and the admin variants since the
         /// last run. Both directions can be a deliberate decision, but they're easy to trigger
         /// by mistake — the wrong path moved while editing a list — and the cost of a mistake
         /// is high: either the tool disappears for every admin, or it ships to every player.
@@ -334,7 +473,7 @@ namespace Indexer
 
         /// <summary>
         /// A general "what appeared and what disappeared" report across all four manifests
-        /// at once — not about moving between the player and admin build (there's a separate
+        /// at once — not about moving between the player and admin variants (there's a separate
         /// report for that), but about a file's existence at all. The goal: three lines are
         /// enough to think "yes, that's what I did", instead of a 2500-line diff.
         /// </summary>
@@ -489,11 +628,13 @@ namespace Indexer
             string fileName = Path.GetFileName(relPath);
             string pathWithSlash = relPath + "/";
 
+            if (GameSource.IsOwnArtifact(relPath)) return false;
+
             // Check the general rules (ignore_patterns.txt) — always
             foreach (var rule in IgnoreRules)
                 if (RuleMatches(rule, relPath, fileName, pathWithSlash)) return false;
 
-            // Check admin_only_patterns.txt — only for the player build
+            // Check admin_only_patterns.txt — only for the player variant
             if (adminOnly)
                 foreach (var rule in AdminOnlyMods)
                     if (RuleMatches(rule, relPath, fileName, pathWithSlash)) return false;
@@ -504,7 +645,7 @@ namespace Indexer
         /// <summary>
         /// One exclusion rule. Five forms:
         ///   "**/name/"      — a folder with this name at any depth;
-        ///   "folder/"       — a path prefix from the build root;
+        ///   "folder/"       — a path prefix from the profile root;
         ///   "path/file.ext" — an exact path from the root (has a slash inside, no trailing one);
         ///   "name.ext"      — an exact filename anywhere in the tree (no slash at all);
         ///   with * or ?     — a mask: by path if it contains a slash, otherwise by filename.
@@ -547,12 +688,12 @@ namespace Indexer
         /// each file exactly once.
         /// </summary>
         private static Dictionary<string, Odinsons.ValheimLauncher.Manifest.Entry> ComputeHashes(
-            IEnumerable<List<string>> manifestLists, string packFolder, bool useCache)
+            IEnumerable<List<string>> manifestLists, string packFolder, bool useCache, string cacheFile = null)
         {
             var union = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (List<string> list in manifestLists) union.UnionWith(list);
 
-            HashCache cache = useCache ? HashCache.Load(packFolder) : null;
+            HashCache cache = useCache ? HashCache.Load(packFolder, cacheFile) : null;
             var result = new ConcurrentDictionary<string, Odinsons.ValheimLauncher.Manifest.Entry>(
                 StringComparer.OrdinalIgnoreCase);
             int computed = 0;
@@ -571,7 +712,8 @@ namespace Indexer
                 }
 
                 result[file] = new Odinsons.ValheimLauncher.Manifest.Entry(
-                    GetRelativePath(file), hash, info.Length);
+                    Path.GetRelativePath(packFolder, file).Replace(Path.DirectorySeparatorChar, '/'),
+                    hash, info.Length);
             });
 
             watch.Stop();
@@ -593,13 +735,14 @@ namespace Indexer
         /// and its contents can be viewed directly in it.
         /// </summary>
         private static void WriteToFile(string fileName, List<string> files,
-                                        Dictionary<string, Odinsons.ValheimLauncher.Manifest.Entry> hashes)
+                                        Dictionary<string, Odinsons.ValheimLauncher.Manifest.Entry> hashes,
+                                        IEnumerable<KeyValuePair<string, string>> directives = null)
         {
             var entries = new List<Odinsons.ValheimLauncher.Manifest.Entry>(files.Count);
 
             foreach (string file in files) entries.Add(hashes[file]);
 
-            Odinsons.ValheimLauncher.Manifest.WriteFile(fileName, entries);
+            Odinsons.ValheimLauncher.Manifest.WriteFile(fileName, entries, directives: directives);
         }
     }
 }

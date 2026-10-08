@@ -12,7 +12,7 @@ original WPF-only `Launcher` still exists but is no longer where development hap
 ### Keeping mods up to date
 
 - **Delta updates.** Every file is checked against the server's manifest by SHA-256; only
-  what's actually missing or changed gets downloaded. Files no longer part of the build are
+  what's actually missing or changed gets downloaded. Files no longer part of the profile are
   removed automatically.
 - **Optional mods.** Players can opt in to specific mods without them being wiped on the
   next update — an optional mod, once installed, survives updates the same way a required
@@ -25,6 +25,17 @@ original WPF-only `Launcher` still exists but is no longer where development hap
   problem on the player's machine, not a real update.
 - **Full check.** A dedicated button re-verifies every file from scratch, ignoring the
   normal exclusion rules — for when something's wrong and a normal check isn't catching it.
+
+### Where things live
+
+- **Profile folder.** Each server's mods and their settings live in a folder of their own,
+  `clients/<server>` by default. It can be changed per server in Install settings.
+- **Game folder.** By default the game sits in the profile folder, next to the mods. A separate
+  game folder (one for all servers) keeps the game apart: the mods stay in the profile folder,
+  and the game is started from the game folder with the mods injected, the way injector mode does.
+  Pointing it at the Steam install itself is the same as not setting it, and never writes to Steam.
+- A folder is only accepted if it's empty or already a Valheim client, and is writable — never one
+  with someone else's files in it. The game and profile folders can't lie inside one another.
 
 ### Steam integration
 

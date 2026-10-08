@@ -13,7 +13,7 @@ The suite runs serially (`CollectionBehavior(DisableTestParallelization = true)`
 ## UpdateScenarioTests.cs
 
 End-to-end scenarios against the whole update pipeline, run over a real HTTP server serving
-a fixture build. Each one is a regression for a specific case where behavior once silently
+a fixture profile. Each one is a regression for a specific case where behavior once silently
 diverged from what a player would expect, with no error and no message.
 
 - **FreshInstall_GetsRequiredAndGameFiles_SkipsOptionalAndAdmin** — a clean install pulls
@@ -181,7 +181,7 @@ list.
 
 - **FilesUnderAPluginOrConfigFolder_GroupByThatFolder** — a file under
   `BepInEx/plugins/<mod>/` or `BepInEx/config/<mod>/` groups by that folder (config counts
-  too — on a real build it holds hundreds of MB of music/textures).
+  too — on a real profile it holds hundreds of MB of music/textures).
 - **LooseFiles_LandInTheCatchAllBucket** — a stray `.cfg` straight in `config/`, a loose
   plugin file, a game-root file: all one catch-all group.
 - **LeadingSlashesAndBackslashesDontMatter** — path separators and a leading slash are
@@ -203,3 +203,60 @@ and the biggest-remaining-first short list.
   ordered by bytes remaining and honours the display cap.
 - **ActiveGroups_ExcludesFinishedGroups_EvenIfBytesLagBehind** — a group whose files are
   all done drops off the list even if its byte counter never reached the estimate.
+
+## GameLocationTests.cs
+
+Where the vanilla game's files are served from. A game manifest names only the version
+(`# game: <depot>_<manifest>`); the folder URL is built in `GameLocation`, one level above the
+launcher folder.
+
+- **Version_BecomesAFolderAtTheSiteRoot** — `892972_123` resolves to
+  `<site root>/Game/892972_123/`, so each mirror gets its own host.
+- **ANameThatIsNotDepotUnderscoreManifest_IsRejected** — anything but two numbers joined by
+  `_` (paths, `..`, trailing slashes, empty) never becomes a URL, so a manifest can't steer
+  the launcher to some other folder.
+- **Directive_IsReadFromTheHeader_AndSkippedByTheEntryParser** — the directive is a comment
+  line, so the entry parser (and any older launcher) skips it.
+- **Directive_AfterTheFirstEntry_IsNotPickedUp** — only the header counts.
+- **GameFiles_AreDownloadedFromTheVersionFolder_ModsStayOnTheServerDirectory** — end to end:
+  game files that exist only under `Game/<version>/` are installed, mods still come from the
+  server directory.
+
+## GameFolderTests.cs
+
+The game in a folder of its own, apart from the client (profile) folder that holds the mods.
+The first three run for Windows, macOS and Linux.
+
+- **GameFiles_LandInTheGameFolder_ModsInTheClientFolder_AndTheGameStartsFromThere** — game
+  files are installed into the game folder and never into the client folder, mods stay in the
+  client folder, and the launch plan points at the game folder's executable.
+- **ASecondRun_FindsTheGameFolderComplete_AndStillLaunchesFromIt** — a repeat run has nothing
+  to fetch and still launches from the game folder, with no game files in the client folder.
+- **ASteamCopyStillSuppliesGameFiles_ButIntoTheGameFolder** — game files that match the
+  player's Steam copy are copied from it into the game folder instead of downloaded.
+- **TheSteamFolderAsTheGameFolder_IsNeverWrittenTo** — pointing the game folder at the Steam
+  install itself behaves as if none was set: a mismatching Steam copy is left untouched and
+  the game is downloaded into the client folder.
+- **TheGameExecutable_IsStashedInTheGameFolder_AndComesBackBeforeTheUpdateReportsReady** — the
+  executable is hidden away where it really lives for the duration of the update.
+
+## LauncherPathsTests.cs
+
+The profile folder (a server's mods) and the game folder a player can set in Install settings,
+kept in `config.ini`.
+
+- **NothingSet_MeansTheDefaults** — no setting: `clients/<server>` for the profile, no game
+  folder (the game lives in the profile folder).
+- **TheProfileFolder_IsPerServer_AndSurvivesARestart** — one server's profile folder doesn't
+  touch the others'.
+- **TheGameFolder_IsOneForAllServers_AndSurvivesARestart** — the game folder is shared.
+- **AnEmptyValue_GoesBackToTheDefault** — "Default" in the settings clears the stored value.
+- **TheOtherSettings_AreLeftAlone** — saving a folder keeps the server choice and the rest.
+- **ANewFolder_IsUsable** / **AnEmptyFolder_IsUsable** / **AFolderThatAlreadyHoldsAClient_IsUsable**
+  — what the launcher accepts as a profile or game folder.
+- **AFolderWithSomeoneElsesFiles_IsRefused** — a folder that is neither empty nor a Valheim
+  client is refused and the offending names are shown, so the update can never clean it out.
+- **NoPath_IsRefused** — an empty path is not a folder.
+- **OneFolderInsideTheOther_IsNesting_InEitherOrder** / **SiblingsWithACommonPrefix_AreNotNesting**
+  / **TheSameFolder_IsNotNesting_ButIsTheSame** — the game and profile folders may not lie inside
+  one another; the same folder just means the default, and `Game` next to `Game2` is not nesting.

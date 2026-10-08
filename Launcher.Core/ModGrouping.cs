@@ -6,12 +6,12 @@ namespace Odinsons.ValheimLauncher
     /// <summary>
     /// Groups manifest file paths by the top-level plugin folder they belong to
     /// (BepInEx/plugins/&lt;folder&gt;/...). That folder name is the mod's identity
-    /// everywhere in this project's own build/launcher/indexer pipeline — no separate
+    /// everywhere in this project's own profile/launcher/indexer pipeline — no separate
     /// mod-name registry to keep in sync with it.
     ///
     /// BepInEx/config is deliberately NOT a source here, even though a mod's config often
     /// lives in its own subfolder there too. Two problems, both confirmed against a real
-    /// build's manifests: (1) plenty of mods drop a single loose .cfg file straight in
+    /// profile's manifests: (1) plenty of mods drop a single loose .cfg file straight in
     /// BepInEx/config with no subfolder at all — grouping by "the third path segment"
     /// there means grouping by filename, producing one fake single-file "mod" per config;
     /// (2) even where a config subfolder exists, it's commonly named after the BepInEx
@@ -21,7 +21,7 @@ namespace Odinsons.ValheimLauncher
     /// without guessing. A handful of mods (e.g. PlanBuild) ship data only under
     /// BepInEx/config with no plugins/ folder at all and so won't appear here — acceptable,
     /// since the only place this grouping's accuracy actually matters is optional mods
-    /// (for the toggle), and every optional mod on the live build has a plugins/ folder.
+    /// (for the toggle), and every optional mod on the live profile has a plugins/ folder.
     /// </summary>
     public static class ModGrouping
     {

@@ -36,7 +36,7 @@ exactly one set of manifests to keep current.
 
 ## How to (re)generate one manifest
 
-The Indexer takes `--game-manifest <name>` (default `game.info`). Run it in a build folder
+The Indexer takes `--game-manifest <name>` (default `game.info`). Run it in a profile folder
 that contains a **vanilla** install for that OS plus the rule files:
 
 ```bash
@@ -82,3 +82,58 @@ Not built yet; do before 2026-09-09:
 - [ ] Timing: regenerate against the release build the day it ships (or from the Steam
       beta/branch if the build is available early) so injector mode never breaks for a
       window after the update.
+
+## Keeping the game apart from the mod profile
+
+The game doesn't have to sit inside the mod profile folder. Put each version in its own folder
+named after its Steam depot and manifest, at the site root, one level above `Launcher`:
+
+```
+<site root>/
+  Launcher/
+    Indexer.exe
+    Lite_v2/                  mod profile: update.info, game.info, ...
+  Game/892972_<manifestid>/   vanilla Windows files (depot 892972)
+```
+
+`game.info` then carries the version in its header, and the launcher downloads the manifest's
+files from `Game/<version>/` on the same host as the mirror it is using:
+
+```
+MANIFEST 3 sha256
+# game: 892972_<manifestid>
+<hash> <size> valheim.exe
+```
+
+The launcher builds that address itself and accepts only a plain `<depot>_<manifest>` name, so
+the manifest can't point it elsewhere. Without the directive, game files are served from the
+profile folder as before. Older launchers read the line as a comment. Every mirror has to serve
+`/Game/` as well as `/Launcher/`.
+
+### Indexing
+
+There is one folder per Steam depot, and the depot decides the manifest it produces:
+
+| Depot | OS | Manifest |
+|-------|----|----------|
+| 892972 | Windows | `game.info` |
+| 892973 | macOS | `game_macos.info` |
+| 892971 | Linux | `game_linux.info` |
+
+```bash
+Indexer --profile Lite_v2 \
+  --game-folder ../Game/892972_<manifestid> \
+  --game-folder ../Game/892973_<manifestid> \
+  --game-folder ../Game/892971_<manifestid>
+```
+
+The folders are remembered in `game_source.txt` in the profile folder, so later runs (a mod
+update) just use `Indexer --profile Lite_v2`. A new game version is `--game-folder` with the new
+folder, once: it replaces the remembered folder of the same depot and leaves the others alone.
+Paths inside each game manifest are relative to its game folder, and each depot keeps its own
+hash cache (`hashes_game_<depot>.cache`). `game_files.txt` still keeps stray copies of the game
+in the profile folder out of the mod manifests; without any game folder the Indexer works as
+before, splitting the game out of the profile folder by that list (`--game-manifest` names the
+file then). A folder must be named `<depot>_<manifest>` for a Valheim depot and sit at `Game/` at
+the site root, or the run reports an error. `steam_appid.txt` is not part of the Steam depot:
+keep it in the mod profile, off the `game_files.txt` list.
