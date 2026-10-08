@@ -47,10 +47,10 @@ namespace Indexer
             _known = known;
         }
 
-        public static HashCache Load(string packFolder)
+        public static HashCache Load(string packFolder, string cacheFilePath = null)
         {
             string root = Path.GetFullPath(packFolder).TrimEnd(Path.DirectorySeparatorChar);
-            string cacheFile = Path.Combine(root, "hashes.cache");
+            string cacheFile = cacheFilePath ?? Path.Combine(root, "hashes.cache");
             var known = new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase);
 
             try

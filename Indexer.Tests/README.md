@@ -55,3 +55,22 @@ The four forms an exclusion rule (`ignore_patterns.txt` and its siblings) can ta
   everything underneath it.
 - **MaskRule_StillMatchesByPathWhenItContainsASlash** — a mask rule (`*.old`) that contains
   a slash still matches by the full path.
+
+## GameSourceTests.cs
+
+The game folder kept apart from the mod build: `--game-root` is remembered in
+`game_source.txt`, so later runs index the same game without the flag.
+
+- **NothingRemembered_MeansNoSeparateGame** — no file, no separate game folder.
+- **APathPassedOnce_IsReadBackOnLaterRuns** — the remembered path comes back as an absolute
+  path.
+- **ANewerPath_ReplacesTheRememberedOne** — moving to a new game version is one run with the
+  new folder.
+- **TheRememberedPath_IsStoredRelativeToTheBuildFolder** — stored as `../Game/<version>`, so
+  the file survives moving the whole tree.
+- **OnlyADepotUnderscoreManifestFolderNameIsAVersion** — the folder name doubles as the
+  version written to `game.info`, so it has to be `<depot>_<manifest>`.
+- **TheGameFolder_IsExpectedNextToTheServerFolders** — the folder must sit at `Game/` beside
+  the build folder, where the launcher looks for it.
+- **BuildFlag_TakesThePathAfterIt** — `--build <folder>` (and any `--flag value` pair) is read
+  from anywhere among the arguments; a trailing flag with no value is ignored.

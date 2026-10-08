@@ -63,10 +63,10 @@ namespace Launcher.Tests
 
         public void WriteEmptyGameManifest() => WriteEmptyManifest(GameManifestName);
 
-        /// <summary>A game manifest whose files live in <paramref name="gamePack"/> and are announced via "# base:".</summary>
-        public void WriteGameManifest(string gameBase, TestPack gamePack, params string[] relativePaths) =>
+        /// <summary>A game manifest whose files live in <paramref name="gamePack"/>, announced by its "# game:" version.</summary>
+        public void WriteGameManifest(string gameVersion, TestPack gamePack, params string[] relativePaths) =>
             Manifest.WriteFile(Path.Combine(Root, GameManifestName), relativePaths.Select(gamePack.EntryFor),
-                directives: new[] { new KeyValuePair<string, string>("base", gameBase) });
+                directives: new[] { new KeyValuePair<string, string>(GameLocation.VersionDirective, gameVersion) });
 
         /// <summary>
         /// Adds the game executable the way Steam ships it for the running OS: a plain file

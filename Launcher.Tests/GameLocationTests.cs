@@ -4,50 +4,39 @@ using Xunit;
 
 namespace Launcher.Tests
 {
-    public sealed class GameBaseTests
+    public sealed class GameLocationTests
     {
         private const string ServerDir = "https://mirror.example/Launcher/Lite_v2/";
 
         [Fact]
-        public void RelativeBase_ResolvesAgainstTheServerDirectory()
-        {
-            string? url = GameBaseUrl.Resolve("../Game/892972_123/", ServerDir, out string? problem);
-
-            Assert.Equal("https://mirror.example/Launcher/Game/892972_123/", url);
-            Assert.Null(problem);
-        }
-
-        [Fact]
-        public void BaseWithoutTrailingSlash_GetsOne()
+        public void Version_BecomesAFolderNextToTheServerDirectories()
         {
             Assert.Equal("https://mirror.example/Launcher/Game/892972_123/",
-                GameBaseUrl.Resolve("../Game/892972_123", ServerDir, out _));
-        }
-
-        [Fact]
-        public void MissingBase_MeansNoSeparateLocation()
-        {
-            Assert.Null(GameBaseUrl.Resolve(null, ServerDir, out string? problem));
-            Assert.Null(GameBaseUrl.Resolve("  ", ServerDir, out _));
-            Assert.Null(problem);
+                GameLocation.UrlFor(ServerDir, "892972_123"));
         }
 
         [Theory]
-        [InlineData("https://evil.example/Game/")]
-        [InlineData("//evil.example/Game/")]
-        [InlineData("http://mirror.example/Launcher/Game/")]
-        public void BasePointingOutsideTheServerHost_IsRejected(string directive)
+        [InlineData("892972")]
+        [InlineData("892972_")]
+        [InlineData("_123")]
+        [InlineData("892972_123/")]
+        [InlineData("../892972_123")]
+        [InlineData("892972_123/../../x")]
+        [InlineData("a_b")]
+        [InlineData("")]
+        [InlineData(null)]
+        public void ANameThatIsNotDepotUnderscoreManifest_IsRejected(string? version)
         {
-            Assert.Null(GameBaseUrl.Resolve(directive, ServerDir, out string? problem));
-            Assert.NotNull(problem);
+            Assert.False(GameLocation.IsValidVersion(version));
+            Assert.Null(GameLocation.UrlFor(ServerDir, version!));
         }
 
         [Fact]
         public void Directive_IsReadFromTheHeader_AndSkippedByTheEntryParser()
         {
-            string text = "MANIFEST 3 sha256\n# base: ../Game/892972_123/\nabc 5 valheim.exe\n";
+            string text = "MANIFEST 3 sha256\n# game: 892972_123\nabc 5 valheim.exe\n";
 
-            Assert.Equal("../Game/892972_123/", Manifest.ReadDirective(new StringReader(text), "base"));
+            Assert.Equal("892972_123", Manifest.ReadDirective(new StringReader(text), GameLocation.VersionDirective));
 
             List<Manifest.Entry> entries = Manifest.Read(new StringReader(text));
             Assert.Single(entries);
@@ -57,19 +46,19 @@ namespace Launcher.Tests
         [Fact]
         public void Directive_AfterTheFirstEntry_IsNotPickedUp()
         {
-            string text = "MANIFEST 3 sha256\nabc 5 valheim.exe\n# base: ../Game/x/\n";
+            string text = "MANIFEST 3 sha256\nabc 5 valheim.exe\n# game: 892972_123\n";
 
-            Assert.Null(Manifest.ReadDirective(new StringReader(text), "base"));
+            Assert.Null(Manifest.ReadDirective(new StringReader(text), GameLocation.VersionDirective));
         }
 
         [Fact]
-        public async Task GameFiles_AreDownloadedFromTheBase_ModsStayOnTheServerDirectory()
+        public async Task GameFiles_AreDownloadedFromTheVersionFolder_ModsStayOnTheServerDirectory()
         {
             string web = Directory.CreateTempSubdirectory("odinsons-web-").FullName;
             try
             {
                 using var mods = new TestPack(Path.Combine(web, "Lite_v2"));
-                using var game = new TestPack(Path.Combine(web, "Game", "892972_123"));
+                using var game = new TestPack(Path.Combine(web, GameLocation.FolderName, "892972_123"));
 
                 mods.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
                 mods.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
@@ -78,7 +67,7 @@ namespace Launcher.Tests
 
                 string[] gamePaths = game.AddGameExecutable("GAME EXE").Append("valheim_Data/data.bin").ToArray();
                 game.AddFile("valheim_Data/data.bin", "game data");
-                mods.WriteGameManifest("../Game/892972_123/", game, gamePaths);
+                mods.WriteGameManifest("892972_123", game, gamePaths);
 
                 using var server = new TestServer(web);
                 string clientPath = Directory.CreateTempSubdirectory("odinsons-client-").FullName;

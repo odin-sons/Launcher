@@ -204,21 +204,20 @@ and the biggest-remaining-first short list.
 - **ActiveGroups_ExcludesFinishedGroups_EvenIfBytesLagBehind** — a group whose files are
   all done drops off the list even if its byte counter never reached the estimate.
 
-## GameBaseTests.cs
+## GameLocationTests.cs
 
-The `# base:` directive of a game manifest — where the game's files are downloaded from when
-they live apart from the mod build.
+Where the vanilla game's files are served from. A game manifest names only the version
+(`# game: <depot>_<manifest>`); the folder URL is built in `GameLocation`, next to the server
+directories.
 
-- **RelativeBase_ResolvesAgainstTheServerDirectory** — `../Game/892972_123/` becomes a URL
-  next to the server directory, so each mirror resolves it to its own host.
-- **BaseWithoutTrailingSlash_GetsOne** — the resolved URL always ends in `/`.
-- **MissingBase_MeansNoSeparateLocation** — no directive means game files come from the
-  server directory, as before.
-- **BasePointingOutsideTheServerHost_IsRejected** — an absolute URL, a `//host/` reference
-  or a different scheme is ignored instead of followed.
+- **Version_BecomesAFolderNextToTheServerDirectories** — `892972_123` resolves to
+  `<launcher root>/Game/892972_123/`, so each mirror gets its own host.
+- **ANameThatIsNotDepotUnderscoreManifest_IsRejected** — anything but two numbers joined by
+  `_` (paths, `..`, trailing slashes, empty) never becomes a URL, so a manifest can't steer
+  the launcher to some other folder.
 - **Directive_IsReadFromTheHeader_AndSkippedByTheEntryParser** — the directive is a comment
   line, so the entry parser (and any older launcher) skips it.
 - **Directive_AfterTheFirstEntry_IsNotPickedUp** — only the header counts.
-- **GameFiles_AreDownloadedFromTheBase_ModsStayOnTheServerDirectory** — end to end: game
-  files that exist only under `Game/<depot>_<manifest>/` are installed, mods still come from
-  the server directory.
+- **GameFiles_AreDownloadedFromTheVersionFolder_ModsStayOnTheServerDirectory** — end to end:
+  game files that exist only under `Game/<version>/` are installed, mods still come from the
+  server directory.

@@ -146,7 +146,7 @@ namespace Odinsons.ValheimLauncher
         /// </summary>
         private static readonly List<Manifest.Entry> GameEntries = new();
 
-        /// <summary>Where game files are downloaded from when the game manifest names its own location; null means the server directory.</summary>
+        /// <summary>Folder game files are downloaded from when the game manifest names a version; null means the server directory.</summary>
         private static string _gameBase;
 
         /// <summary>
@@ -357,12 +357,16 @@ namespace Odinsons.ValheimLauncher
 
                         LauncherLog.Info($"{remoteName}: {GameFiles.Count} game file(s) listed separately");
 
-                        _gameBase = GameBaseUrl.Resolve(Manifest.ReadDirectiveFromFile(gameListPath, "base"),
-                                                        selectedServerDirectory, out string baseProblem);
-                        if (baseProblem is not null)
-                            LauncherLog.Warn($"{remoteName}: ignoring base directive, {baseProblem}");
-                        else if (_gameBase is not null)
-                            LauncherLog.Info($"game files are downloaded from {_gameBase}");
+                        string gameVersion = Manifest.ReadDirectiveFromFile(gameListPath, GameLocation.VersionDirective);
+                        if (gameVersion is not null)
+                        {
+                            _gameBase = GameLocation.UrlFor(selectedServerDirectory, gameVersion);
+
+                            if (_gameBase is null)
+                                LauncherLog.Warn($"{remoteName}: ignoring game version '{gameVersion}', expected '<depot>_<manifest>'");
+                            else
+                                LauncherLog.Info($"game {gameVersion}: files are downloaded from {_gameBase}");
+                        }
                         break;
                     }
                     catch (Exception ex)

@@ -85,17 +85,39 @@ Not built yet; do before 2026-09-09:
 
 ## Keeping the game apart from the mod build
 
-A game manifest may name the folder its files are served from with a header directive:
+The game doesn't have to sit inside the mod build folder. Put each version in its own folder
+named after its Steam depot and manifest, next to the server folders:
+
+```
+Launcher/
+  Lite_v2/                  mod build: update.info, game.info, ...
+  Game/892972_<manifestid>/ vanilla Windows files (depot 892972)
+```
+
+`game.info` then carries the version in its header, and the launcher downloads the manifest's
+files from `Game/<version>/` on the same mirror:
 
 ```
 MANIFEST 3 sha256
-# base: ../Game/892972_<manifestid>/
+# game: 892972_<manifestid>
 <hash> <size> valheim.exe
 ```
 
-The value is relative to the server directory (`.../Launcher/<server>/`), so the files can
-sit in `Launcher/Game/<depot>_<manifestid>/`, shared by every server. Paths inside the
-manifest stay relative to the game root. The launcher downloads entries of the game manifest
-from there and everything else from the server directory. Without the directive, game files
-are served from the server directory as before; a value that points at another host is
-ignored. Older launchers read the directive as a comment.
+The launcher builds that address itself and accepts only a plain `<depot>_<manifest>` name, so
+the manifest can't point it elsewhere. Without the directive, game files are served from the
+server folder as before. Older launchers read the line as a comment.
+
+### Indexing
+
+```bash
+Indexer --build Lite_v2 --game-root Game/892972_<manifestid>
+```
+
+`--game-root` is remembered in `game_source.txt` in the build folder, so later runs (a mod
+update) just use `Indexer --build Lite_v2`. A new game version is the same command with the new
+folder, once. Paths inside `game.info` are relative to the game folder. `game_files.txt` still
+keeps stray copies of the game in the build folder out of the mod manifests; without a game
+folder the Indexer works as before, splitting the game out of the build folder by that list.
+The folder must be named `<depot>_<manifest>` and sit at `Game/` next to the build folder, or
+the run reports a problem. `steam_appid.txt` is not part of the Steam depot: keep it in the mod
+build, off the `game_files.txt` list.

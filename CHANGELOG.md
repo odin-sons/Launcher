@@ -7,9 +7,11 @@ version bumps of its own.
 ## [Unreleased]
 
 ### Added
-- A game manifest can name where its files are served from with a `# base:` header line,
-  relative to the server directory. This lets the game bundle live apart from the mod build;
-  without the line nothing changes.
+- The game bundle can live apart from the mod build. A game manifest names its version in a
+  `# game: <depot>_<manifest>` header line, and the launcher downloads the game's files from
+  `Game/<version>/` next to the server folders; without the line nothing changes.
+- The Indexer takes `--build <folder>` and `--game-root <folder>`. The game folder is
+  remembered in `game_source.txt`, so later runs for a mod update don't need the flag.
 
 ## [2.3.1] — 2026-10-04
 
