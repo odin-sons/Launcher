@@ -20,6 +20,7 @@ version bumps of its own.
 - The Indexer takes `--profile <folder>` and one `--game-folder <folder>` per depot (Windows, macOS,
   Linux), each producing its own game manifest. The game folders are
   remembered in `game_source.txt`, so later runs for a mod update don't need the flag.
+  Unknown or valueless flags are an error instead of being ignored.
 
 ## [2.3.1] — 2026-10-04
 

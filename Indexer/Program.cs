@@ -79,6 +79,41 @@ namespace Indexer
             return values;
         }
 
+        private static readonly string[] FlagsWithValue = { "--profile", "--game-folder", "--game-manifest" };
+        private const string NoCacheFlag = "--no-cache";
+
+        /// <summary>
+        /// Rejects what the Indexer doesn't understand, so a misspelt or outdated flag is an error
+        /// instead of being ignored — an ignored one could quietly index the wrong thing.
+        /// </summary>
+        /// <returns>What is wrong with the arguments, or null when they are fine.</returns>
+        internal static string ValidateArgs(string[] args)
+        {
+            string usage = $"options are {string.Join(" <value>, ", FlagsWithValue)} <value> and {NoCacheFlag}";
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                string arg = args[i];
+
+                if (string.Equals(arg, NoCacheFlag, StringComparison.OrdinalIgnoreCase)) continue;
+
+                if (FlagsWithValue.Any(flag => string.Equals(arg, flag, StringComparison.OrdinalIgnoreCase)))
+                {
+                    if (i + 1 >= args.Length || args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                        return $"{arg} expects a value";
+
+                    i++;
+                    continue;
+                }
+
+                return arg.StartsWith('-')
+                    ? $"unknown option '{arg}' ({usage})"
+                    : $"unexpected argument '{arg}' ({usage})";
+            }
+
+            return null;
+        }
+
         private static int Fail(string message)
         {
             Console.WriteLine($"ERROR: {message}");
@@ -88,6 +123,9 @@ namespace Indexer
 
         public static int Main(string[] args)
         {
+            string argsError = ValidateArgs(args);
+            if (argsError is not null) return Fail(argsError);
+
             bool useCache = !args.Any(a => string.Equals(a, "--no-cache", StringComparison.OrdinalIgnoreCase));
             string gameManifestName = ParseGameManifestName(args);
 

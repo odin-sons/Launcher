@@ -56,6 +56,20 @@ The four forms an exclusion rule (`ignore_patterns.txt` and its siblings) can ta
 - **MaskRule_StillMatchesByPathWhenItContainsASlash** — a mask rule (`*.old`) that contains
   a slash still matches by the full path.
 
+## ArgumentsTests.cs
+
+The Indexer's command line: `--profile`, `--game-folder`, `--game-manifest` (each with a value)
+and `--no-cache`. Anything else is an error rather than being ignored, because an ignored flag
+could quietly index the wrong thing.
+
+- **NoArguments_AreFine** / **EveryKnownFlag_IsAccepted_InAnyOrder** / **FlagsAreCaseInsensitive**
+  — what is accepted.
+- **AnUnknownOrOutdatedFlag_IsAnError_NamedInTheMessage** — a renamed or misspelt flag (such as
+  the old `--game-root`) is refused, named in the message together with the valid options.
+- **AStrayArgument_IsAnError** — a value that no flag owns is refused.
+- **AFlagWithNoValue_IsAnError** / **AFlagFollowedByAnotherFlag_HasNoValue** — a flag must be
+  followed by its value.
+
 ## GameSourceTests.cs
 
 The game folders kept apart from the mod profile, one per Steam depot: `--game-folder` is
