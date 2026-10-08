@@ -105,8 +105,46 @@ namespace Odinsons.ValheimLauncher
             return Read(reader);
         }
 
+        /// <summary>
+        /// Reads a header directive: a "# key: value" comment line between the format marker and
+        /// the first entry. Being a comment, it is skipped by <see cref="Read"/> and by launchers
+        /// that predate the directive.
+        /// </summary>
+        public static string ReadDirective(TextReader reader, string key)
+        {
+            string prefix = key + ":";
+            bool headerSeen = false;
+
+            for (string line = reader.ReadLine(); line is not null; line = reader.ReadLine())
+            {
+                if (line.Length == 0) continue;
+
+                if (line[0] != '#')
+                {
+                    if (headerSeen) return null;
+                    headerSeen = true;
+                    continue;
+                }
+
+                if (!headerSeen) continue;
+
+                string body = line.TrimStart('#').Trim();
+                if (body.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    return body.Substring(prefix.Length).Trim();
+            }
+
+            return null;
+        }
+
+        public static string ReadDirectiveFromFile(string path, string key)
+        {
+            using var reader = new StreamReader(path, Encoding.UTF8);
+            return ReadDirective(reader, key);
+        }
+
         public static void Write(TextWriter writer, IEnumerable<Entry> entries,
-                                 string algorithm = DefaultAlgorithm)
+                                 string algorithm = DefaultAlgorithm,
+                                 IEnumerable<KeyValuePair<string, string>> directives = null)
         {
             writer.Write(Marker);
             writer.Write(' ');
@@ -114,6 +152,10 @@ namespace Odinsons.ValheimLauncher
             writer.Write(' ');
             writer.Write(algorithm);
             writer.Write('\n');
+
+            if (directives is not null)
+                foreach (KeyValuePair<string, string> directive in directives)
+                    writer.Write($"# {directive.Key}: {directive.Value}\n");
 
             foreach (Entry entry in entries)
             {
@@ -127,11 +169,12 @@ namespace Odinsons.ValheimLauncher
         }
 
         public static void WriteFile(string path, IEnumerable<Entry> entries,
-                                     string algorithm = DefaultAlgorithm)
+                                     string algorithm = DefaultAlgorithm,
+                                     IEnumerable<KeyValuePair<string, string>> directives = null)
         {
             // No BOM, and \n line endings: the file is read fine by Windows, Linux, and plain diff.
             using var writer = new StreamWriter(path, false, new UTF8Encoding(false));
-            Write(writer, entries, algorithm);
+            Write(writer, entries, algorithm, directives);
         }
 
         private static string ReadMeaningfulLine(TextReader reader)

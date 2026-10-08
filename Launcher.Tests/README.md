@@ -203,3 +203,22 @@ and the biggest-remaining-first short list.
   ordered by bytes remaining and honours the display cap.
 - **ActiveGroups_ExcludesFinishedGroups_EvenIfBytesLagBehind** — a group whose files are
   all done drops off the list even if its byte counter never reached the estimate.
+
+## GameBaseTests.cs
+
+The `# base:` directive of a game manifest — where the game's files are downloaded from when
+they live apart from the mod build.
+
+- **RelativeBase_ResolvesAgainstTheServerDirectory** — `../Game/892972_123/` becomes a URL
+  next to the server directory, so each mirror resolves it to its own host.
+- **BaseWithoutTrailingSlash_GetsOne** — the resolved URL always ends in `/`.
+- **MissingBase_MeansNoSeparateLocation** — no directive means game files come from the
+  server directory, as before.
+- **BasePointingOutsideTheServerHost_IsRejected** — an absolute URL, a `//host/` reference
+  or a different scheme is ignored instead of followed.
+- **Directive_IsReadFromTheHeader_AndSkippedByTheEntryParser** — the directive is a comment
+  line, so the entry parser (and any older launcher) skips it.
+- **Directive_AfterTheFirstEntry_IsNotPickedUp** — only the header counts.
+- **GameFiles_AreDownloadedFromTheBase_ModsStayOnTheServerDirectory** — end to end: game
+  files that exist only under `Game/<depot>_<manifest>/` are installed, mods still come from
+  the server directory.

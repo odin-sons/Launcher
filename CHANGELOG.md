@@ -4,6 +4,13 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
+## [Unreleased]
+
+### Added
+- A game manifest can name where its files are served from with a `# base:` header line,
+  relative to the server directory. This lets the game bundle live apart from the mod build;
+  without the line nothing changes.
+
 ## [2.3.1] — 2026-10-04
 
 ### Changed

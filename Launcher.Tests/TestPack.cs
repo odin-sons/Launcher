@@ -10,7 +10,13 @@ namespace Launcher.Tests
     /// </summary>
     public sealed class TestPack : IDisposable
     {
-        public string Root { get; } = Directory.CreateTempSubdirectory("odinsons-pack-").FullName;
+        public string Root { get; }
+
+        public TestPack(string? root = null)
+        {
+            Root = root ?? Directory.CreateTempSubdirectory("odinsons-pack-").FullName;
+            Directory.CreateDirectory(Root);
+        }
 
         private readonly Dictionary<string, string> _relativeToFull = new(StringComparer.OrdinalIgnoreCase);
 
@@ -56,6 +62,11 @@ namespace Launcher.Tests
             WriteManifest(GameManifestName, relativePaths);
 
         public void WriteEmptyGameManifest() => WriteEmptyManifest(GameManifestName);
+
+        /// <summary>A game manifest whose files live in <paramref name="gamePack"/> and are announced via "# base:".</summary>
+        public void WriteGameManifest(string gameBase, TestPack gamePack, params string[] relativePaths) =>
+            Manifest.WriteFile(Path.Combine(Root, GameManifestName), relativePaths.Select(gamePack.EntryFor),
+                directives: new[] { new KeyValuePair<string, string>("base", gameBase) });
 
         /// <summary>
         /// Adds the game executable the way Steam ships it for the running OS: a plain file

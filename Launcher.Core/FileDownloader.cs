@@ -146,6 +146,9 @@ namespace Odinsons.ValheimLauncher
         /// </summary>
         private static readonly List<Manifest.Entry> GameEntries = new();
 
+        /// <summary>Where game files are downloaded from when the game manifest names its own location; null means the server directory.</summary>
+        private static string _gameBase;
+
         /// <summary>
         /// The Steam install of the game, if found. Files from game.info are tried from there
         /// first and only downloaded if that fails. The caller does the lookup: the downloader
@@ -243,6 +246,7 @@ namespace Odinsons.ValheimLauncher
             _injectorPlan = null;
             GameFiles.Clear();
             GameEntries.Clear();
+            _gameBase = null;
 
             if (_steamGameFolder is null)
                 LauncherLog.Info(steamGameFolder is null
@@ -352,6 +356,13 @@ namespace Odinsons.ValheimLauncher
                         }
 
                         LauncherLog.Info($"{remoteName}: {GameFiles.Count} game file(s) listed separately");
+
+                        _gameBase = GameBaseUrl.Resolve(Manifest.ReadDirectiveFromFile(gameListPath, "base"),
+                                                        selectedServerDirectory, out string baseProblem);
+                        if (baseProblem is not null)
+                            LauncherLog.Warn($"{remoteName}: ignoring base directive, {baseProblem}");
+                        else if (_gameBase is not null)
+                            LauncherLog.Info($"game files are downloaded from {_gameBase}");
                         break;
                     }
                     catch (Exception ex)
@@ -1193,7 +1204,8 @@ namespace Odinsons.ValheimLauncher
             TryDownloadOnceAsync(FileToDownload file, BackgroundWorker worker,
                                  string selectedServerDirectory, int attempt)
         {
-            string url = selectedServerDirectory + file.WebDir;
+            string url = (_gameBase is not null && GameFiles.Contains(file.WebDir) ? _gameBase : selectedServerDirectory)
+                         + file.WebDir;
 
             try
             {

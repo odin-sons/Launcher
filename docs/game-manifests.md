@@ -82,3 +82,20 @@ Not built yet; do before 2026-09-09:
 - [ ] Timing: regenerate against the release build the day it ships (or from the Steam
       beta/branch if the build is available early) so injector mode never breaks for a
       window after the update.
+
+## Keeping the game apart from the mod build
+
+A game manifest may name the folder its files are served from with a header directive:
+
+```
+MANIFEST 3 sha256
+# base: ../Game/892972_<manifestid>/
+<hash> <size> valheim.exe
+```
+
+The value is relative to the server directory (`.../Launcher/<server>/`), so the files can
+sit in `Launcher/Game/<depot>_<manifestid>/`, shared by every server. Paths inside the
+manifest stay relative to the game root. The launcher downloads entries of the game manifest
+from there and everything else from the server directory. Without the directive, game files
+are served from the server directory as before; a value that points at another host is
+ignored. Older launchers read the directive as a comment.
