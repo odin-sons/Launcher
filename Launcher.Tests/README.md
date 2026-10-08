@@ -221,3 +221,21 @@ launcher folder.
 - **GameFiles_AreDownloadedFromTheVersionFolder_ModsStayOnTheServerDirectory** — end to end:
   game files that exist only under `Game/<version>/` are installed, mods still come from the
   server directory.
+
+## GameFolderTests.cs
+
+The game in a folder of its own, apart from the client (profile) folder that holds the mods.
+The first three run for Windows, macOS and Linux.
+
+- **GameFiles_LandInTheGameFolder_ModsInTheClientFolder_AndTheGameStartsFromThere** — game
+  files are installed into the game folder and never into the client folder, mods stay in the
+  client folder, and the launch plan points at the game folder's executable.
+- **ASecondRun_FindsTheGameFolderComplete_AndStillLaunchesFromIt** — a repeat run has nothing
+  to fetch and still launches from the game folder, with no game files in the client folder.
+- **ASteamCopyStillSuppliesGameFiles_ButIntoTheGameFolder** — game files that match the
+  player's Steam copy are copied from it into the game folder instead of downloaded.
+- **TheSteamFolderAsTheGameFolder_IsNeverWrittenTo** — pointing the game folder at the Steam
+  install itself behaves as if none was set: a mismatching Steam copy is left untouched and
+  the game is downloaded into the client folder.
+- **TheGameExecutable_IsStashedInTheGameFolder_AndComesBackBeforeTheUpdateReportsReady** — the
+  executable is hidden away where it really lives for the duration of the update.

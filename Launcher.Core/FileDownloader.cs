@@ -149,6 +149,17 @@ namespace Odinsons.ValheimLauncher
         /// <summary>Folder game files are downloaded from when the game manifest names a version; null means the server directory.</summary>
         private static string _gameBase;
 
+        /// <summary>A folder of its own for the game, apart from the client folder; null means the game lives in the client folder.</summary>
+        private static string _gameFolder;
+
+        private static bool SamePath(string a, string b) =>
+            string.Equals(Path.GetFullPath(a).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                          Path.GetFullPath(b).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                          RuntimePlatform.IsLinux ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+
+        private static string BaseFolderFor(string relativePath) =>
+            _gameFolder is not null && GameFiles.Contains(relativePath) ? _gameFolder : clientFolder;
+
         /// <summary>
         /// The Steam install of the game, if found. Files from game.info are tried from there
         /// first and only downloaded if that fails. The caller does the lookup: the downloader
@@ -213,7 +224,7 @@ namespace Odinsons.ValheimLauncher
         /// valheim.exe back into place before the update reports completion — see the
         /// EndUpdate call below.
         /// </param>
-        public static async Task StartUpdateAsync(BackgroundWorker worker, IUpdateUi ui, bool full, bool startGame, string selectedServerDirectory, string ownExecutableName, int maxConcurrentDownloads = 8, string steamGameFolder = null, UpdateSession session = null)
+        public static async Task StartUpdateAsync(BackgroundWorker worker, IUpdateUi ui, bool full, bool startGame, string selectedServerDirectory, string ownExecutableName, int maxConcurrentDownloads = 8, string steamGameFolder = null, UpdateSession session = null, string gameFolder = null)
         {
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
 
@@ -244,9 +255,17 @@ namespace Odinsons.ValheimLauncher
             _takenLocally = 0;
             _bytesTakenLocally = 0;
             _injectorPlan = null;
+            _gameFolder = string.IsNullOrWhiteSpace(gameFolder) ? null : Path.GetFullPath(gameFolder);
+            if (_gameFolder is not null && _steamGameFolder is not null && SamePath(_gameFolder, _steamGameFolder))
+            {
+                LauncherLog.Info("the game folder is the Steam install itself: it is used the default way and never written to");
+                _gameFolder = null;
+            }
             GameFiles.Clear();
             GameEntries.Clear();
             _gameBase = null;
+
+            LauncherLog.Info(_gameFolder is null ? "game folder: none, the game lives in the client folder" : $"game folder: {_gameFolder}");
 
             if (_steamGameFolder is null)
                 LauncherLog.Info(steamGameFolder is null
@@ -422,7 +441,29 @@ namespace Odinsons.ValheimLauncher
             session?.EndUpdate();
             if (!cancelled) _ui.FinishStep(_stepIndexFinalize);
 
+            if (_gameFolder is not null && CanStartGame) PrepareLaunchFromGameFolder();
+
             OnComplete();
+        }
+
+        /// <summary>
+        /// With the game in a folder of its own the client folder holds only the mods, so the game
+        /// is started the way injector mode does it: from the game folder, mods injected from here.
+        /// After EndUpdate, because the plan needs the game executable back under its own name.
+        /// </summary>
+        private static void PrepareLaunchFromGameFolder()
+        {
+            if (InjectorLauncher.TryPrepareLaunch(_gameFolder, clientFolder, out InjectorPlan plan, out string reason))
+            {
+                _injectorPlan = plan;
+                _ui.SetInjectorPlan(plan);
+                LauncherLog.Info($"game folder: Valheim will run from '{_gameFolder}' with the mods of '{clientFolder}'");
+                return;
+            }
+
+            CanStartGame = false;
+            LauncherLog.Warn($"game folder '{_gameFolder}' is not ready to launch: {reason}");
+            _ui.ShowMessage(reason, Loc.T("dl.title.error"), UpdateMessageKind.Warning);
         }
 
         /// <summary>Relative paths the injector plan itself depends on, regardless of game files.</summary>
@@ -539,7 +580,7 @@ namespace Odinsons.ValheimLauncher
 
         private static void TryPrepareInjectorMode(BackgroundWorker worker)
         {
-            if (_steamGameFolder is null || GameFiles.Count == 0) return;
+            if (_steamGameFolder is null || GameFiles.Count == 0 || _gameFolder is not null) return;
 
             if (!GameFilesMatchSteamInstall(worker))
             {
@@ -753,7 +794,7 @@ namespace Odinsons.ValheimLauncher
 
                     if (ShouldExcludeFile(fileDir, FullCheck)) return;
 
-                    string fileDirFull = Path.Combine(clientFolder, fileDir);
+                    string fileDirFull = Path.Combine(BaseFolderFor(fileDir), fileDir);
                     Directory.CreateDirectory(Path.GetDirectoryName(fileDirFull) ?? string.Empty);
 
                     string currentHash = CurrentHashOf(fileDirFull, fileDir);

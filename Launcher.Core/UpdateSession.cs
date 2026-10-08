@@ -35,21 +35,24 @@ namespace Odinsons.ValheimLauncher
         private readonly string _lockPath;
         private readonly List<string> _stashed = new();
         private bool _disposed;
+        private readonly string _executableFolder;
         private bool _executablesRestored;
 
         /// <summary>The previous run didn't finish the update — worth checking everything fully.</summary>
         public bool PreviousRunInterrupted { get; private set; }
 
-        private UpdateSession(string clientFolder)
+        private UpdateSession(string clientFolder, string gameFolder)
         {
             _clientFolder = clientFolder;
+            _executableFolder = gameFolder ?? clientFolder;
             _lockPath = Path.Combine(clientFolder, LockFileName);
         }
 
-        public static bool TryBegin(string clientFolder, out UpdateSession session, out string reason)
+        /// <param name="gameFolder">Where the game executable lives when it isn't in the client folder.</param>
+        public static bool TryBegin(string clientFolder, out UpdateSession session, out string reason, string gameFolder = null)
         {
             session = null;
-            var candidate = new UpdateSession(clientFolder);
+            var candidate = new UpdateSession(clientFolder, gameFolder);
 
             if (!candidate.TryAcquireLock(out reason)) return false;
 
@@ -160,7 +163,7 @@ namespace Odinsons.ValheimLauncher
         {
             foreach (string executable in GameExecutables)
             {
-                string real = Path.Combine(_clientFolder, executable);
+                string real = Path.Combine(_executableFolder, executable);
                 string stash = real + StashSuffix;
 
                 if (!File.Exists(stash)) continue;
@@ -182,7 +185,7 @@ namespace Odinsons.ValheimLauncher
         {
             foreach (string executable in GameExecutables)
             {
-                string real = Path.Combine(_clientFolder, executable);
+                string real = Path.Combine(_executableFolder, executable);
                 if (!File.Exists(real)) continue;
 
                 string stash = real + StashSuffix;
@@ -218,7 +221,7 @@ namespace Odinsons.ValheimLauncher
 
             foreach (string executable in _stashed)
             {
-                string real = Path.Combine(_clientFolder, executable);
+                string real = Path.Combine(_executableFolder, executable);
                 string stash = real + StashSuffix;
                 if (!File.Exists(stash)) continue;
 
