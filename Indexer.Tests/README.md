@@ -1,7 +1,7 @@
 # Indexer.Tests
 
-Server-side tests: exclusion-rule matching, the added/removed path diff between builds, and
-grouping changed files by mod folder for the build report.
+Server-side tests: exclusion-rule matching, the added/removed path diff between profiles, and
+grouping changed files by mod folder for the report.
 
 ## ModFolderGroupingTests.cs
 

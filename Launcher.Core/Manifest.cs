@@ -7,7 +7,7 @@ using System.Text;
 namespace Odinsons.ValheimLauncher
 {
     /// <summary>
-    /// Build manifest: a list of files with checksums and sizes.
+    /// Profile manifest: a list of files with checksums and sizes.
     ///
     /// The format is plain text, one line per entry:
     ///
@@ -21,7 +21,7 @@ namespace Odinsons.ValheimLauncher
     /// along with the benchmarks for why.
     ///
     /// Then one line per file: hash, size, path. The path comes last and is taken as the entire
-    /// rest of the line — otherwise names containing spaces would break, and the build has
+    /// rest of the line — otherwise names containing spaces would break, and the profile has
     /// plenty of them (e.g. "Old Bearded One spawn_odin_priest.yml"). This is exactly why the
     /// path comes last in both md5sum and Debian's Release files, where the shape was borrowed from.
     ///
@@ -57,7 +57,7 @@ namespace Odinsons.ValheimLauncher
 
             // The algorithm is actually verified, not just parsed. Otherwise a manifest
             // computed with a different algorithm wouldn't raise an error: every hash would
-            // simply mismatch, the launcher would consider the whole build corrupted,
+            // simply mismatch, the launcher would consider the whole profile corrupted,
             // redownload all of it — and mismatch again. A clear message instead of that.
             string algorithm = headerParts.Length >= 3 ? headerParts[2] : DefaultAlgorithm;
 

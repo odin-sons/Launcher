@@ -13,7 +13,7 @@ The suite runs serially (`CollectionBehavior(DisableTestParallelization = true)`
 ## UpdateScenarioTests.cs
 
 End-to-end scenarios against the whole update pipeline, run over a real HTTP server serving
-a fixture build. Each one is a regression for a specific case where behavior once silently
+a fixture profile. Each one is a regression for a specific case where behavior once silently
 diverged from what a player would expect, with no error and no message.
 
 - **FreshInstall_GetsRequiredAndGameFiles_SkipsOptionalAndAdmin** — a clean install pulls
@@ -181,7 +181,7 @@ list.
 
 - **FilesUnderAPluginOrConfigFolder_GroupByThatFolder** — a file under
   `BepInEx/plugins/<mod>/` or `BepInEx/config/<mod>/` groups by that folder (config counts
-  too — on a real build it holds hundreds of MB of music/textures).
+  too — on a real profile it holds hundreds of MB of music/textures).
 - **LooseFiles_LandInTheCatchAllBucket** — a stray `.cfg` straight in `config/`, a loose
   plugin file, a game-root file: all one catch-all group.
 - **LeadingSlashesAndBackslashesDontMatter** — path separators and a leading slash are

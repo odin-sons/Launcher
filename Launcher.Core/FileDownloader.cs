@@ -86,7 +86,7 @@ namespace Odinsons.ValheimLauncher
         })
         {
             // Covers receiving the response headers. The body isn't included with
-            // HttpCompletionOption.ResponseHeadersRead — otherwise large build files
+            // HttpCompletionOption.ResponseHeadersRead — otherwise large profile files
             // (hundreds of megabytes) would never finish downloading.
             Timeout = TimeSpan.FromSeconds(60)
         };

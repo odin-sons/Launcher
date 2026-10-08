@@ -6,7 +6,7 @@ namespace Launcher.Tests
     /// <summary>
     /// FileHashCache skips rehashing a file whose size and exact write time haven't changed
     /// since it was last recorded — the same technique Indexer's own HashCache already uses on
-    /// the build side, applied here to the launcher's own per-run file check.
+    /// the server side, applied here to the launcher's own per-run file check.
     /// </summary>
     public class FileHashCacheTests
     {

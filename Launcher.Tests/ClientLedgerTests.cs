@@ -57,7 +57,7 @@ namespace Launcher.Tests
         [Fact]
         public void Save_OnlyKeepsEntriesRecordedInThatRun_StaleEntriesAreDropped()
         {
-            // The file might have been removed from the build or from the player's folder —
+            // The file might have been removed from the profile or from the player's folder —
             // the ledger must not grow forever with entries for things no longer checked.
             string folder = TempFolder();
 

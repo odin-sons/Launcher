@@ -3,7 +3,7 @@ using Odinsons.ValheimLauncher;
 namespace Launcher.Tests
 {
     /// <summary>
-    /// Builds a temporary build folder for a test: places files with the given
+    /// Builds a temporary profile folder for a test: places files with the given
     /// content and writes manifests from their real hashes — using the same classes
     /// (<see cref="Manifest"/>, <see cref="FileHash"/>) that the Indexer uses,
     /// so the test checks exactly what the launcher will actually read.

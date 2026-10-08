@@ -2409,7 +2409,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         }
 
         /// <summary>
-        /// Builds the mods panel straight from this project's own build manifests
+        /// Builds the mods panel straight from this project's own profile manifests
         /// (update.info / update_admin.info / optional.info) — the same files the update
         /// pipeline already fetches, re-requested here read-only over HTTP rather than
         /// touching the real client folder or an update session/lock. Required and

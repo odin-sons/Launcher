@@ -20,7 +20,7 @@ namespace Indexer
         /// Original-game paths (game_files.txt).
         ///
         /// Note: rules here are read DIFFERENTLY from ignore_patterns.txt.
-        /// An entry ending in a slash is a path prefix from the build root ("valheim_Data/").
+        /// An entry ending in a slash is a path prefix from the profile root ("valheim_Data/").
         /// An entry without a slash is an exact relative path, also from the root ("valheim.exe").
         /// This is deliberately stricter: in the exclusion list, a name without a slash matches
         /// a file anywhere in the tree, and that's dangerous for game files.
@@ -35,7 +35,7 @@ namespace Indexer
 
         /// <summary>
         /// Where optional mods used to live before the list was moved to a file (back then
-        /// this was called the greylist, in Azuanticheat's terms). Builds without
+        /// this was called the greylist, in Azuanticheat's terms). Profiles without
         /// optional_patterns.txt must behave exactly as before.
         /// </summary>
         private const string HistoricOptionalFolder = "Bepinex/config/Azuanticheat_greylist/";
@@ -144,7 +144,7 @@ namespace Indexer
                 .ThenBy(f => f)
                 .ToList();
 
-            // update_admin.info — the admin build (only the general rules are excluded)
+            // update_admin.info — the admin variant (only the general rules are excluded)
             var filesAdmin = allFiles
                 .Where(f => ShouldInclude(f, adminOnly: false) && !IsGameFile(f) && !IsOptionalMod(f))
                 .OrderBy(f => f.Split(Path.DirectorySeparatorChar).Length)
@@ -183,7 +183,7 @@ namespace Indexer
 
             // Hash ONCE for all manifests. Every WriteToFile call used to compute its own
             // checksums, so a file present in both update.info and update_admin.info got
-            // read from disk twice — meaning the whole build was hashed twice over. The
+            // read from disk twice — meaning the whole profile was hashed twice over. The
             // manifests only differ in which lines they include; the checksums themselves
             // are shared.
             var hashes = ComputeHashes(
@@ -269,7 +269,7 @@ namespace Indexer
         /// the list came up empty, and nine admin mods silently shipped to players — that was
         /// reported as a single WARNING line among thousands of lines of output; now a
         /// non-empty list that matches nothing is a failure with a non-zero exit code.
-        /// An empty list by itself (invariant 4) isn't that same mistake — a build can
+        /// An empty list by itself (invariant 4) isn't that same mistake — a profile can
         /// genuinely have no admin-only mods — so it's a NOTE, not a failure.
         /// </summary>
         internal static void CheckInvariants(
@@ -312,14 +312,14 @@ namespace Indexer
             foreach (string path in playerPaths.Intersect(gamePaths, StringComparer.OrdinalIgnoreCase))
                 errors.Add($"game file duplicated in update.info: {path}");
 
-            // 4: the list is empty. Not an error by itself — a build can genuinely have no
+            // 4: the list is empty. Not an error by itself — a profile can genuinely have no
             // admin-only mods (a vanilla/game-file-only index, for instance) — just worth
             // saying out loud so it's never a silent assumption. The real hazard this used to
-            // guard against was admin_only_patterns.txt going missing on a build that DOES
+            // guard against was admin_only_patterns.txt going missing on a profile that DOES
             // have admin mods (nine of them shipped to players once); invariant 5 below still
             // catches that shape of mistake — a non-empty list that matches nothing.
             if (AdminOnlyMods.Count == 0)
-                Console.WriteLine("NOTE: no admin-only mods for this build — " +
+                Console.WriteLine("NOTE: no admin-only mods for this profile — " +
                                    "update.info and update_admin.info are identical.");
 
             // 5: the list isn't empty, but no rule matched anything — both manifests come
@@ -348,7 +348,7 @@ namespace Indexer
         }
 
         /// <summary>
-        /// Warns if a mod switched between the player build and the admin build since the
+        /// Warns if a mod switched between the player and the admin variants since the
         /// last run. Both directions can be a deliberate decision, but they're easy to trigger
         /// by mistake — the wrong path moved while editing a list — and the cost of a mistake
         /// is high: either the tool disappears for every admin, or it ships to every player.
@@ -402,7 +402,7 @@ namespace Indexer
 
         /// <summary>
         /// A general "what appeared and what disappeared" report across all four manifests
-        /// at once — not about moving between the player and admin build (there's a separate
+        /// at once — not about moving between the player and admin variants (there's a separate
         /// report for that), but about a file's existence at all. The goal: three lines are
         /// enough to think "yes, that's what I did", instead of a 2500-line diff.
         /// </summary>
@@ -566,7 +566,7 @@ namespace Indexer
             foreach (var rule in IgnoreRules)
                 if (RuleMatches(rule, relPath, fileName, pathWithSlash)) return false;
 
-            // Check admin_only_patterns.txt — only for the player build
+            // Check admin_only_patterns.txt — only for the player variant
             if (adminOnly)
                 foreach (var rule in AdminOnlyMods)
                     if (RuleMatches(rule, relPath, fileName, pathWithSlash)) return false;
@@ -577,7 +577,7 @@ namespace Indexer
         /// <summary>
         /// One exclusion rule. Five forms:
         ///   "**/name/"      — a folder with this name at any depth;
-        ///   "folder/"       — a path prefix from the build root;
+        ///   "folder/"       — a path prefix from the profile root;
         ///   "path/file.ext" — an exact path from the root (has a slash inside, no trailing one);
         ///   "name.ext"      — an exact filename anywhere in the tree (no slash at all);
         ///   with * or ?     — a mask: by path if it contains a slash, otherwise by filename.

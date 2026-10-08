@@ -22,7 +22,7 @@ namespace Odinsons.ValheimLauncher
     /// No copy of the game is made — saves about 1.5 GB of disk space.
     ///
     /// The Doorstop contract wasn't taken from memory but from start_game_bepinex.sh, which
-    /// ships with the build: the DOORSTOP_* variables, the doorstop_libs folder, the library name
+    /// ships with the profile: the DOORSTOP_* variables, the doorstop_libs folder, the library name
     /// libdoorstop_{arch}.{so|dylib}. Windows has a different entry point — a substitute winhttp.dll
     /// next to the executable, otherwise there's nothing to inject into.
     ///

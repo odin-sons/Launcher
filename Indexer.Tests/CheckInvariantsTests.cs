@@ -37,7 +37,7 @@ namespace Indexer.Tests
         [Fact]
         public void NonEmptyAdminOnlyListMatchingNothing_IsStillReportedAsAnError()
         {
-            // A rule that matches nothing in either build — the exact shape of the original
+            // A rule that matches nothing in either variant — the exact shape of the original
             // incident: the list wasn't empty, it just never took effect.
             Program.AdminOnlyMods.Clear();
             Program.AdminOnlyMods.Add("nonexistent-admin-mod.dll");

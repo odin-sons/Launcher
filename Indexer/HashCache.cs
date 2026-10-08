@@ -14,11 +14,11 @@ namespace Indexer
     ///
     /// An entry is considered valid if the file's size and modification time both match.
     /// This isn't an absolute guarantee: a file could be swapped while preserving both
-    /// attributes. In practice that doesn't happen — the build is assembled by copying,
+    /// attributes. In practice that doesn't happen — the profile is assembled by copying,
     /// and a copy brings a new timestamp with it — but since there's no hard guarantee,
     /// there's --no-cache.
     ///
-    /// Paths inside are relative. The cache lives right in the build, so the root is known
+    /// Paths inside are relative. The cache lives right in the profile, so the root is known
     /// from its own location, and an absolute path on every line would be not just
     /// redundant but harmful: it would tie the file to one machine (paths differ on the
     /// server — nothing would match) and leak the directory layout along with the username.
@@ -110,7 +110,7 @@ namespace Indexer
             _fresh[Relative(fullPath)] = new Entry(info.LastWriteTimeUtc.Ticks, info.Length, hash);
 
         /// <summary>
-        /// Writes only what was seen in this run: files removed from the build
+        /// Writes only what was seen in this run: files removed from the profile
         /// naturally drop out of the cache, no separate cleanup needed.
         /// </summary>
         public void Save()
@@ -132,7 +132,7 @@ namespace Indexer
             }
         }
 
-        /// <summary>Path relative to the build root, forward-slash separated.</summary>
+        /// <summary>Path relative to the profile root, forward-slash separated.</summary>
         private string Relative(string fullPath)
         {
             string full = Path.GetFullPath(fullPath);
