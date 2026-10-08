@@ -18,6 +18,17 @@ namespace Odinsons.ValheimLauncher
         public static bool IsValidVersion(string version) =>
             version is not null && VersionPattern.IsMatch(version);
 
+        public static string DepotOf(string version) => version.Substring(0, version.IndexOf('_'));
+
+        /// <summary>The game manifest describing a Valheim depot, or null for a depot we don't ship.</summary>
+        public static string ManifestNameFor(string depot) => depot switch
+        {
+            "892972" => "game.info",
+            "892973" => "game_macos.info",
+            "892971" => "game_linux.info",
+            _ => null
+        };
+
         /// <summary>
         /// The folder URL (ending in '/') for <paramref name="version"/>, or null if the version
         /// is not a plain "depot_manifest" pair. <paramref name="serverDirectory"/> is

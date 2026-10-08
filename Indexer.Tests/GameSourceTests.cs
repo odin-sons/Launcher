@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using Xunit;
 
 namespace Indexer.Tests
@@ -22,36 +23,46 @@ namespace Indexer.Tests
         [Fact]
         public void NothingRemembered_MeansNoSeparateGame()
         {
-            Assert.Null(Indexer.GameSource.Read(ProfileFolder));
+            Assert.Empty(Indexer.GameSource.Read(ProfileFolder));
         }
 
         [Fact]
-        public void APathPassedOnce_IsReadBackOnLaterRuns()
+        public void PathsPassedOnce_AreReadBackOnLaterRuns()
         {
-            string game = GameFolder("892972_111");
-            Directory.CreateDirectory(game);
+            string windows = GameFolder("892972_111");
+            string linux = GameFolder("892971_333");
 
-            Indexer.GameSource.Write(ProfileFolder, game);
+            Indexer.GameSource.Write(ProfileFolder, new[] { windows, linux });
 
-            Assert.Equal(Path.GetFullPath(game), Indexer.GameSource.Read(ProfileFolder));
+            Assert.Equal(new[] { Path.GetFullPath(windows), Path.GetFullPath(linux) },
+                Indexer.GameSource.Read(ProfileFolder));
         }
 
         [Fact]
-        public void ANewerPath_ReplacesTheRememberedOne()
+        public void TheRememberedPaths_AreStoredRelativeToTheProfileFolder()
         {
-            Indexer.GameSource.Write(ProfileFolder, GameFolder("892972_111"));
-            Indexer.GameSource.Write(ProfileFolder, GameFolder("892972_222"));
-
-            Assert.Equal(Path.GetFullPath(GameFolder("892972_222")), Indexer.GameSource.Read(ProfileFolder));
-        }
-
-        [Fact]
-        public void TheRememberedPath_IsStoredRelativeToTheProfileFolder()
-        {
-            Indexer.GameSource.Write(ProfileFolder, GameFolder("892972_111"));
+            Indexer.GameSource.Write(ProfileFolder, new[] { GameFolder("892972_111") });
 
             string stored = File.ReadAllText(Path.Combine(ProfileFolder, Indexer.GameSource.FileName)).Trim();
             Assert.Equal("../../Game/892972_111", stored);
+        }
+
+        [Fact]
+        public void ANewVersionOfADepot_ReplacesTheRememberedOne_AndLeavesTheOtherDepotsAlone()
+        {
+            var remembered = new[] { GameFolder("892972_111"), GameFolder("892973_222") };
+
+            var merged = Indexer.GameSource.Merge(remembered, new[] { GameFolder("892972_999") });
+
+            Assert.Equal(new[] { GameFolder("892973_222"), GameFolder("892972_999") }, merged);
+        }
+
+        [Fact]
+        public void ADepotNotRememberedYet_IsAdded()
+        {
+            var merged = Indexer.GameSource.Merge(new[] { GameFolder("892972_111") }, new[] { GameFolder("892971_333") });
+
+            Assert.Equal(new[] { GameFolder("892972_111"), GameFolder("892971_333") }, merged);
         }
 
         [Theory]
@@ -65,6 +76,36 @@ namespace Indexer.Tests
             Assert.Equal(folder, version);
         }
 
+        [Theory]
+        [InlineData("892972_111", "game.info")]
+        [InlineData("892973_222", "game_macos.info")]
+        [InlineData("892971_333", "game_linux.info")]
+        public void TheDepot_DecidesWhichGameManifestTheFolderProduces(string folder, string manifestName)
+        {
+            string path = GameFolder(folder);
+            Directory.CreateDirectory(path);
+
+            Assert.True(Indexer.GameSource.TryDescribe(path, out Indexer.GameRoot? root, out _));
+            Assert.Equal(manifestName, root!.ManifestName);
+        }
+
+        [Fact]
+        public void ADepotThatIsNotValheim_IsRejected()
+        {
+            string path = GameFolder("123456_111");
+            Directory.CreateDirectory(path);
+
+            Assert.False(Indexer.GameSource.TryDescribe(path, out _, out string? error));
+            Assert.Contains("123456", error);
+        }
+
+        [Fact]
+        public void AMissingFolder_IsRejected()
+        {
+            Assert.False(Indexer.GameSource.TryDescribe(GameFolder("892972_111"), out _, out string? error));
+            Assert.Contains("not found", error);
+        }
+
         [Fact]
         public void TheGameFolder_IsExpectedAtTheSiteRoot()
         {
@@ -74,12 +115,36 @@ namespace Indexer.Tests
         }
 
         [Fact]
+        public void TheIndexersOwnFiles_AreNeverPartOfAManifest()
+        {
+            Assert.True(Indexer.GameSource.IsOwnArtifact("game_source.txt"));
+            Assert.True(Indexer.GameSource.IsOwnArtifact(Indexer.GameSource.CacheFileNameFor("892972")));
+            Assert.False(Indexer.GameSource.IsOwnArtifact("BepInEx/plugins/Mod/hashes_game_1.cache"));
+            Assert.False(Indexer.GameSource.IsOwnArtifact("game_files.txt"));
+        }
+
+        [Fact]
+        public void EachDepot_HasItsOwnHashCache()
+        {
+            Assert.NotEqual(Indexer.GameSource.CacheFileNameFor("892972"), Indexer.GameSource.CacheFileNameFor("892971"));
+        }
+
+        [Fact]
         public void ProfileFlag_TakesThePathAfterIt()
         {
             Assert.Equal("some/profile",
                 Indexer.Program.ParseValue(new[] { "--no-cache", "--profile", "some/profile" }, "--profile"));
             Assert.Null(Indexer.Program.ParseValue(new[] { "--profile" }, "--profile"));
             Assert.Null(Indexer.Program.ParseValue(new[] { "--no-cache" }, "--game-root"));
+        }
+
+        [Fact]
+        public void GameRootFlag_CanBeRepeated()
+        {
+            var roots = Indexer.Program.ParseValues(
+                new[] { "--game-root", "a", "--no-cache", "--game-root", "b", "--game-root" }, "--game-root");
+
+            Assert.Equal(new[] { "a", "b" }, roots.ToArray());
         }
     }
 }

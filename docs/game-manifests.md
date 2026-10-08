@@ -112,15 +112,28 @@ profile folder as before. Older launchers read the line as a comment. Every mirr
 
 ### Indexing
 
+There is one folder per Steam depot, and the depot decides the manifest it produces:
+
+| Depot | OS | Manifest |
+|-------|----|----------|
+| 892972 | Windows | `game.info` |
+| 892973 | macOS | `game_macos.info` |
+| 892971 | Linux | `game_linux.info` |
+
 ```bash
-Indexer --profile Lite_v2 --game-root ../Game/892972_<manifestid>
+Indexer --profile Lite_v2 \
+  --game-root ../Game/892972_<manifestid> \
+  --game-root ../Game/892973_<manifestid> \
+  --game-root ../Game/892971_<manifestid>
 ```
 
-`--game-root` is remembered in `game_source.txt` in the profile folder, so later runs (a mod
-update) just use `Indexer --profile Lite_v2`. A new game version is the same command with the new
-folder, once. Paths inside `game.info` are relative to the game folder. `game_files.txt` still
-keeps stray copies of the game in the profile folder out of the mod manifests; without a game
-folder the Indexer works as before, splitting the game out of the profile folder by that list.
-The folder must be named `<depot>_<manifest>` and sit at `Game/` at the site root, or the run
-reports an error. `steam_appid.txt` is not part of the Steam depot: keep it in the mod profile,
-off the `game_files.txt` list.
+The folders are remembered in `game_source.txt` in the profile folder, so later runs (a mod
+update) just use `Indexer --profile Lite_v2`. A new game version is `--game-root` with the new
+folder, once: it replaces the remembered folder of the same depot and leaves the others alone.
+Paths inside each game manifest are relative to its game folder, and each depot keeps its own
+hash cache (`hashes_game_<depot>.cache`). `game_files.txt` still keeps stray copies of the game
+in the profile folder out of the mod manifests; without any game folder the Indexer works as
+before, splitting the game out of the profile folder by that list (`--game-manifest` names the
+file then). A folder must be named `<depot>_<manifest>` for a Valheim depot and sit at `Game/` at
+the site root, or the run reports an error. `steam_appid.txt` is not part of the Steam depot:
+keep it in the mod profile, off the `game_files.txt` list.

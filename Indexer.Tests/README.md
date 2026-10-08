@@ -58,19 +58,29 @@ The four forms an exclusion rule (`ignore_patterns.txt` and its siblings) can ta
 
 ## GameSourceTests.cs
 
-The game folder kept apart from the mod profile: `--game-root` is remembered in
-`game_source.txt`, so later runs index the same game without the flag.
+The game folders kept apart from the mod profile, one per Steam depot: `--game-root` is
+remembered in `game_source.txt`, so later runs index the same games without the flags.
 
-- **NothingRemembered_MeansNoSeparateGame** — no file, no separate game folder.
-- **APathPassedOnce_IsReadBackOnLaterRuns** — the remembered path comes back as an absolute
-  path.
-- **ANewerPath_ReplacesTheRememberedOne** — moving to a new game version is one run with the
-  new folder.
-- **TheRememberedPath_IsStoredRelativeToTheProfileFolder** — stored as `../../Game/<version>`, so
-  the file survives moving the whole tree.
+- **NothingRemembered_MeansNoSeparateGame** — no file, no separate game folders.
+- **PathsPassedOnce_AreReadBackOnLaterRuns** — every remembered path comes back as an
+  absolute path.
+- **TheRememberedPaths_AreStoredRelativeToTheProfileFolder** — stored as
+  `../../Game/<version>`, so the file survives moving the whole tree.
+- **ANewVersionOfADepot_ReplacesTheRememberedOne_AndLeavesTheOtherDepotsAlone** — moving to a
+  new game version is one run with the new folder; the other OSes keep their folders.
+- **ADepotNotRememberedYet_IsAdded** — a folder for a new depot joins the remembered ones.
 - **OnlyADepotUnderscoreManifestFolderNameIsAVersion** — the folder name doubles as the
-  version written to `game.info`, so it has to be `<depot>_<manifest>`.
-- **TheGameFolder_IsExpectedAtTheSiteRoot** — the folder must sit at `Game/` at the site root, above
-  the `Launcher` folder, where the launcher looks for it.
-- **ProfileFlag_TakesThePathAfterIt** — `--profile <folder>` (and any `--flag value` pair) is read
-  from anywhere among the arguments; a trailing flag with no value is ignored.
+  version written to the game manifest, so it has to be `<depot>_<manifest>`.
+- **TheDepot_DecidesWhichGameManifestTheFolderProduces** — 892972 gives `game.info`, 892973
+  `game_macos.info`, 892971 `game_linux.info`.
+- **ADepotThatIsNotValheim_IsRejected** / **AMissingFolder_IsRejected** — a folder that
+  can't be indexed is an error, not a silent empty manifest.
+- **TheGameFolder_IsExpectedAtTheSiteRoot** — the folder must sit at `Game/` at the site
+  root, above the `Launcher` folder, where the launcher looks for it.
+- **TheIndexersOwnFiles_AreNeverPartOfAManifest** — `game_source.txt` and the per-depot hash
+  caches stay out of the mod manifests.
+- **EachDepot_HasItsOwnHashCache** — Windows and Linux share relative paths such as
+  `valheim_Data/...`, so their caches can't be one file.
+- **ProfileFlag_TakesThePathAfterIt** — `--profile <folder>` (and any `--flag value` pair) is
+  read from anywhere among the arguments; a trailing flag with no value is ignored.
+- **GameRootFlag_CanBeRepeated** — `--game-root` can be given once per depot.
