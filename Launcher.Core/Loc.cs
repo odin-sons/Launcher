@@ -1826,10 +1826,16 @@ namespace Odinsons.ValheimLauncher
                 "По умолчанию", "Standard", "默认", "За замовчуванням"),
 
             ["gui.path.gameDefault"] = L(
-                "Same as the profile folder", "Wie der Profilordner", "Igual que la carpeta del perfil",
-                "Identique au dossier du profil", "Taki sam jak folder profilu", "Igual à pasta do perfil",
-                "Как папка профиля", "Samma som profilmappen", "与配置文件文件夹相同",
-                "Як папка профілю"),
+                "Automatic: Steam if its version fits, otherwise the profile folder",
+                "Automatisch: Steam, wenn die Version passt, sonst der Profilordner",
+                "Automático: Steam si su versión coincide; si no, la carpeta del perfil",
+                "Automatique : Steam si la version correspond, sinon le dossier du profil",
+                "Automatycznie: Steam, jeśli wersja pasuje, w przeciwnym razie folder profilu",
+                "Automático: Steam se a versão coincidir; caso contrário, a pasta do perfil",
+                "Автоматически: Steam, если версия подходит, иначе папка профиля",
+                "Automatiskt: Steam om versionen stämmer, annars profilmappen",
+                "自动：版本匹配时使用 Steam，否则使用配置文件文件夹",
+                "Автоматично: Steam, якщо версія підходить, інакше папка профілю"),
 
             ["gui.path.pickProfile"] = L(
                 "Choose the profile folder", "Profilordner wählen", "Elige la carpeta del perfil",
@@ -1854,16 +1860,16 @@ namespace Odinsons.ValheimLauncher
                 "Тут лежать моди цього сервера та їхні налаштування. Зміна папки не переносить наявні файли."),
 
             ["gui.path.gameTip"] = L(
-                "Where the game itself is installed. By default it sits in the profile folder, together with the mods.",
-                "Hier ist das Spiel selbst installiert. Standardmäßig liegt es zusammen mit den Mods im Profilordner.",
-                "Aquí se instala el propio juego. De forma predeterminada está en la carpeta del perfil, junto con los mods.",
-                "C'est ici que le jeu lui-même est installé. Par défaut, il se trouve dans le dossier du profil, avec les mods.",
-                "Tu zainstalowana jest sama gra. Domyślnie leży w folderze profilu razem z modami.",
-                "Aqui fica instalado o próprio jogo. Por padrão ele fica na pasta do perfil, junto com os mods.",
-                "Здесь установлена сама игра. По умолчанию она лежит в папке профиля вместе с модами.",
-                "Här är själva spelet installerat. Som standard ligger det i profilmappen tillsammans med moddarna.",
-                "游戏本体安装在这里。默认与模组一起放在配置文件文件夹中。",
-                "Тут встановлена сама гра. За замовчуванням вона лежить у папці профілю разом із модами.")
+                "Where the game itself is installed. By default the launcher runs it from your Steam install when its version matches the server, and otherwise keeps a copy in the profile folder, next to the mods.",
+                "Hier ist das Spiel selbst installiert. Standardmäßig startet der Launcher es aus deiner Steam-Installation, wenn deren Version zum Server passt, andernfalls liegt eine Kopie im Profilordner neben den Mods.",
+                "Aquí se instala el propio juego. De forma predeterminada el launcher lo ejecuta desde tu instalación de Steam si su versión coincide con la del servidor; si no, guarda una copia en la carpeta del perfil, junto a los mods.",
+                "C'est ici que le jeu lui-même est installé. Par défaut, le lanceur le démarre depuis votre installation Steam si sa version correspond à celle du serveur ; sinon il en garde une copie dans le dossier du profil, avec les mods.",
+                "Tu zainstalowana jest sama gra. Domyślnie launcher uruchamia ją z instalacji Steam, jeśli jej wersja zgadza się z serwerem, a w przeciwnym razie trzyma kopię w folderze profilu obok modów.",
+                "Aqui fica instalado o próprio jogo. Por padrão, o launcher o executa a partir da sua instalação do Steam se a versão coincidir com a do servidor; caso contrário, mantém uma cópia na pasta do perfil, junto com os mods.",
+                "Здесь установлена сама игра. По умолчанию лончер запускает её из вашей установки Steam, если версия совпадает с серверной, а иначе держит копию в папке профиля рядом с модами.",
+                "Här är själva spelet installerat. Som standard startar launchern det från din Steam-installation om versionen stämmer med servern, annars ligger en kopia i profilmappen bredvid moddarna.",
+                "游戏本体安装在这里。默认情况下，若你的 Steam 安装版本与服务器一致，启动器直接从 Steam 运行；否则在配置文件文件夹中、模组旁保留一份副本。",
+                "Тут встановлена сама гра. За замовчуванням лончер запускає її з вашої інсталяції Steam, якщо версія збігається із серверною, а інакше тримає копію в папці профілю поруч із модами.")
         };
     }
 }

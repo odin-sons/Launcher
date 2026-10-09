@@ -30,7 +30,8 @@ original WPF-only `Launcher` still exists but is no longer where development hap
 
 - **Profile folder.** Each server's mods and their settings live in a folder of their own,
   `clients/<server>` by default. It can be changed per server in Install settings.
-- **Game folder.** By default the game sits in the profile folder, next to the mods. A separate
+- **Game folder.** By default the game runs from your Steam install when its version matches the
+  server, and otherwise a copy sits in the profile folder, next to the mods. A separate
   game folder (one for all servers) keeps the game apart: the mods stay in the profile folder,
   and the game is started from the game folder with the mods injected, the way injector mode does.
   Pointing it at the Steam install itself is the same as not setting it, and never writes to Steam.
