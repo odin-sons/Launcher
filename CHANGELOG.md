@@ -4,7 +4,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
-## [Unreleased]
+## [2.4.1] — 2026-10-09
 
 ### Fixed
 - The buttons of the confirmation dialogs (the launcher update, the Defender exclusion) have the
