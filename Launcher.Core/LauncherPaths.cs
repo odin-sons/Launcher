@@ -8,7 +8,8 @@ namespace Odinsons.ValheimLauncher
     ///
     /// The profile folder is the server's mod set (BepInEx, plugins, settings) and differs from
     /// one server to the next, so it is stored per server; unset, it is <c>clients/&lt;server&gt;</c>.
-    /// The game folder is one for all servers; unset, the game lives in the profile folder.
+    /// The game folder is one for all servers; unset, the game runs from the Steam install when its
+    /// version matches the server and otherwise lives in the profile folder.
     /// </summary>
     public static class LauncherPaths
     {
@@ -23,7 +24,7 @@ namespace Odinsons.ValheimLauncher
         public static string ProfileFolder(IniFile config, string server) =>
             Clean(config.Read(ProfileKey, ServerSection(server))) ?? DefaultProfileFolder(server);
 
-        /// <returns>The chosen game folder, or null when the game lives in the profile folder.</returns>
+        /// <returns>The chosen game folder, or null when none is set (see the class summary).</returns>
         public static string GameFolder(IniFile config) => Clean(config.Read(GameKey, GameSection));
 
         /// <param name="path">Null or empty goes back to the default.</param>
