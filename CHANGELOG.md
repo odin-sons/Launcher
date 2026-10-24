@@ -4,6 +4,17 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
+## [2.5.0] — unreleased
+
+### Fixed
+- On Apple Silicon Macs without Rosetta 2 (macOS 27 no longer installs it) the modded game used to
+  die with `Bad CPU type in executable`. The launcher now checks for Rosetta first and, if it is
+  missing, doesn't start the game and shows the command that installs it:
+  `softwareupdate --install-rosetta --agree-to-license`.
+- The injector launch passes Valheim's Steam app id (`SteamAppId`/`SteamGameId`) to the game, so
+  Steam initialises even though the Steam install has no `steam_appid.txt` and the game no longer
+  quits right after loading.
+
 ## [2.4.1] — 2026-10-09
 
 ### Fixed
