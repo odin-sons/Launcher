@@ -97,7 +97,7 @@ Mac first:
    process.
 4. The Steam overlay still loads, and the game reaches the main menu and a server.
 
-The spike harness for this (`docs/arm64-spike.md`, branch `spike/native-arm64-harness`) was not
-available when this page was written; follow it once it is merged. Until the checks pass,
+The spike harness for this is `scripts/arm64-spike.sh`; the steps are in `docs/arm64-spike.md`.
+Until the checks pass,
 leave `libdoorstop.dylib` out of the production profile, or publish it to a separate test
 profile only.

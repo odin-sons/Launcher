@@ -4,6 +4,25 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
+## [2.6.0] — unreleased
+
+### Added
+- Native Apple Silicon launch. When the profile ships the universal Doorstop library
+  (`libdoorstop.dylib`, from BepInEx 5.4.23.6 or later) and the game has an arm64 slice, the modded
+  game runs as arm64 without Rosetta; the Steam overlay libraries are injected only if they have an
+  arm64 slice too. Profiles without that library, Intel Macs and `ODINSONS_FORCE_X64=1` keep the
+  x86_64/Rosetta launch as before, and a profile that only has the universal library also works there.
+  Native mode has not been verified on real hardware yet.
+- `docs/macos-profile.md` for server operators (what to put in a macOS profile), and
+  `scripts/arm64-spike.sh` with `docs/arm64-spike.md` for testing native launch on a Mac.
+
+### Fixed
+- Shell scripts and native libraries (`.sh`, `.dylib`, `.so`) are marked executable after they are
+  installed or found up to date, so the macOS BepInEx pack's `run_bepinex.sh` and `libdoorstop.dylib`
+  are usable.
+- A client folder that holds only `libdoorstop.dylib`, `run_bepinex.sh` or `doorstop_libs/` after an
+  interrupted update is no longer rejected as someone else's folder.
+
 ## [2.5.0] — unreleased
 
 ### Added
