@@ -64,7 +64,7 @@ namespace Odinsons.ValheimLauncher
         public static Mutex GlobalMutex { get; private set; }
 
         // A single source — Launcher.Core/ServerModels.cs — so the CLI and GUI don't drift apart.
-        private static readonly List<string> LauncherUrls = LauncherMirrors.Default.ToList();
+        private static readonly List<string> LauncherUrls = ServerProfile.Default.Mirrors.ToList();
 
         private static string ActiveLauncherUrl { get; set; }
 

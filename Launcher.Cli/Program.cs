@@ -88,7 +88,7 @@ namespace Odinsons.ValheimLauncher.Cli
                 // breaks: without this, a player's complaint can't distinguish a restricted
                 // channel to our server from having no network at all.
                 Console.Error.WriteLine("Running connectivity diagnostics, see launcher_log.txt");
-                await ConnectivityDiagnostics.ProbeAllAsync(LauncherMirrors.Default);
+                await ConnectivityDiagnostics.ProbeAllAsync(ServerProfile.Default.Mirrors);
 
                 return ExitNoMirror;
             }
@@ -254,7 +254,7 @@ namespace Odinsons.ValheimLauncher.Cli
         /// <summary>Walks the mirrors in the same order as the GUI and takes the first one that responds.</summary>
         private static async Task<string> FindMirrorAsync()
         {
-            foreach (string url in LauncherMirrors.Default)
+            foreach (string url in ServerProfile.Default.Mirrors)
             {
                 try
                 {

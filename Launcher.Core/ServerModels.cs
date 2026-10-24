@@ -22,15 +22,34 @@ namespace Odinsons.ValheimLauncher
         public List<Server> Servers { get; set; }
     }
 
-    /// <summary>Mirrors that servers.info and profile files are fetched from.</summary>
-    public static class LauncherMirrors
+    /// <summary>A community the launcher can connect to: where its servers.json and profile
+    /// files are fetched from, tried in order.</summary>
+    public sealed class ServerProfile
     {
-        public static readonly IReadOnlyList<string> Default = new[]
+        public ServerProfile(string id, string name, IReadOnlyList<string> mirrors)
         {
-            // Cloudflare-fronted first: ECH is enabled on the zone, giving it the best odds
-            // under partial network blocking. Falls back to the direct domain.
-            "https://server-cf.odinsons.club/Launcher/",
-            "https://server.odinsons.club/Launcher/"
-        };
+            Id = id;
+            Name = name;
+            Mirrors = mirrors;
+        }
+
+        public string Id { get; }
+        public string Name { get; }
+
+        /// <summary>Base URLs ending in "/", most preferred first.</summary>
+        public IReadOnlyList<string> Mirrors { get; }
+
+        public static readonly ServerProfile Odinsons = new ServerProfile(
+            "odinsons",
+            "Odinsons",
+            new[]
+            {
+                // Cloudflare-fronted first: ECH is enabled on the zone, giving it the best odds
+                // under partial network blocking. Falls back to the direct domain.
+                "https://server-cf.odinsons.club/Launcher/",
+                "https://server.odinsons.club/Launcher/"
+            });
+
+        public static ServerProfile Default => Odinsons;
     }
 }
