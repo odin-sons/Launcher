@@ -313,9 +313,8 @@ namespace Launcher.Tests
             using var __ = MacArchitecture.Pretend(appleSilicon: true, executableHasArm64Slice: true);
             using TestPack game = NewGameFolder();
             using TestPack profile = NewUniversalProfileFolder(libraryPath);
-            using TestPack steam = new TestPack();
-            steam.AddFile("steamloader.dylib", "loader");
-            steam.AddFile("gameoverlayrenderer.dylib", "overlay");
+            using TestPack steam = NewSteamBin(
+                MachOFixtures.Thin(MachOFixtures.CpuTypeArm64), MachOFixtures.Thin(MachOFixtures.CpuTypeArm64));
 
             InjectorPlan plan = BuildMacPlan(game, profile, steam.Root);
 
@@ -331,6 +330,62 @@ namespace Launcher.Tests
             Assert.Equal("892970", plan.Environment["SteamOverlayGameId"]);
             Assert.Equal("1", plan.Environment["SteamEnv"]);
             Assert.Equal("1", plan.Environment["SteamClientLaunch"]);
+        }
+
+        private static TestPack NewSteamBin(byte[] loader, byte[] overlay)
+        {
+            var steam = new TestPack();
+            File.WriteAllBytes(Path.Combine(steam.Root, "steamloader.dylib"), loader);
+            File.WriteAllBytes(Path.Combine(steam.Root, "gameoverlayrenderer.dylib"), overlay);
+            return steam;
+        }
+
+        public static readonly TheoryData<string, bool, bool> NativeOverlayFiltering = new()
+        {
+            { "both arm64-capable", true, true },
+            { "loader x86_64-only", false, true },
+            { "overlay x86_64-only", true, false },
+            { "none arm64-capable", false, false }
+        };
+
+        [Theory, MemberData(nameof(NativeOverlayFiltering))]
+        public void Native_KeepsOnlyOverlayLibrariesWithAnArm64Slice(string scenario, bool loaderArm64, bool overlayArm64)
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using var __ = MacArchitecture.Pretend(true, true);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewUniversalProfileFolder();
+            using TestPack steam = NewSteamBin(
+                loaderArm64 ? MachOFixtures.Fat(false, MachOFixtures.CpuTypeX64, MachOFixtures.CpuTypeArm64) : MachOFixtures.Fat(false, MachOFixtures.CpuTypeX64),
+                overlayArm64 ? MachOFixtures.Thin(MachOFixtures.CpuTypeArm64) : MachOFixtures.Thin(MachOFixtures.CpuTypeX64));
+
+            InjectorPlan plan = BuildMacPlan(game, profile, steam.Root);
+
+            var expected = new List<string> { Path.Combine(Path.GetFullPath(profile.Root), "libdoorstop.dylib") };
+            if (loaderArm64) expected.Add(Path.Combine(steam.Root, "steamloader.dylib"));
+            if (overlayArm64) expected.Add(Path.Combine(steam.Root, "gameoverlayrenderer.dylib"));
+            Assert.True(plan.NativeArm64, scenario);
+            Assert.Equal(string.Join(":", expected), plan.Environment["DYLD_INSERT_LIBRARIES"]);
+        }
+
+        [Fact]
+        public void X64Path_KeepsEveryOverlayLibraryRegardlessOfArchitecture()
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using var __ = MacArchitecture.Pretend(true, true);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewProfileFolder();
+            using TestPack steam = NewSteamBin(
+                MachOFixtures.Thin(MachOFixtures.CpuTypeX64), MachOFixtures.Thin(MachOFixtures.CpuTypeX64));
+
+            InjectorPlan plan = BuildMacPlan(game, profile, steam.Root);
+
+            Assert.False(plan.NativeArm64);
+            Assert.Equal(
+                string.Join(":", Path.Combine(Path.GetFullPath(profile.Root), "doorstop_libs", "libdoorstop_x64.dylib"),
+                    Path.Combine(steam.Root, "steamloader.dylib"),
+                    Path.Combine(steam.Root, "gameoverlayrenderer.dylib")),
+                plan.Environment["DYLD_INSERT_LIBRARIES"]);
         }
 
         [Fact]
@@ -457,13 +512,40 @@ namespace Launcher.Tests
             }
         }
 
+        public static readonly TheoryData<string, bool, bool, bool> UniversalOnlyX64Paths = new()
+        {
+            { "Intel host", false, true, false },
+            { "executable without an arm64 slice", true, false, false },
+            { "forced x86_64", true, true, true }
+        };
+
+        [Theory, MemberData(nameof(UniversalOnlyX64Paths))]
+        public void UniversalLibraryOnly_X64Path_UsesTheUniversalLibraryUnderRosetta(
+            string scenario, bool appleSilicon, bool arm64Slice, bool forceX64)
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using var __ = MacArchitecture.Pretend(appleSilicon, arm64Slice);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewUniversalProfileFolder();
+            using TestPack steam = new TestPack();
+
+            InjectorPlan plan = BuildMacPlan(game, profile, steam.Root, forceX64);
+
+            string library = Path.Combine(Path.GetFullPath(profile.Root), "libdoorstop.dylib");
+            Assert.False(plan.NativeArm64, scenario);
+            Assert.Equal(library, plan.Environment["DYLD_INSERT_LIBRARIES"]);
+            Assert.Equal(Path.GetDirectoryName(library), plan.Environment["DYLD_LIBRARY_PATH"]);
+            var argv = InjectorLauncher.BuildStartInfo(plan).ArgumentList.Take(2).ToArray();
+            Assert.Equal(new[] { "-x86_64", "/usr/bin/env" }, argv);
+        }
+
         [Fact]
-        public void UniversalLibraryOnly_WithoutNativeSupport_FailsWithMissingDoorstopLibrary()
+        public void NoDoorstopLibraryAtAll_X64Path_StillFailsWithMissingDoorstopLibrary()
         {
             using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
             using var __ = MacArchitecture.Pretend(appleSilicon: false, executableHasArm64Slice: true);
             using TestPack game = NewGameFolder();
-            using TestPack profile = NewUniversalProfileFolder();
+            using TestPack profile = NewProfileFolder(withDoorstopLib: false);
 
             InjectorPlan? plan = InjectorLauncher.BuildPlan(game.Root, profile.Root, out string reason);
 

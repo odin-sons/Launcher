@@ -105,6 +105,10 @@ Building and preparing the Doorstop launch plan. Every OS-shaped case is a `[The
   profile root / in `doorstop_libs/`) — Apple Silicon host + universal Doorstop library + arm64
   executable selects the native plan: the universal library rides first in `DYLD_INSERT_LIBRARIES`,
   followed by the Steam overlay libraries, and the Steam app id and overlay variables are kept.
+- **Native_KeepsOnlyOverlayLibrariesWithAnArm64Slice** (×both arm64-capable / loader x86_64-only /
+  overlay x86_64-only / none) — in native mode only Steam overlay libraries whose Mach-O header has
+  an arm64 slice join `DYLD_INSERT_LIBRARIES`; with none, Doorstop is injected alone.
+- **X64Path_KeepsEveryOverlayLibraryRegardlessOfArchitecture** — the x86_64 path is not filtered.
 - **Native_PrefersTheUniversalLibraryOverTheX64OneWhenBothExist** — a profile shipping both
   libraries goes native when the machine supports it.
 - **Native_StartInfo_RunsArchWithEForDyldAndPlainEnvForTheRest** — the exact native command:
@@ -118,8 +122,11 @@ Building and preparing the Doorstop launch plan. Every OS-shaped case is a `[The
   /usr/bin/env …` launch with the x64 library.
 - **FallsBackToX64_WhenForcedThroughTheEnvironmentVariable** — `ODINSONS_FORCE_X64=1` forces the
   x86_64 path.
-- **UniversalLibraryOnly_WithoutNativeSupport_FailsWithMissingDoorstopLibrary** — a profile with only the
-  universal library on a machine that can't go native reports the missing x64 library.
+- **UniversalLibraryOnly_X64Path_UsesTheUniversalLibraryUnderRosetta** (×Intel host / no arm64 slice /
+  forced x86_64) — a profile with only `libdoorstop.dylib` still launches via `arch -x86_64 /usr/bin/env …`
+  using the universal library (its x86_64 slice); `libdoorstop_x64.dylib` is preferred when both exist.
+- **NoDoorstopLibraryAtAll_X64Path_StillFailsWithMissingDoorstopLibrary** — with neither library, the plan
+  isn't built.
 - **NonMac_IgnoresTheNativeSwitches** (Windows/Linux) — the native switches never affect other OSes.
 - **ResolveGameExecutable_MacBundle_ResolvesToTheBinaryNamedInInfoPlist** — a `.app`
   resolves to `Contents/MacOS/<CFBundleExecutable>`.

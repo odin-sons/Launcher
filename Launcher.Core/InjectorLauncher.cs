@@ -202,10 +202,20 @@ namespace Odinsons.ValheimLauncher
 
             if (!RuntimePlatform.IsWindows)
             {
-                string libs = native
-                    ? Path.GetDirectoryName(universalLibrary)
-                    : Path.GetFullPath(Path.Combine(profileFolder, DoorstopLibsFolder));
-                string libraryPath = native ? universalLibrary : Path.Combine(libs, DoorstopLibraryName());
+                string libs = Path.GetFullPath(Path.Combine(profileFolder, DoorstopLibsFolder));
+                string libraryPath = Path.Combine(libs, DoorstopLibraryName());
+
+                if (native)
+                {
+                    libraryPath = universalLibrary;
+                    libs = Path.GetDirectoryName(universalLibrary);
+                }
+                else if (RuntimePlatform.IsMacOS && !File.Exists(libraryPath) &&
+                         FindUniversalDoorstop(profileFolder) is { } universalFallback)
+                {
+                    libraryPath = universalFallback;
+                    libs = Path.GetDirectoryName(universalFallback);
+                }
 
                 if (!File.Exists(libraryPath))
                 {
@@ -219,8 +229,9 @@ namespace Odinsons.ValheimLauncher
                     // lib also happens to sit on the default search path. Matches the launch
                     // scripts that ship with the BepInEx pack (start_game_bepinex.sh / Vortex).
                     environment["DYLD_LIBRARY_PATH"] = libs;
-                    environment["DYLD_INSERT_LIBRARIES"] = string.Join(":",
-                        new[] { libraryPath }.Concat(SteamOverlayLibraries(macSteamBinFolder ?? DefaultMacSteamBinFolder())));
+                    IEnumerable<string> overlay = SteamOverlayLibraries(macSteamBinFolder ?? DefaultMacSteamBinFolder());
+                    if (native) overlay = overlay.Where(MacArchitecture.MachOHasArm64Slice);
+                    environment["DYLD_INSERT_LIBRARIES"] = string.Join(":", new[] { libraryPath }.Concat(overlay));
                     foreach ((string key, string value) in SteamLaunchedByVariables)
                         environment[key] = value;
                 }

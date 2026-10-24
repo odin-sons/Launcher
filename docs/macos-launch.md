@@ -32,7 +32,8 @@ executable without an arm64 slice, or a forced x86_64 launch:
 arch -x86_64 /usr/bin/env KEY=VALUE... <executable> <doorstop arguments>
 ```
 
-On Apple Silicon the launcher first checks that Rosetta 2 is installed and shows install
+The x86_64 library is `doorstop_libs/libdoorstop_x64.dylib`; if the profile has only the universal
+`libdoorstop.dylib`, its x86_64 slice is used instead. On Apple Silicon the launcher first checks that Rosetta 2 is installed and shows install
 instructions if it is not.
 
 ## Forcing x86_64
