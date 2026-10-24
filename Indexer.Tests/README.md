@@ -98,3 +98,18 @@ remembered in `game_source.txt`, so later runs index the same games without the 
 - **ProfileFlag_TakesThePathAfterIt** — `--profile <folder>` (and any `--flag value` pair) is
   read from anywhere among the arguments; a trailing flag with no value is ignored.
 - **GameFolderFlag_CanBeRepeated** — `--game-folder` can be given once per depot.
+
+## MacUniversalPackTests.cs
+
+The macOS BepInEx 5.4.23.6 pack (`libdoorstop.dylib` and `run_bepinex.sh` at the profile root, no
+`doorstop_libs/`) goes through the Indexer like any other profile content.
+
+- **CommonIgnoreRules_DoNotMatchThePackFiles** — typical `ignore_patterns.txt` rules (`**/.git/`,
+  `*.log`, `*.pdb`, `.DS_Store`, `Indexer.exe`) leave the pack files in the manifests.
+- **RootFilesOfThePack_AreNotGroupedWithAnythingElse** — the root files print as their own lines in
+  the change report.
+- **MovingFromTheLegacyLibraryToTheUniversalOne_IsReportedAsAddedAndRemoved** — swapping
+  `doorstop_libs/libdoorstop_x64.dylib` for the universal pack shows the new files as added and the
+  old library as removed.
+- **KeepingBothLibraries_ReportsOnlyTheNewFilesAsAdded** — adding the universal pack next to the
+  legacy library removes nothing.

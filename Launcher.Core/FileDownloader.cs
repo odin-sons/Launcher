@@ -865,6 +865,7 @@ namespace Odinsons.ValheimLauncher
                     {
                         // Matched — remember it for next run.
                         ledger.RecordConfirmed(fileDir, fileHash, fileSize);
+                        ExecutableBits.Ensure(fileDirFull, fileDir);
                     }
 
                     int currentProcessed = Interlocked.Increment(ref processedFiles);
@@ -1350,6 +1351,7 @@ namespace Odinsons.ValheimLauncher
                     }
 
                     File.Move(partial, file.LocalDir, overwrite: true);
+                    ExecutableBits.Ensure(file.LocalDir, file.WebDir);
                     completed = true;
                 }
                 finally

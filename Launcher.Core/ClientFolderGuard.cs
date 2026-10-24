@@ -20,7 +20,10 @@ namespace Odinsons.ValheimLauncher
             "valheim.exe",      // Windows
             "valheim.x86_64",   // Linux
             "valheim_Data",
-            "BepInEx"
+            "BepInEx",
+            "doorstop_libs",
+            "libdoorstop.dylib",    // macOS universal BepInEx pack
+            "run_bepinex.sh"
         };
 
         /// <summary>What the updater itself might have left behind if the previous run was interrupted.</summary>
