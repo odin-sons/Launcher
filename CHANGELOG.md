@@ -4,21 +4,12 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/). Versions com
 `Launcher.Avalonia/Launcher.Avalonia.csproj` — the legacy WPF `Launcher` no longer gets
 version bumps of its own.
 
-## [2.6.0] — unreleased
+## [2.5.0] — unreleased
 
 ### Added
 - On macOS the Steam overlay (Shift+Tab) works in a modded game started from the launcher: the
   launcher loads Steam's overlay libraries next to Doorstop, the way Steam does when it starts the
   game itself. If Steam's libraries aren't found, the game starts without the overlay as before.
-
-### Fixed
-- A download that gave up after its retries no longer lets the game start. The launcher used to show
-  the error and then launch with whatever files were on disk.
-- Files are downloaded to a temporary `.download` file, checked against the manifest's SHA-256 and
-  only then moved over the old one, so an interrupted or corrupted download no longer leaves a
-  truncated file in the client folder. A file that fails the check is downloaded again.
-
-## [2.5.0] — unreleased
 
 ### Fixed
 - On Apple Silicon Macs without Rosetta 2 (macOS 27 no longer installs it) the modded game used to
@@ -28,6 +19,11 @@ version bumps of its own.
 - The injector launch passes Valheim's Steam app id (`SteamAppId`/`SteamGameId`) to the game, so
   Steam initialises even though the Steam install has no `steam_appid.txt` and the game no longer
   quits right after loading.
+- A download that gave up after its retries no longer lets the game start. The launcher used to show
+  the error and then launch with whatever files were on disk.
+- Files are downloaded to a temporary `.download` file, checked against the manifest's SHA-256 and
+  only then moved over the old one, so an interrupted or corrupted download no longer leaves a
+  truncated file in the client folder. A file that fails the check is downloaded again.
 
 ## [2.4.1] — 2026-10-09
 
