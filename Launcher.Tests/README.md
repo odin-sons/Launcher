@@ -84,6 +84,11 @@ Building and preparing the Doorstop launch plan. Every OS-shaped case is a `[The
   `arch -x86_64 /usr/bin/env KEY=VALUE… <valheim.app/Contents/MacOS/…>`: x86_64 for the
   x64-only doorstop lib, and the DOORSTOP/DYLD variables passed as `env` arguments (not the
   inherited environment, which the kernel would strip).
+- **MacLaunchShape_PassesTheSteamAppIdToTheGame** / **NonMacPlan_CarriesTheSteamAppId** —
+  `SteamAppId`/`SteamGameId` = 892970 are set on every OS, since the Steam folder has no
+  `steam_appid.txt` and Steam init would otherwise fail.
+- **RosettaMissing_OnlyWhenAppleSiliconCannotRunX64** / **RosettaMissing_DoesNotProbeOnIntel** —
+  the Rosetta check fires only on Apple Silicon when x86_64 doesn't run, and never probes on Intel.
 - **NonMacLaunchShape_RunsExecutableDirectlyWithEnvironmentVariables** (Windows/Linux) — the
   game binary is the process, doorstop rides in `EnvironmentVariables`, no wrapper.
 - **ResolveGameExecutable_MacBundle_ResolvesToTheBinaryNamedInInfoPlist** — a `.app`

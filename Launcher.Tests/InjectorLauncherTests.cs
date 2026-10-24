@@ -186,6 +186,49 @@ namespace Launcher.Tests
             Assert.All(argv.Take(exeIndex).Skip(2), a => Assert.Contains('=', a)); // the KEY=VALUE block
         }
 
+        [Fact]
+        public void MacLaunchShape_PassesTheSteamAppIdToTheGame()
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewProfileFolder();
+            Assert.True(InjectorLauncher.TryPrepareLaunch(game.Root, profile.Root, out InjectorPlan plan, out string reason), reason);
+
+            var argv = InjectorLauncher.BuildStartInfo(plan!).ArgumentList.ToList();
+
+            Assert.Contains("SteamAppId=892970", argv);
+            Assert.Contains("SteamGameId=892970", argv);
+        }
+
+        [Theory]
+        [InlineData(TargetOs.Windows)]
+        [InlineData(TargetOs.Linux)]
+        public void NonMacPlan_CarriesTheSteamAppId(TargetOs os)
+        {
+            using var _ = RuntimePlatform.Pretend(os);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewProfileFolder();
+            Assert.True(InjectorLauncher.TryPrepareLaunch(game.Root, profile.Root, out InjectorPlan plan, out string reason), reason);
+
+            Assert.Equal("892970", plan!.Environment["SteamAppId"]);
+            Assert.Equal("892970", plan.Environment["SteamGameId"]);
+        }
+
+        [Theory]
+        [InlineData(true, false, true)]
+        [InlineData(true, true, false)]
+        [InlineData(false, false, false)]
+        public void RosettaMissing_OnlyWhenAppleSiliconCannotRunX64(bool appleSilicon, bool x64Runs, bool expected)
+        {
+            Assert.Equal(expected, InjectorLauncher.RosettaMissing(appleSilicon, () => x64Runs));
+        }
+
+        [Fact]
+        public void RosettaMissing_DoesNotProbeOnIntel()
+        {
+            Assert.False(InjectorLauncher.RosettaMissing(false, () => throw new InvalidOperationException("probed")));
+        }
+
         [Theory]
         [InlineData(TargetOs.Windows)]
         [InlineData(TargetOs.Linux)]

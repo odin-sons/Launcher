@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace Odinsons.ValheimLauncher
@@ -35,6 +36,7 @@ namespace Odinsons.ValheimLauncher
         private const string DoorstopLibsFolder = "doorstop_libs";
         private const string WindowsProxyName = "winhttp.dll";
         private const string DoorstopConfigName = "doorstop_config.ini";
+        private const string ValheimSteamAppId = "892970";
 
         /// <summary>Game executables in order of preference for the current OS.</summary>
         private static IEnumerable<string> ExecutableCandidates()
@@ -148,7 +150,9 @@ namespace Odinsons.ValheimLauncher
                 ["DOORSTOP_TARGET_ASSEMBLY"] = preloader,
                 // The game shouldn't pick up someone else's boot.config or debug settings.
                 ["DOORSTOP_MONO_DEBUG_ENABLED"] = "0",
-                ["DOORSTOP_IGNORE_DISABLED_ENV"] = "0"
+                ["DOORSTOP_IGNORE_DISABLED_ENV"] = "0",
+                ["SteamAppId"] = ValheimSteamAppId,
+                ["SteamGameId"] = ValheimSteamAppId
             };
 
             if (!RuntimePlatform.IsWindows)
@@ -409,7 +413,12 @@ namespace Odinsons.ValheimLauncher
         /// <summary>Actually launches the game according to the built plan.</summary>
         public static Process Launch(InjectorPlan plan)
         {
-            if (RuntimePlatform.IsMacOS) EnsureSteamRunning();
+            if (RuntimePlatform.IsMacOS)
+            {
+                if (RosettaMissing(RuntimeInformation.OSArchitecture == Architecture.Arm64, X64Runs))
+                    throw new InvalidOperationException(Loc.T("injector.noRosetta"));
+                EnsureSteamRunning();
+            }
             return Process.Start(BuildStartInfo(plan));
         }
 
@@ -455,6 +464,30 @@ namespace Odinsons.ValheimLauncher
             }
 
             return startInfo;
+        }
+
+        /// <summary>True on Apple Silicon when x86_64 binaries can't run, i.e. Rosetta 2 isn't installed.</summary>
+        public static bool RosettaMissing(bool appleSilicon, Func<bool> x64Runs) => appleSilicon && !x64Runs();
+
+        private static bool X64Runs()
+        {
+            try
+            {
+                using Process probe = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "/usr/bin/arch",
+                    ArgumentList = { "-x86_64", "/usr/bin/true" },
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+                probe.WaitForExit(10000);
+                return probe.HasExited && probe.ExitCode == 0;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>

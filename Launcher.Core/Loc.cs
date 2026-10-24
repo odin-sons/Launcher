@@ -958,6 +958,18 @@ namespace Odinsons.ValheimLauncher
                 "未找到 Doorstop 库：{0}",
                 "не знайдено бібліотеку Doorstop: {0}"),
 
+            ["injector.noRosetta"] = L(
+                "Rosetta 2 is required to run the modded game on this Mac. Install it by running this in Terminal, then start the game again: softwareupdate --install-rosetta --agree-to-license",
+                "Rosetta 2 wird benötigt, um das gemoddete Spiel auf diesem Mac zu starten. Installiere es mit diesem Befehl im Terminal und starte das Spiel erneut: softwareupdate --install-rosetta --agree-to-license",
+                "Se necesita Rosetta 2 para ejecutar el juego con mods en este Mac. Instálalo con este comando en Terminal y vuelve a iniciar el juego: softwareupdate --install-rosetta --agree-to-license",
+                "Rosetta 2 est nécessaire pour lancer le jeu modé sur ce Mac. Installez-le avec cette commande dans Terminal, puis relancez le jeu : softwareupdate --install-rosetta --agree-to-license",
+                "Do uruchomienia gry z modami na tym Macu wymagana jest Rosetta 2. Zainstaluj ją poleceniem w Terminalu i uruchom grę ponownie: softwareupdate --install-rosetta --agree-to-license",
+                "O Rosetta 2 é necessário para executar o jogo com mods neste Mac. Instale-o com este comando no Terminal e inicie o jogo novamente: softwareupdate --install-rosetta --agree-to-license",
+                "Для запуска игры с модами на этом Mac нужна Rosetta 2. Установите её командой в Терминале и запустите игру снова: softwareupdate --install-rosetta --agree-to-license",
+                "Rosetta 2 krävs för att köra det modifierade spelet på den här Macen. Installera den med det här kommandot i Terminal och starta spelet igen: softwareupdate --install-rosetta --agree-to-license",
+                "在此 Mac 上运行带模组的游戏需要 Rosetta 2。请在终端中运行以下命令安装后再重新启动游戏：softwareupdate --install-rosetta --agree-to-license",
+                "Для запуску гри з модами на цьому Mac потрібна Rosetta 2. Встановіть її командою в Терміналі та запустіть гру знову: softwareupdate --install-rosetta --agree-to-license"),
+
             ["injector.noProxy"] = L(
                 "the injector library is missing from the profile: {0}",
                 "die Injektor-Bibliothek fehlt im Profil: {0}",
