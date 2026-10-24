@@ -31,6 +31,12 @@ diverged from what a player would expect, with no error and no message.
 - **FileThatDriftsAfterBeingConfirmedGood_IsFlaggedAsSuspicious** — a file that matched the
   manifest last run and now doesn't, with the server's expected hash unchanged, is flagged
   as suspicious (the ledger mechanism).
+- **DownloadThatFailsTheChecksum_KeepsTheOldFileAndLeavesNoPartialBehind** — a file is
+  downloaded to `<name>.download` and checked against the manifest hash before it replaces
+  the old one; on a mismatch the old file stays, the temp file is removed, an error is shown and the game
+  is not allowed to start (a download that gave up used to be followed by `CanStartGame = true`).
+- **SuccessfulDownload_ReplacesTheOldFileAndLeavesNoPartialBehind** — the happy path of the same
+  mechanism: the verified file is moved over the old one and no `.download` file remains.
 - **InjectorMode_ActivatesOnTheVeryFirstRun_NeverDuplicatesGameFiles** (×Windows/macOS/Linux)
   — injector mode activates on the very first run (doesn't require the preloader to already
   be sitting in the client folder beforehand); game files are never duplicated, and the
