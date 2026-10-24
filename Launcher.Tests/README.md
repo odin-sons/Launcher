@@ -312,3 +312,27 @@ kept in `config.ini`.
 - **OneFolderInsideTheOther_IsNesting_InEitherOrder** / **SiblingsWithACommonPrefix_AreNotNesting**
   / **TheSameFolder_IsNotNesting_ButIsTheSame** — the game and profile folders may not lie inside
   one another; the same folder just means the default, and `Game` next to `Game2` is not nesting.
+
+## MacUniversalPackTests.cs
+
+A profile carrying the macOS BepInEx 5.4.23.6 pack layout (`libdoorstop.dylib` and `run_bepinex.sh`
+at the root, `BepInEx/core/*`, no `doorstop_libs/`). Execute-bit checks run on macOS/Linux only and
+pass trivially on Windows.
+
+- **NeedsExecuteBit_ForScriptsAndNativeLibrariesOnly** — `.sh`, `.dylib` and `.so` need the execute
+  bit; `.dll`, `.ini` and `.txt` do not.
+- **Ensure_AddsExecuteBit_OnlyWhereTheFileIsReadable** — `ExecutableBits.Ensure` adds execute for
+  exactly the classes that can already read the file, and leaves other files alone.
+- **FreshInstall_DownloadsEveryPackFile_AndMakesTheScriptAndLibraryExecutable** — a fresh install
+  gets every pack file, no suspicious-file warning, and the script and library come out executable
+  (downloads are created without the execute bit, the manifest carries no modes).
+- **ExistingInstallWithoutExecuteBit_GetsItOnTheNextRun** — a file that already matches the
+  manifest but lost or never had the bit is fixed without a re-download.
+- **LegacyProfile_MovedToUniversalPack_RemovesTheOldLibraryAndKeepsTheNewFiles** — a client with
+  only `doorstop_libs/libdoorstop_x64.dylib` updated against the universal pack drops the old
+  library (and its empty folder) as extra and installs the new files.
+- **ProfileWithBothLibraries_KeepsTheLegacyOneAlongsideTheUniversalOne** — a profile listing both
+  keeps both across repeated updates.
+- **InterruptedInstall_LeavingOnlyAPackRootEntry_IsStillASafeTarget** — a folder holding just
+  `libdoorstop.dylib`, `run_bepinex.sh` or `doorstop_libs/` (an update stopped early) still passes
+  `ClientFolderGuard`.
