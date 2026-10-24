@@ -478,10 +478,15 @@ namespace Odinsons.ValheimLauncher
             if (RuntimePlatform.IsWindows)
                 yield return "winhttp.dll";
             else
+            {
                 // The native Doorstop library dyld/ld preloads into the game process — without
                 // it in the client folder ahead of time, a first run can't decide it's eligible
                 // for injector mode and would duplicate the game files instead.
                 yield return InjectorLauncher.DoorstopLibraryRelativePath;
+                if (RuntimePlatform.IsMacOS)
+                    foreach (string universal in InjectorLauncher.UniversalDoorstopCandidates)
+                        yield return universal;
+            }
         }
 
         /// <summary>

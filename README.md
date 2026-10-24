@@ -47,6 +47,11 @@ original WPF-only `Launcher` still exists but is no longer where development hap
   Steam copy never silently launches with the wrong files. Falls back to the classic
   copy-based flow automatically whenever any of this isn't the case (no Steam copy found,
   build mismatch, fresh install, non-Windows OS).
+- **macOS: native arm64 or Rosetta.** The modded game runs natively on Apple Silicon when the
+  profile ships the universal Doorstop library (`libdoorstop.dylib`) and the game executable has
+  an arm64 slice; in every other case (older profile, Intel Mac, no arm64 slice) it runs as x86_64
+  under Rosetta, as before. Set `ODINSONS_FORCE_X64=1` to force the Rosetta path. Details in
+  [docs/macos-launch.md](docs/macos-launch.md).
 
 ### Servers and connectivity
 
