@@ -11,6 +11,8 @@ namespace Odinsons.ValheimLauncher
     /// <summary>How to run the game from its Steam install with our mod set.</summary>
     public sealed class InjectorPlan
     {
+        /// <summary>macOS only: the game runs as arm64 with the universal Doorstop library instead of x86_64 under Rosetta.</summary>
+        public bool NativeArm64 { get; init; }
         public string Executable { get; init; }
         public string WorkingDirectory { get; init; }
         public IReadOnlyList<string> Arguments { get; init; } = Array.Empty<string>();
@@ -37,6 +39,22 @@ namespace Odinsons.ValheimLauncher
         private const string WindowsProxyName = "winhttp.dll";
         private const string DoorstopConfigName = "doorstop_config.ini";
         private const string ValheimSteamAppId = "892970";
+        private const string UniversalDoorstopName = "libdoorstop.dylib";
+        public const string ForceX64EnvironmentVariable = "ODINSONS_FORCE_X64";
+
+        private static readonly string[] UniversalDoorstopRelativePaths =
+            { UniversalDoorstopName, $"{DoorstopLibsFolder}/{UniversalDoorstopName}" };
+
+        /// <summary>Client-folder-relative locations where a profile may ship the universal macOS Doorstop library.</summary>
+        public static IReadOnlyList<string> UniversalDoorstopCandidates => UniversalDoorstopRelativePaths;
+
+        private static string FindUniversalDoorstop(string profileFolder) =>
+            UniversalDoorstopRelativePaths
+                .Select(relative => Path.GetFullPath(Path.Combine(profileFolder, relative)))
+                .FirstOrDefault(File.Exists);
+
+        private static bool ForceX64FromEnvironment() =>
+            System.Environment.GetEnvironmentVariable(ForceX64EnvironmentVariable) is "1" or "true" or "TRUE" or "True";
 
         /// <summary>Game executables in order of preference for the current OS.</summary>
         private static IEnumerable<string> ExecutableCandidates()
@@ -137,8 +155,9 @@ namespace Odinsons.ValheimLauncher
         /// </summary>
         /// <param name="gameFolder">The game's folder from a Steam install.</param>
         /// <param name="profileFolder">Our client folder: BepInEx, doorstop_libs.</param>
+        /// <param name="forceX64">macOS: stay on the x86_64/Rosetta path even when native arm64 is possible.</param>
         public static InjectorPlan BuildPlan(string gameFolder, string profileFolder, out string reason,
-                                             string macSteamBinFolder = null)
+                                             string macSteamBinFolder = null, bool forceX64 = false)
         {
             reason = null;
 
@@ -174,10 +193,19 @@ namespace Odinsons.ValheimLauncher
                 ["SteamGameId"] = ValheimSteamAppId
             };
 
+            string universalLibrary = RuntimePlatform.IsMacOS && !forceX64 && !ForceX64FromEnvironment()
+                ? FindUniversalDoorstop(profileFolder)
+                : null;
+            bool native = universalLibrary is not null &&
+                          MacArchitecture.AppleSiliconHost &&
+                          MacArchitecture.HasArm64Slice(executable);
+
             if (!RuntimePlatform.IsWindows)
             {
-                string libs = Path.GetFullPath(Path.Combine(profileFolder, DoorstopLibsFolder));
-                string libraryPath = Path.Combine(libs, DoorstopLibraryName());
+                string libs = native
+                    ? Path.GetDirectoryName(universalLibrary)
+                    : Path.GetFullPath(Path.Combine(profileFolder, DoorstopLibsFolder));
+                string libraryPath = native ? universalLibrary : Path.Combine(libs, DoorstopLibraryName());
 
                 if (!File.Exists(libraryPath))
                 {
@@ -217,7 +245,8 @@ namespace Odinsons.ValheimLauncher
                 Executable = executable,
                 WorkingDirectory = gameFolder,
                 Arguments = arguments,
-                Environment = environment
+                Environment = environment,
+                NativeArm64 = native
             };
         }
 
@@ -295,9 +324,9 @@ namespace Odinsons.ValheimLauncher
         /// injector mode isn't available, and there's no reason to touch the game folder at all.
         /// </summary>
         public static bool TryPrepareLaunch(string gameFolder, string profileFolder,
-                                            out InjectorPlan plan, out string reason)
+                                            out InjectorPlan plan, out string reason, bool forceX64 = false)
         {
-            plan = BuildPlan(gameFolder, profileFolder, out reason);
+            plan = BuildPlan(gameFolder, profileFolder, out reason, forceX64: forceX64);
             if (plan is null) return false;
 
             if (!EnsureGameFolderPrepared(gameFolder, profileFolder, out reason))
@@ -437,7 +466,7 @@ namespace Odinsons.ValheimLauncher
         {
             if (RuntimePlatform.IsMacOS)
             {
-                if (RosettaMissing(RuntimeInformation.OSArchitecture == Architecture.Arm64, X64Runs))
+                if (RosettaMissing(plan, MacArchitecture.AppleSiliconHost, X64Runs))
                     throw new InvalidOperationException(Loc.T("injector.noRosetta"));
                 EnsureSteamRunning();
             }
@@ -456,7 +485,27 @@ namespace Odinsons.ValheimLauncher
                 UseShellExecute = false
             };
 
-            if (RuntimePlatform.IsMacOS)
+            if (RuntimePlatform.IsMacOS && plan.NativeArm64)
+            {
+                // DYLD_* goes through `arch -e`: dyld strips it across a platform binary.
+                startInfo.FileName = "/usr/bin/arch";
+                startInfo.EnvironmentVariables["ARCHPREFERENCE"] = "arm64,x86_64";
+                foreach ((string key, string value) in plan.Environment)
+                {
+                    if (key.StartsWith("DYLD_", StringComparison.Ordinal))
+                    {
+                        startInfo.ArgumentList.Add("-e");
+                        startInfo.ArgumentList.Add($"{key}={value}");
+                    }
+                    else
+                    {
+                        startInfo.EnvironmentVariables[key] = value;
+                    }
+                }
+                startInfo.ArgumentList.Add(plan.Executable);
+                foreach (string argument in plan.Arguments) startInfo.ArgumentList.Add(argument);
+            }
+            else if (RuntimePlatform.IsMacOS)
             {
                 // Two macOS-specific hoops, both taken straight from the launch scripts that ship
                 // with the BepInEx pack (start_game_bepinex.sh / Vortex's .vmm_launch.sh):
@@ -490,6 +539,10 @@ namespace Odinsons.ValheimLauncher
 
         /// <summary>True on Apple Silicon when x86_64 binaries can't run, i.e. Rosetta 2 isn't installed.</summary>
         public static bool RosettaMissing(bool appleSilicon, Func<bool> x64Runs) => appleSilicon && !x64Runs();
+
+        /// <summary>The Rosetta check only applies to the x86_64 path; a native arm64 plan never needs it.</summary>
+        public static bool RosettaMissing(InjectorPlan plan, bool appleSilicon, Func<bool> x64Runs) =>
+            !plan.NativeArm64 && RosettaMissing(appleSilicon, x64Runs);
 
         private static bool X64Runs()
         {

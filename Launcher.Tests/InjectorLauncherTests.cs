@@ -284,6 +284,210 @@ namespace Launcher.Tests
             Assert.DoesNotContain(si.ArgumentList, a => a.Contains('='));
         }
 
+        // --- Native arm64 vs x86_64/Rosetta (macOS) ---------------------------------------------
+
+        private static TestPack NewUniversalProfileFolder(string universalRelativePath = "libdoorstop.dylib",
+                                                          bool alsoX64 = false)
+        {
+            var pack = new TestPack();
+            pack.AddFile("BepInEx/core/BepInEx.Preloader.dll", "preloader");
+            pack.AddFile(universalRelativePath, "universal doorstop");
+            if (alsoX64) pack.AddFile("doorstop_libs/libdoorstop_x64.dylib", "x64 doorstop");
+            return pack;
+        }
+
+        private static InjectorPlan BuildMacPlan(TestPack game, TestPack profile, string steamBin,
+                                                 bool forceX64 = false)
+        {
+            InjectorPlan plan = InjectorLauncher.BuildPlan(game.Root, profile.Root, out string reason, steamBin, forceX64);
+            Assert.True(plan is not null, reason);
+            return plan!;
+        }
+
+        [Theory]
+        [InlineData("libdoorstop.dylib")]
+        [InlineData("doorstop_libs/libdoorstop.dylib")]
+        public void Native_ChosenOnAppleSiliconWithUniversalLibraryAndArm64Executable(string libraryPath)
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using var __ = MacArchitecture.Pretend(appleSilicon: true, executableHasArm64Slice: true);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewUniversalProfileFolder(libraryPath);
+            using TestPack steam = new TestPack();
+            steam.AddFile("steamloader.dylib", "loader");
+            steam.AddFile("gameoverlayrenderer.dylib", "overlay");
+
+            InjectorPlan plan = BuildMacPlan(game, profile, steam.Root);
+
+            string library = Path.Combine(Path.GetFullPath(profile.Root), libraryPath.Replace('/', Path.DirectorySeparatorChar));
+            Assert.True(plan.NativeArm64);
+            Assert.Equal(
+                string.Join(":", library, Path.Combine(steam.Root, "steamloader.dylib"),
+                    Path.Combine(steam.Root, "gameoverlayrenderer.dylib")),
+                plan.Environment["DYLD_INSERT_LIBRARIES"]);
+            Assert.Equal(Path.GetDirectoryName(library), plan.Environment["DYLD_LIBRARY_PATH"]);
+            Assert.Equal("892970", plan.Environment["SteamAppId"]);
+            Assert.Equal("892970", plan.Environment["SteamGameId"]);
+            Assert.Equal("892970", plan.Environment["SteamOverlayGameId"]);
+            Assert.Equal("1", plan.Environment["SteamEnv"]);
+            Assert.Equal("1", plan.Environment["SteamClientLaunch"]);
+        }
+
+        [Fact]
+        public void Native_PrefersTheUniversalLibraryOverTheX64OneWhenBothExist()
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using var __ = MacArchitecture.Pretend(true, true);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewUniversalProfileFolder(alsoX64: true);
+            using TestPack steam = new TestPack();
+
+            InjectorPlan plan = BuildMacPlan(game, profile, steam.Root);
+
+            Assert.True(plan.NativeArm64);
+            Assert.EndsWith("libdoorstop.dylib", plan.Environment["DYLD_INSERT_LIBRARIES"]);
+            Assert.DoesNotContain("_x64", plan.Environment["DYLD_INSERT_LIBRARIES"]);
+        }
+
+        [Fact]
+        public void Native_StartInfo_RunsArchWithEForDyldAndPlainEnvForTheRest()
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using var __ = MacArchitecture.Pretend(true, true);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewUniversalProfileFolder();
+            using TestPack steam = new TestPack();
+            InjectorPlan plan = BuildMacPlan(game, profile, steam.Root);
+
+            var si = InjectorLauncher.BuildStartInfo(plan);
+            var argv = si.ArgumentList.ToList();
+
+            Assert.Equal("/usr/bin/arch", si.FileName);
+            Assert.Equal(
+                new[]
+                {
+                    "-e", $"DYLD_LIBRARY_PATH={plan.Environment["DYLD_LIBRARY_PATH"]}",
+                    "-e", $"DYLD_INSERT_LIBRARIES={plan.Environment["DYLD_INSERT_LIBRARIES"]}",
+                    plan.Executable,
+                    "--doorstop-enabled", "true",
+                    "--doorstop-target-assembly", plan.Environment["DOORSTOP_TARGET_ASSEMBLY"]
+                },
+                argv);
+            Assert.DoesNotContain("-x86_64", argv);
+            Assert.DoesNotContain("/usr/bin/env", argv);
+
+            Assert.Equal("arm64,x86_64", si.EnvironmentVariables["ARCHPREFERENCE"]);
+            Assert.Equal("1", si.EnvironmentVariables["DOORSTOP_ENABLED"]);
+            Assert.Equal("892970", si.EnvironmentVariables["SteamAppId"]);
+            Assert.Equal("1", si.EnvironmentVariables["SteamEnv"]);
+        }
+
+        [Fact]
+        public void Native_SkipsTheRosettaCheck()
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using var __ = MacArchitecture.Pretend(true, true);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewUniversalProfileFolder();
+            using TestPack steam = new TestPack();
+            InjectorPlan plan = BuildMacPlan(game, profile, steam.Root);
+
+            Assert.False(InjectorLauncher.RosettaMissing(plan, true, () => throw new InvalidOperationException("probed")));
+        }
+
+        [Fact]
+        public void X64Plan_StillRunsTheRosettaCheck()
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using var __ = MacArchitecture.Pretend(true, true);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewProfileFolder();
+            using TestPack steam = new TestPack();
+            InjectorPlan plan = BuildMacPlan(game, profile, steam.Root);
+
+            Assert.False(plan.NativeArm64);
+            Assert.True(InjectorLauncher.RosettaMissing(plan, true, () => false));
+        }
+
+        public static readonly TheoryData<string, bool, bool, bool, bool> RosettaFallbacks = new()
+        {
+            { "old profile, x64 library only", true, true, false, false },
+            { "Intel host", false, true, true, false },
+            { "executable without an arm64 slice", true, false, true, false },
+            { "forced x86_64", true, true, true, true }
+        };
+
+        [Theory, MemberData(nameof(RosettaFallbacks))]
+        public void FallsBackToX64UnderRosetta(string scenario, bool appleSilicon, bool arm64Slice,
+                                               bool universalLibrary, bool forceX64)
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using var __ = MacArchitecture.Pretend(appleSilicon, arm64Slice);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = universalLibrary ? NewUniversalProfileFolder(alsoX64: true) : NewProfileFolder();
+            using TestPack steam = new TestPack();
+
+            InjectorPlan plan = BuildMacPlan(game, profile, steam.Root, forceX64);
+
+            Assert.False(plan.NativeArm64, scenario);
+            Assert.EndsWith("libdoorstop_x64.dylib", plan.Environment["DYLD_INSERT_LIBRARIES"]);
+            var si = InjectorLauncher.BuildStartInfo(plan);
+            Assert.Equal("/usr/bin/arch", si.FileName);
+            Assert.Equal(new[] { "-x86_64", "/usr/bin/env" }, si.ArgumentList.Take(2).ToArray());
+        }
+
+        [Fact]
+        public void FallsBackToX64_WhenForcedThroughTheEnvironmentVariable()
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using var __ = MacArchitecture.Pretend(true, true);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewUniversalProfileFolder(alsoX64: true);
+            using TestPack steam = new TestPack();
+
+            string? previous = Environment.GetEnvironmentVariable(InjectorLauncher.ForceX64EnvironmentVariable);
+            Environment.SetEnvironmentVariable(InjectorLauncher.ForceX64EnvironmentVariable, "1");
+            try
+            {
+                Assert.False(BuildMacPlan(game, profile, steam.Root).NativeArm64);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(InjectorLauncher.ForceX64EnvironmentVariable, previous);
+            }
+        }
+
+        [Fact]
+        public void UniversalLibraryOnly_WithoutNativeSupport_FailsWithMissingDoorstopLibrary()
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using var __ = MacArchitecture.Pretend(appleSilicon: false, executableHasArm64Slice: true);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewUniversalProfileFolder();
+
+            InjectorPlan? plan = InjectorLauncher.BuildPlan(game.Root, profile.Root, out string reason);
+
+            Assert.Null(plan);
+            Assert.Contains("libdoorstop_x64.dylib", reason);
+        }
+
+        [Theory]
+        [InlineData(TargetOs.Windows)]
+        [InlineData(TargetOs.Linux)]
+        public void NonMac_IgnoresTheNativeSwitches(TargetOs os)
+        {
+            using var _ = RuntimePlatform.Pretend(os);
+            using var __ = MacArchitecture.Pretend(true, true);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewProfileFolder();
+            profile.AddFile("libdoorstop.dylib", "universal doorstop");
+
+            InjectorPlan? plan = InjectorLauncher.BuildPlan(game.Root, profile.Root, out string reason);
+
+            Assert.True(plan is not null, reason);
+            Assert.False(plan!.NativeArm64);
+        }
+
         // --- ResolveGameExecutable ------------------------------------------------------------
 
         [Fact]

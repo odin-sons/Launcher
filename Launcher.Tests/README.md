@@ -101,6 +101,26 @@ Building and preparing the Doorstop launch plan. Every OS-shaped case is a `[The
   variables Steam sets itself); when they're missing only doorstop is injected.
 - **NonMacLaunchShape_RunsExecutableDirectlyWithEnvironmentVariables** (Windows/Linux) — the
   game binary is the process, doorstop rides in `EnvironmentVariables`, no wrapper.
+- **Native_ChosenOnAppleSiliconWithUniversalLibraryAndArm64Executable** (×`libdoorstop.dylib` at the
+  profile root / in `doorstop_libs/`) — Apple Silicon host + universal Doorstop library + arm64
+  executable selects the native plan: the universal library rides first in `DYLD_INSERT_LIBRARIES`,
+  followed by the Steam overlay libraries, and the Steam app id and overlay variables are kept.
+- **Native_PrefersTheUniversalLibraryOverTheX64OneWhenBothExist** — a profile shipping both
+  libraries goes native when the machine supports it.
+- **Native_StartInfo_RunsArchWithEForDyldAndPlainEnvForTheRest** — the exact native command:
+  `arch -e DYLD_LIBRARY_PATH=… -e DYLD_INSERT_LIBRARIES=… <executable> <doorstop args>`, with no
+  `-x86_64` and no `env`; `ARCHPREFERENCE=arm64,x86_64`, the DOORSTOP and Steam variables travel in the
+  process environment.
+- **Native_SkipsTheRosettaCheck** / **X64Plan_StillRunsTheRosettaCheck** — the Rosetta check applies
+  only to the x86_64 plan.
+- **FallsBackToX64UnderRosetta** (×old profile with only `libdoorstop_x64.dylib` / Intel host /
+  executable without an arm64 slice / forced x86_64) — each reason keeps the `arch -x86_64
+  /usr/bin/env …` launch with the x64 library.
+- **FallsBackToX64_WhenForcedThroughTheEnvironmentVariable** — `ODINSONS_FORCE_X64=1` forces the
+  x86_64 path.
+- **UniversalLibraryOnly_WithoutNativeSupport_FailsWithMissingDoorstopLibrary** — a profile with only the
+  universal library on a machine that can't go native reports the missing x64 library.
+- **NonMac_IgnoresTheNativeSwitches** (Windows/Linux) — the native switches never affect other OSes.
 - **ResolveGameExecutable_MacBundle_ResolvesToTheBinaryNamedInInfoPlist** — a `.app`
   resolves to `Contents/MacOS/<CFBundleExecutable>`.
 - **ResolveGameExecutable_MacBundleNoPlist_FallsBackToTheSoleBinary** — no `Info.plist`:
@@ -111,6 +131,16 @@ Building and preparing the Doorstop launch plan. Every OS-shaped case is a `[The
   `valheim.x86_64` resolves as itself.
 - **ResolveGameExecutable_NothingThere_ReturnsNull** (×Windows/macOS/Linux) — an empty
   folder resolves to nothing.
+
+## MacArchitectureTests.cs
+
+Detecting an arm64 slice in the game executable by reading its Mach-O header.
+
+- **FatBinary_WithArm64Slice_IsDetected** (×fat / fat64) — a universal binary listing arm64 is native-capable.
+- **FatBinary_WithoutArm64Slice_IsNot** — an x86_64-only fat binary is not.
+- **ThinBinary_IsDetectedByItsCpuType** — a single-architecture Mach-O is judged by its CPU type.
+- **NotMachO_MissingOrTruncatedFile_IsNotArm64** — text, a truncated header or a missing file never count as arm64.
+- **FatHeader_WithAbsurdSliceCount_IsRejected** — a corrupt slice count is rejected instead of read past the header.
 
 ## ClientLedgerTests.cs
 
