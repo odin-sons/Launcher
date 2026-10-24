@@ -84,7 +84,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
     public partial class MainWindow : Window, INotifyPropertyChanged, IUpdateUi
     {
-        private static readonly List<string> LauncherUrls = LauncherMirrors.Default.ToList();
+        private static readonly List<string> LauncherUrls = ServerProfile.Default.Mirrors.ToList();
 
         // Empty (not null) until a mirror answers, or forever if none do — string.IsNullOrEmpty
         // is the check used everywhere this is read, so "no mirror yet" and "unset" share one
