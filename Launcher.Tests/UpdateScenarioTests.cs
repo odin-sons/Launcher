@@ -293,6 +293,54 @@ namespace Launcher.Tests
             Assert.NotNull(secondRun.LastDegradationWarning);
         }
 
+        [Fact]
+        public async Task DownloadThatFailsTheChecksum_KeepsTheOldFileAndLeavesNoPartialBehind()
+        {
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v2");
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteEmptyGameManifest();
+            pack.WriteEmptyManifest("optional.info");
+
+            // The server's copy no longer matches the manifest it publishes.
+            File.WriteAllText(Path.Combine(pack.Root, "BepInEx/plugins/ReqMod/ReqMod.dll"), "tampered in transit");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+            string dllPath = Path.Combine(client.Path, "BepInEx/plugins/ReqMod/ReqMod.dll");
+            client.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+
+            var ui = new RecordingUpdateUi(client.Path);
+            await RunAsync(ui, server.BaseUrl, full: true);
+
+            Assert.Equal("required v1", File.ReadAllText(dllPath));
+            Assert.False(File.Exists(dllPath + ".download"));
+            Assert.Contains(ui.Messages, m => m.Kind == UpdateMessageKind.Error);
+            Assert.False(ui.CanStartGameAtComplete);
+        }
+
+        [Fact]
+        public async Task SuccessfulDownload_ReplacesTheOldFileAndLeavesNoPartialBehind()
+        {
+            using var pack = new TestPack();
+            pack.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v2");
+            pack.WriteManifest("update.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteManifest("update_admin.info", "BepInEx/plugins/ReqMod/ReqMod.dll");
+            pack.WriteEmptyGameManifest();
+            pack.WriteEmptyManifest("optional.info");
+
+            using var server = new TestServer(pack.Root);
+            using var client = new TempClientFolder();
+            string dllPath = Path.Combine(client.Path, "BepInEx/plugins/ReqMod/ReqMod.dll");
+            client.AddFile("BepInEx/plugins/ReqMod/ReqMod.dll", "required v1");
+
+            await RunAsync(new RecordingUpdateUi(client.Path), server.BaseUrl, full: true);
+
+            Assert.Equal("required v2", File.ReadAllText(dllPath));
+            Assert.False(File.Exists(dllPath + ".download"));
+        }
+
         public static readonly TheoryData<TargetOs> AllOs = new() { TargetOs.Windows, TargetOs.MacOS, TargetOs.Linux };
 
         [Theory, MemberData(nameof(AllOs))]

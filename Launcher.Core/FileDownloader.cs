@@ -46,6 +46,7 @@ namespace Odinsons.ValheimLauncher
         }
 
         private static bool CanStartGame;
+        private static int _downloadFailures;
         private static string clientFolder;
         private static bool FullCheck;
         private static bool StartAfter;
@@ -244,6 +245,7 @@ namespace Odinsons.ValheimLauncher
 
             clientFolder = _ui.ClientFolder;
             CanStartGame = true;
+            _downloadFailures = 0;
             FullCheck = full;
             StartAfter = startGame;
 
@@ -610,6 +612,7 @@ namespace Odinsons.ValheimLauncher
             public string WebDir { get; init; }
             public string LocalDir { get; init; }
             public long FileSize { get; init; }
+            public string Hash { get; init; }
             public long LastBytesReceived { get; set; }
 
             /// <summary>Which mod/data bucket this file counts toward in the download list.</summary>
@@ -850,6 +853,7 @@ namespace Odinsons.ValheimLauncher
                                     WebDir = fileDir,
                                     LocalDir = fileDirFull,
                                     FileSize = fileSize,
+                                    Hash = fileHash,
                                     LastBytesReceived = 0,
                                     GroupKey = DownloadGrouping.GroupKeyFor(fileDir)
                                 });
@@ -992,6 +996,7 @@ namespace Odinsons.ValheimLauncher
                                     WebDir = fileDir,
                                     LocalDir = fileDirFull,
                                     FileSize = fileSize,
+                                    Hash = fileHash,
                                     LastBytesReceived = 0,
                                     GroupKey = DownloadGrouping.GroupKeyFor(fileDir)
                                 });
@@ -1156,6 +1161,13 @@ namespace Odinsons.ValheimLauncher
                         return;
                     }
 
+                    if (Volatile.Read(ref _downloadFailures) > 0)
+                    {
+                        CanStartGame = false;
+                        _ui.SetLoading(false);
+                        return;
+                    }
+
                     _ui.FinishStep(_stepIndexDownload);
                     CanStartGame = true;
                 }
@@ -1221,6 +1233,7 @@ namespace Odinsons.ValheimLauncher
                     if (!retryable || attempt == MaxAttempts)
                     {
                         LauncherLog.Error($"giving up on {file.WebDir} after {attempt} attempt(s): {problem}");
+                        Interlocked.Increment(ref _downloadFailures);
                         _ui.ShowMessage(Loc.T("dl.error.downloadFile", file.WebDir, problem),
                             Loc.T("dl.title.error"), UpdateMessageKind.Error);
                         _ui.SetLoading(false);
@@ -1276,51 +1289,72 @@ namespace Odinsons.ValheimLauncher
                 LauncherLog.Trace($"200 OK {file.WebDir}, {totalBytes} B expected");
 
                 await using var stream = await response.Content.ReadAsStreamAsync();
-                await using var fileStream = new FileStream(file.LocalDir, FileMode.Create, FileAccess.Write, FileShare.None, 8192, FileOptions.Asynchronous);
-
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
-
-                // Stall guard. HttpClient.Timeout only covers the headers: if the connection
-                // hangs mid-body, the read would wait forever. The countdown resets on every
-                // successfully read chunk, so a slow but alive download doesn't trip the guard.
-                using var stall = new CancellationTokenSource(StallTimeout);
+                string partial = file.LocalDir + PartialSuffix;
+                bool completed = false;
 
                 try
                 {
-                    long bytesReceived = 0;
-                    int bytesRead;
-
-                    while ((bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), stall.Token)) > 0)
+                    await using (var fileStream = new FileStream(partial, FileMode.Create, FileAccess.Write, FileShare.None, 8192, FileOptions.Asynchronous))
                     {
-                        stall.CancelAfter(StallTimeout);
+                        byte[] buffer = ArrayPool<byte>.Shared.Rent(8192);
 
-                        if (worker.CancellationPending)
+                        // Stall guard. HttpClient.Timeout only covers the headers: if the connection
+                        // hangs mid-body, the read would wait forever. The countdown resets on every
+                        // successfully read chunk, so a slow but alive download doesn't trip the guard.
+                        using var stall = new CancellationTokenSource(StallTimeout);
+
+                        try
                         {
-                            LauncherLog.Info($"cancelled while downloading {file.WebDir}");
-                            _ui.SetLoading(false);
-                            return (false, false, TimeSpan.Zero, "cancelled");
+                            long bytesReceived = 0;
+                            int bytesRead;
+
+                            while ((bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), stall.Token)) > 0)
+                            {
+                                stall.CancelAfter(StallTimeout);
+
+                                if (worker.CancellationPending)
+                                {
+                                    LauncherLog.Info($"cancelled while downloading {file.WebDir}");
+                                    _ui.SetLoading(false);
+                                    return (false, false, TimeSpan.Zero, "cancelled");
+                                }
+
+                                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                                bytesReceived += bytesRead;
+
+                                long delta = bytesReceived - file.LastBytesReceived;
+                                file.LastBytesReceived = bytesReceived;
+                                Interlocked.Add(ref _totalBytesDownloaded, delta);
+                                _downloadTracker?.AddBytes(file.GroupKey, delta);
+
+                                UpdateSpeed();
+
+                                SetFilePercent((double)bytesReceived / totalBytes * 100);
+                                SetTotalPercent((double)_totalBytesDownloaded / _totalBytesToDownload * 100, _totalBytesDownloaded, _totalBytesToDownload);
+                                _ui.SetStepProgress((double)_totalBytesDownloaded / _totalBytesToDownload * 100);
+                                SetStateLabel(Loc.T("dl.downloading"), _totalBytesDownloaded, _totalBytesToDownload);
+                                MaybePushDownloadDetail();
+                            }
                         }
-
-                        await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
-                        bytesReceived += bytesRead;
-
-                        long delta = bytesReceived - file.LastBytesReceived;
-                        file.LastBytesReceived = bytesReceived;
-                        Interlocked.Add(ref _totalBytesDownloaded, delta);
-                        _downloadTracker?.AddBytes(file.GroupKey, delta);
-
-                        UpdateSpeed();
-
-                        SetFilePercent((double)bytesReceived / totalBytes * 100);
-                        SetTotalPercent((double)_totalBytesDownloaded / _totalBytesToDownload * 100, _totalBytesDownloaded, _totalBytesToDownload);
-                        _ui.SetStepProgress((double)_totalBytesDownloaded / _totalBytesToDownload * 100);
-                        SetStateLabel(Loc.T("dl.downloading"), _totalBytesDownloaded, _totalBytesToDownload);
-                        MaybePushDownloadDetail();
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(buffer);
+                        }
                     }
+
+                    if (!string.IsNullOrEmpty(file.Hash) &&
+                        !string.Equals(FileHash.OfFile(partial), file.Hash, StringComparison.OrdinalIgnoreCase))
+                    {
+                        LauncherLog.Warn($"hash mismatch after downloading {file.WebDir} (attempt {attempt}/{MaxAttempts})");
+                        return (false, true, HttpRetry.Delay(attempt, null), Loc.T("dl.error.hashMismatch"));
+                    }
+
+                    File.Move(partial, file.LocalDir, overwrite: true);
+                    completed = true;
                 }
                 finally
                 {
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    if (!completed) SafeDeleteFile(partial);
                 }
 
                 return (true, false, TimeSpan.Zero, null);
@@ -1356,6 +1390,8 @@ namespace Odinsons.ValheimLauncher
                 return (false, false, TimeSpan.Zero, ex.Message);
             }
         }
+
+        private const string PartialSuffix = ".download";
 
         private static void UpdateSpeed()
         {

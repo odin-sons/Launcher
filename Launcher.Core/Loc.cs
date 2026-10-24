@@ -670,6 +670,18 @@ namespace Odinsons.ValheimLauncher
                 "处理文件时出错：{0}",
                 "Помилка під час обробки файлів: {0}"),
 
+            ["dl.error.hashMismatch"] = L(
+                "the downloaded file does not match the server's checksum",
+                "die heruntergeladene Datei stimmt nicht mit der Prüfsumme des Servers überein",
+                "el archivo descargado no coincide con la suma de verificación del servidor",
+                "le fichier téléchargé ne correspond pas à la somme de contrôle du serveur",
+                "pobrany plik nie zgadza się z sumą kontrolną serwera",
+                "o arquivo baixado não corresponde à soma de verificação do servidor",
+                "скачанный файл не совпадает с контрольной суммой сервера",
+                "den nedladdade filen matchar inte serverns kontrollsumma",
+                "下载的文件与服务器的校验和不一致",
+                "завантажений файл не збігається з контрольною сумою сервера"),
+
             ["dl.error.downloadFile"] = L(
                 "Error downloading file {0}: {1}",
                 "Fehler beim Herunterladen der Datei {0}: {1}",
