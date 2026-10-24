@@ -791,7 +791,7 @@
                 <TextBlock Name="CopyrightText" FontSize="12" Foreground="#FFD6D6D6" HorizontalAlignment="Right"/>
 
                 <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Right">
-                    <Button Classes="iconButton" Click="WebsiteButton_Click">
+                    <Button Name="WebsiteButton" Classes="iconButton" Click="WebsiteButton_Click">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <!-- Feather Icons "globe" (MIT) — a generic site icon, not a brand
                                  mark, so unlike Discord's logo any plain globe glyph would do
@@ -808,7 +808,7 @@
                             <TextBlock Name="OurSiteLinkText" FontSize="13" Foreground="White" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button Classes="iconButton" Click="DiscordButton_Click">
+                    <Button Name="DiscordButton" Classes="iconButton" Click="DiscordButton_Click">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <!-- Discord's own brand guidelines (discord.com/branding) list color,
                                  white, or black as the only sanctioned ways to show this mark —

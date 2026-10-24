@@ -84,12 +84,14 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
     public partial class MainWindow : Window, INotifyPropertyChanged, IUpdateUi
     {
-        private static readonly List<string> LauncherUrls = ServerProfile.Default.Mirrors.ToList();
+        private readonly ServerProfile _profile;
+
+        private IReadOnlyList<string> LauncherUrls => _profile.Mirrors;
 
         // Empty (not null) until a mirror answers, or forever if none do — string.IsNullOrEmpty
         // is the check used everywhere this is read, so "no mirror yet" and "unset" share one
         // non-null representation instead of needing a separate null case.
-        private static string ActiveLauncherUrl { get; set; } = string.Empty;
+        private string ActiveLauncherUrl { get; set; } = string.Empty;
 
         // Scheme+host of ActiveLauncherUrl (e.g. "https://server.odinsons.club"), no path —
         // /serverinfo is proxied at each domain's own root ("<origin>/<server>/serverinfo"),
@@ -97,7 +99,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         // mirror-fallback domain here (instead of servers.json's own Ip/HttpPort) means status
         // checks work through whatever firewall/proxy setup already makes the rest of the
         // launcher reachable, instead of needing a second port opened per server.
-        private static string ActiveLauncherOrigin =>
+        private string ActiveLauncherOrigin =>
             Uri.TryCreate(ActiveLauncherUrl, UriKind.Absolute, out Uri? uri)
                 ? uri.GetLeftPart(UriPartial.Authority)
                 : string.Empty;
@@ -897,8 +899,14 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
         }
 
-        public MainWindow()
+        public MainWindow() : this(ServerProfile.Default)
         {
+        }
+
+        public MainWindow(ServerProfile profile)
+        {
+            _profile = profile;
+
             // Before InitializeComponent: nothing in it calls Loc.T today, but the very next
             // thing this constructor does is a batch of them (ApplyLocalizedChrome, below), so
             // the preferred language needs to already be active before those run.
@@ -906,6 +914,8 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
             InitializeComponent();
             DataContext = this;
+            WebsiteButton.IsVisible = !string.IsNullOrEmpty(_profile.Website);
+            DiscordButton.IsVisible = !string.IsNullOrEmpty(_profile.Discord);
 
             WireScrollShadows(PlayersScrollViewer, PlayersTopShadow, PlayersBottomShadow);
             WireScrollShadows(ServerRightScrollViewer, ServerRightTopShadow, ServerRightBottomShadow);
@@ -1486,7 +1496,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         /// CheckMirrorAsync already uses for the rest of the pre-gameplay checks — nginx rate
         /// limits or a brief hiccup during a mass rollout (every player self-updating at once)
         /// shouldn't fail the self-update check outright on the very first attempt.</summary>
-        private static async Task<string> FetchServerVersionAsync()
+        private async Task<string> FetchServerVersionAsync()
         {
             const int maxAttempts = 3;
             HttpStatusCode? lastStatus = null;
@@ -3499,11 +3509,15 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             if (Enum.TryParse(edgeName, out WindowEdge edge)) BeginResizeDrag(edge, e);
         }
 
-        private void DiscordButton_Click(object? sender, RoutedEventArgs e) => Process.Start(new ProcessStartInfo
-        { FileName = "https://discord.gg/eTteBxWcfu", UseShellExecute = true });
+        private void DiscordButton_Click(object? sender, RoutedEventArgs e) => OpenProfileLink(_profile.Discord);
 
-        private void WebsiteButton_Click(object? sender, RoutedEventArgs e) => Process.Start(new ProcessStartInfo
-        { FileName = "https://odinsons.club/", UseShellExecute = true });
+        private void WebsiteButton_Click(object? sender, RoutedEventArgs e) => OpenProfileLink(_profile.Website);
+
+        private static void OpenProfileLink(string? url)
+        {
+            if (string.IsNullOrEmpty(url)) return;
+            Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+        }
 
         private readonly Dictionary<string, Bitmap> _avatarCache = new();
 

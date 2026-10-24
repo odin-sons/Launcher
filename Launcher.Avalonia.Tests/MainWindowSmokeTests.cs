@@ -1,4 +1,5 @@
 using Avalonia.Headless.XUnit;
+using Odinsons.ValheimLauncher;
 using Odinsons.ValheimLauncher.Avalonia.Views;
 using Xunit;
 
@@ -35,6 +36,26 @@ namespace Launcher.Avalonia.Tests
             var window = new MainWindow();
 
             window.BuildActionButtons();
+        }
+
+        [AvaloniaFact]
+        public void CommunityLinkButtons_AreShown_WhenTheProfileHasLinks()
+        {
+            var window = new MainWindow(ServerProfile.Default);
+
+            Assert.True(window.WebsiteButton.IsVisible);
+            Assert.True(window.DiscordButton.IsVisible);
+        }
+
+        [AvaloniaFact]
+        public void CommunityLinkButtons_AreHidden_WhenTheProfileHasNoLinks()
+        {
+            var profile = new ServerProfile("bare", "Bare", new[] { "https://mirror.test/" });
+
+            var window = new MainWindow(profile);
+
+            Assert.False(window.WebsiteButton.IsVisible);
+            Assert.False(window.DiscordButton.IsVisible);
         }
     }
 }

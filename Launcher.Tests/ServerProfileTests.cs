@@ -36,5 +36,37 @@ namespace Launcher.Tests
         {
             Assert.Equal(ServerProfile.Default.Mirrors.Count, ServerProfile.Default.Mirrors.Distinct().Count());
         }
+
+        [Fact]
+        public void Default_HasWebsiteAndDiscordLinks()
+        {
+            Assert.StartsWith("https://", ServerProfile.Default.Website);
+            Assert.StartsWith("https://", ServerProfile.Default.Discord);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("not a url")]
+        [InlineData("http://example.test/")]
+        [InlineData("file:///tmp/payload")]
+        [InlineData("ms-msdt:/id")]
+        public void Links_NotHttps_AreDropped(string url)
+        {
+            var profile = new ServerProfile("test", "Test", new[] { "https://mirror.test/" }, url, url);
+
+            Assert.Null(profile.Website);
+            Assert.Null(profile.Discord);
+        }
+
+        [Fact]
+        public void Links_Https_AreKept()
+        {
+            var profile = new ServerProfile("test", "Test", new[] { "https://mirror.test/" },
+                "https://example.test/", "https://discord.test/invite");
+
+            Assert.Equal("https://example.test/", profile.Website);
+            Assert.Equal("https://discord.test/invite", profile.Discord);
+        }
     }
 }
