@@ -113,13 +113,32 @@ namespace Odinsons.ValheimLauncher
             return files.Length == 1 ? files[0] : null;
         }
 
+        private static readonly (string Key, string Value)[] SteamLaunchedByVariables =
+        {
+            ("SteamOverlayGameId", ValheimSteamAppId),
+            ("SteamEnv", "1"),
+            ("SteamClientLaunch", "1")
+        };
+
+        private static string DefaultMacSteamBinFolder() =>
+            Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
+                "Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS");
+
+        /// <summary>The Steam overlay libraries Steam itself injects into games it starts; only those that exist.</summary>
+        public static IReadOnlyList<string> SteamOverlayLibraries(string steamBinFolder) =>
+            new[] { "steamloader.dylib", "gameoverlayrenderer.dylib" }
+                .Select(name => Path.Combine(steamBinFolder, name))
+                .Where(File.Exists)
+                .ToList();
+
         /// <summary>
         /// Builds the launch command. Changes nothing on disk — a pure function of paths,
         /// so it's tested against fixtures without an installed game.
         /// </summary>
         /// <param name="gameFolder">The game's folder from a Steam install.</param>
         /// <param name="profileFolder">Our client folder: BepInEx, doorstop_libs.</param>
-        public static InjectorPlan BuildPlan(string gameFolder, string profileFolder, out string reason)
+        public static InjectorPlan BuildPlan(string gameFolder, string profileFolder, out string reason,
+                                             string macSteamBinFolder = null)
         {
             reason = null;
 
@@ -172,7 +191,10 @@ namespace Odinsons.ValheimLauncher
                     // lib also happens to sit on the default search path. Matches the launch
                     // scripts that ship with the BepInEx pack (start_game_bepinex.sh / Vortex).
                     environment["DYLD_LIBRARY_PATH"] = libs;
-                    environment["DYLD_INSERT_LIBRARIES"] = libraryPath;
+                    environment["DYLD_INSERT_LIBRARIES"] = string.Join(":",
+                        new[] { libraryPath }.Concat(SteamOverlayLibraries(macSteamBinFolder ?? DefaultMacSteamBinFolder())));
+                    foreach ((string key, string value) in SteamLaunchedByVariables)
+                        environment[key] = value;
                 }
                 else
                 {

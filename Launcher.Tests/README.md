@@ -89,6 +89,10 @@ Building and preparing the Doorstop launch plan. Every OS-shaped case is a `[The
   `steam_appid.txt` and Steam init would otherwise fail.
 - **RosettaMissing_OnlyWhenAppleSiliconCannotRunX64** / **RosettaMissing_DoesNotProbeOnIntel** —
   the Rosetta check fires only on Apple Silicon when x86_64 doesn't run, and never probes on Intel.
+- **MacPlan_InjectsTheSteamOverlayAfterDoorstop_WhenItsLibrariesExist** /
+  **MacPlan_WithoutSteamOverlayLibraries_InjectsOnlyDoorstop** — on macOS the Steam overlay
+  libraries found in the Steam bundle follow doorstop in `DYLD_INSERT_LIBRARIES` (with the
+  variables Steam sets itself); when they're missing only doorstop is injected.
 - **NonMacLaunchShape_RunsExecutableDirectlyWithEnvironmentVariables** (Windows/Linux) — the
   game binary is the process, doorstop rides in `EnvironmentVariables`, no wrapper.
 - **ResolveGameExecutable_MacBundle_ResolvesToTheBinaryNamedInInfoPlist** — a `.app`
