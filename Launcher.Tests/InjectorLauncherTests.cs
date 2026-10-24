@@ -224,6 +224,44 @@ namespace Launcher.Tests
         }
 
         [Fact]
+        public void MacPlan_InjectsTheSteamOverlayAfterDoorstop_WhenItsLibrariesExist()
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewProfileFolder();
+            using TestPack steam = new TestPack();
+            steam.AddFile("steamloader.dylib", "loader");
+            steam.AddFile("gameoverlayrenderer.dylib", "overlay");
+
+            InjectorPlan plan = InjectorLauncher.BuildPlan(game.Root, profile.Root, out string reason, steam.Root);
+
+            Assert.NotNull(plan);
+            string doorstop = Path.Combine(Path.GetFullPath(profile.Root), "doorstop_libs", "libdoorstop_x64.dylib");
+            Assert.Equal(
+                string.Join(":", doorstop, Path.Combine(steam.Root, "steamloader.dylib"),
+                    Path.Combine(steam.Root, "gameoverlayrenderer.dylib")),
+                plan.Environment["DYLD_INSERT_LIBRARIES"]);
+            Assert.Equal("892970", plan.Environment["SteamOverlayGameId"]);
+            Assert.Equal("1", plan.Environment["SteamEnv"]);
+            Assert.Equal("1", plan.Environment["SteamClientLaunch"]);
+        }
+
+        [Fact]
+        public void MacPlan_WithoutSteamOverlayLibraries_InjectsOnlyDoorstop()
+        {
+            using var _ = RuntimePlatform.Pretend(TargetOs.MacOS);
+            using TestPack game = NewGameFolder();
+            using TestPack profile = NewProfileFolder();
+            using TestPack steam = new TestPack();
+
+            InjectorPlan plan = InjectorLauncher.BuildPlan(game.Root, profile.Root, out string reason, steam.Root);
+
+            Assert.NotNull(plan);
+            Assert.EndsWith("libdoorstop_x64.dylib", plan.Environment["DYLD_INSERT_LIBRARIES"]);
+            Assert.DoesNotContain("steamloader", plan.Environment["DYLD_INSERT_LIBRARIES"]);
+        }
+
+        [Fact]
         public void RosettaMissing_DoesNotProbeOnIntel()
         {
             Assert.False(InjectorLauncher.RosettaMissing(false, () => throw new InvalidOperationException("probed")));
