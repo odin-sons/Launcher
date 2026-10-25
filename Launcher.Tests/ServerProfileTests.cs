@@ -36,5 +36,37 @@ namespace Launcher.Tests
         {
             Assert.Equal(ServerProfile.Default.Mirrors.Count, ServerProfile.Default.Mirrors.Distinct().Count());
         }
+
+        [Fact]
+        public void Default_HasWebsiteAndCommunityLinks()
+        {
+            Assert.StartsWith("https://", ServerProfile.Default.Website);
+            Assert.StartsWith("https://", ServerProfile.Default.Community);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("not a url")]
+        [InlineData("http://example.test/")]
+        [InlineData("file:///tmp/payload")]
+        [InlineData("ms-msdt:/id")]
+        public void Links_NotHttps_AreDropped(string url)
+        {
+            var profile = new ServerProfile("test", "Test", new[] { "https://mirror.test/" }, url, url);
+
+            Assert.Null(profile.Website);
+            Assert.Null(profile.Community);
+        }
+
+        [Fact]
+        public void Links_Https_AreKept()
+        {
+            var profile = new ServerProfile("test", "Test", new[] { "https://mirror.test/" },
+                "https://example.test/", "https://community.test/invite");
+
+            Assert.Equal("https://example.test/", profile.Website);
+            Assert.Equal("https://community.test/invite", profile.Community);
+        }
     }
 }

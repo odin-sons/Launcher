@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Odinsons.ValheimLauncher
@@ -26,11 +27,14 @@ namespace Odinsons.ValheimLauncher
     /// files are fetched from, tried in order.</summary>
     public sealed class ServerProfile
     {
-        public ServerProfile(string id, string name, IReadOnlyList<string> mirrors)
+        public ServerProfile(string id, string name, IReadOnlyList<string> mirrors,
+            string website = null, string community = null)
         {
             Id = id;
             Name = name;
             Mirrors = mirrors;
+            Website = HttpsOrNull(website);
+            Community = HttpsOrNull(community);
         }
 
         public string Id { get; }
@@ -38,6 +42,16 @@ namespace Odinsons.ValheimLauncher
 
         /// <summary>Base URLs ending in "/", most preferred first.</summary>
         public IReadOnlyList<string> Mirrors { get; }
+
+        /// <summary>Community links shown in the launcher; null when the community has none.
+        /// Only https URLs are kept, since the launcher hands them to the OS to open.</summary>
+        public string Website { get; }
+        public string Community { get; }
+
+        private static string HttpsOrNull(string url) =>
+            Uri.TryCreate(url, UriKind.Absolute, out Uri uri) && uri.Scheme == Uri.UriSchemeHttps
+                ? uri.AbsoluteUri
+                : null;
 
         public static readonly ServerProfile Odinsons = new ServerProfile(
             "odinsons",
@@ -48,7 +62,9 @@ namespace Odinsons.ValheimLauncher
                 // under partial network blocking. Falls back to the direct domain.
                 "https://server-cf.odinsons.club/Launcher/",
                 "https://server.odinsons.club/Launcher/"
-            });
+            },
+            website: "https://odinsons.club/",
+            community: "https://discord.gg/eTteBxWcfu");
 
         public static ServerProfile Default => Odinsons;
     }
