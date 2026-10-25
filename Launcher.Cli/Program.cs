@@ -303,7 +303,7 @@ namespace Odinsons.ValheimLauncher.Cli
             {
                 var config = new IniFile(configPath);
                 await config.LoadAsync();
-                string saved = config.Read("SelectedServer", "Settings");
+                string saved = LauncherPaths.SelectedServer(config, ServerProfile.Default);
                 if (!string.IsNullOrWhiteSpace(saved) &&
                     servers.Any(s => string.Equals(s.Name, saved, StringComparison.OrdinalIgnoreCase)))
                 {

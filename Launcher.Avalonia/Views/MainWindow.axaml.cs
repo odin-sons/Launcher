@@ -1294,7 +1294,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
                 var config = new IniFile(Path.Combine(Environment.CurrentDirectory, "config.ini"));
                 await config.LoadAsync();
-                string selectedServerFromConfig = config.Read("SelectedServer", "Settings");
+                string selectedServerFromConfig = LauncherPaths.SelectedServer(config, _profile);
                 var selectedItem = _serverListItems.FirstOrDefault(item => item.Name == selectedServerFromConfig);
 
                 ServerSelector.SelectionChanged -= ServerSelector_SelectionChanged;
@@ -1317,7 +1317,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     {
                         try
                         {
-                            await config.WriteAsync("SelectedServer", SelectedServer, "Settings");
+                            await LauncherPaths.SetSelectedServerAsync(config, _profile, SelectedServer);
                             Log($"Persisted selected server {SelectedServer} to config.ini");
                         }
                         catch (Exception ex)
@@ -2387,12 +2387,12 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             {
                 var config = new IniFile(ConfigPath);
                 config.Load();
-                return LauncherPaths.ProfileFolder(config, server);
+                return LauncherPaths.ProfileFolder(config, _profile, server);
             }
             catch (Exception ex)
             {
                 LauncherLog.Warn("Could not read the profile folder from config.ini", ex);
-                return LauncherPaths.DefaultProfileFolder(server);
+                return LauncherPaths.DefaultProfileFolder(_profile, server);
             }
         }
 
@@ -2419,7 +2419,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
             ProfilePathBox.Text = string.IsNullOrEmpty(ClientFolder) ? string.Empty : Path.GetFullPath(ClientFolder);
             ProfilePathResetButton.IsEnabled = !string.IsNullOrEmpty(SelectedServer) &&
-                                               ClientFolder != LauncherPaths.DefaultProfileFolder(SelectedServer);
+                                               ClientFolder != LauncherPaths.DefaultProfileFolder(_profile, SelectedServer);
 
             GamePathBox.Text = gameFolder is null ? string.Empty : Path.GetFullPath(gameFolder);
             GamePathBox.PlaceholderText = Loc.T("gui.path.gameDefault");
@@ -2477,10 +2477,10 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         /// <param name="folder">Null goes back to the default.</param>
         private async Task ChangeProfileFolderAsync(string? folder)
         {
-            string newFolder = folder ?? LauncherPaths.DefaultProfileFolder(SelectedServer);
+            string newFolder = folder ?? LauncherPaths.DefaultProfileFolder(_profile, SelectedServer);
             if (!await CanUseFolderAsync(newFolder, ResolveGameFolder())) return;
 
-            SavePath(config => LauncherPaths.SetProfileFolder(config, SelectedServer, folder));
+            SavePath(config => LauncherPaths.SetProfileFolder(config, _profile, SelectedServer, folder));
             ClientFolder = newFolder;
             Directory.CreateDirectory(ClientFolder);
             AfterPathsChanged();
@@ -2534,7 +2534,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             var config = new IniFile(Path.Combine(Environment.CurrentDirectory, "config.ini"));
             try
             {
-                await config.WriteAsync("SelectedServer", SelectedServer, "Settings");
+                await LauncherPaths.SetSelectedServerAsync(config, _profile, SelectedServer);
             }
             catch (Exception ex)
             {

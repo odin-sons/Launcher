@@ -7,7 +7,8 @@ namespace Odinsons.ValheimLauncher
     /// Where a player keeps things on disk, read from and written to config.ini.
     ///
     /// The profile folder is the server's mod set (BepInEx, plugins, settings) and differs from
-    /// one server to the next, so it is stored per server; unset, it is <c>clients/&lt;server&gt;</c>.
+    /// one server to the next, so it is stored per server; unset, it is <c>clients/&lt;server&gt;</c> for the built-in profile and
+    /// <c>clients/&lt;profile&gt;/&lt;server&gt;</c> for any other.
     /// The game folder is one for all servers; unset, the game runs from the Steam install when its
     /// version matches the server and otherwise lives in the profile folder.
     /// </summary>
@@ -17,19 +18,48 @@ namespace Odinsons.ValheimLauncher
         public const string GameKey = "GamePath";
         public const string ProfileKey = "ProfilePath";
 
-        private static string ServerSection(string server) => "Server:" + server;
+        public const string SelectedServerKey = "SelectedServer";
+        private const string LegacySettingsSection = "Settings";
 
-        public static string DefaultProfileFolder(string server) => Path.Combine("clients", server);
+        // The built-in profile keeps the 2.x layout, so existing installs stay where they are.
+        private static bool IsBuiltIn(ServerProfile profile) =>
+            string.Equals(profile.Id, ServerProfile.Default.Id, StringComparison.Ordinal);
+
+        private static string ServerSection(ServerProfile profile, string server) =>
+            IsBuiltIn(profile) ? "Server:" + server : $"Server:{profile.Id}/{server}";
+
+        public static string DefaultProfileFolder(string server) =>
+            DefaultProfileFolder(ServerProfile.Default, server);
+
+        public static string DefaultProfileFolder(ServerProfile profile, string server) =>
+            IsBuiltIn(profile) ? Path.Combine("clients", server) : Path.Combine("clients", profile.Id, server);
 
         public static string ProfileFolder(IniFile config, string server) =>
-            Clean(config.Read(ProfileKey, ServerSection(server))) ?? DefaultProfileFolder(server);
+            ProfileFolder(config, ServerProfile.Default, server);
 
-        /// <returns>The chosen game folder, or null when none is set (see the class summary).</returns>
+        public static string ProfileFolder(IniFile config, ServerProfile profile, string server) =>
+            Clean(config.Read(ProfileKey, ServerSection(profile, server))) ?? DefaultProfileFolder(profile, server);
+
+        public static string SelectedServer(IniFile config, ServerProfile profile) =>
+            Clean(config.Read(SelectedServerKey, SelectedServerSection(profile)));
+
+        public static void SetSelectedServer(IniFile config, ServerProfile profile, string server) =>
+            config.Write(SelectedServerKey, server?.Trim() ?? string.Empty, SelectedServerSection(profile));
+
+        public static System.Threading.Tasks.Task SetSelectedServerAsync(IniFile config, ServerProfile profile, string server) =>
+            config.WriteAsync(SelectedServerKey, server?.Trim() ?? string.Empty, SelectedServerSection(profile));
+
+        private static string SelectedServerSection(ServerProfile profile) =>
+            IsBuiltIn(profile) ? LegacySettingsSection : "Profile:" + profile.Id;
+
         public static string GameFolder(IniFile config) => Clean(config.Read(GameKey, GameSection));
 
         /// <param name="path">Null or empty goes back to the default.</param>
         public static void SetProfileFolder(IniFile config, string server, string path) =>
-            config.Write(ProfileKey, path?.Trim() ?? string.Empty, ServerSection(server));
+            SetProfileFolder(config, ServerProfile.Default, server, path);
+
+        public static void SetProfileFolder(IniFile config, ServerProfile profile, string server, string path) =>
+            config.Write(ProfileKey, path?.Trim() ?? string.Empty, ServerSection(profile, server));
 
         /// <param name="path">Null or empty goes back to the default.</param>
         public static void SetGameFolder(IniFile config, string path) =>
