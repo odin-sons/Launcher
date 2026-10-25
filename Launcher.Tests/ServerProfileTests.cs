@@ -38,10 +38,10 @@ namespace Launcher.Tests
         }
 
         [Fact]
-        public void Default_HasWebsiteAndDiscordLinks()
+        public void Default_HasWebsiteAndCommunityLinks()
         {
             Assert.StartsWith("https://", ServerProfile.Default.Website);
-            Assert.StartsWith("https://", ServerProfile.Default.Discord);
+            Assert.StartsWith("https://", ServerProfile.Default.Community);
         }
 
         [Theory]
@@ -56,17 +56,17 @@ namespace Launcher.Tests
             var profile = new ServerProfile("test", "Test", new[] { "https://mirror.test/" }, url, url);
 
             Assert.Null(profile.Website);
-            Assert.Null(profile.Discord);
+            Assert.Null(profile.Community);
         }
 
         [Fact]
         public void Links_Https_AreKept()
         {
             var profile = new ServerProfile("test", "Test", new[] { "https://mirror.test/" },
-                "https://example.test/", "https://discord.test/invite");
+                "https://example.test/", "https://community.test/invite");
 
             Assert.Equal("https://example.test/", profile.Website);
-            Assert.Equal("https://discord.test/invite", profile.Discord);
+            Assert.Equal("https://community.test/invite", profile.Community);
         }
     }
 }

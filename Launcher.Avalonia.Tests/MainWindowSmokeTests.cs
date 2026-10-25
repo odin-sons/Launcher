@@ -44,7 +44,7 @@ namespace Launcher.Avalonia.Tests
             var window = new MainWindow(ServerProfile.Default);
 
             Assert.True(window.WebsiteButton.IsVisible);
-            Assert.True(window.DiscordButton.IsVisible);
+            Assert.True(window.CommunityButton.IsVisible);
         }
 
         [AvaloniaFact]
@@ -55,7 +55,7 @@ namespace Launcher.Avalonia.Tests
             var window = new MainWindow(profile);
 
             Assert.False(window.WebsiteButton.IsVisible);
-            Assert.False(window.DiscordButton.IsVisible);
+            Assert.False(window.CommunityButton.IsVisible);
         }
     }
 }

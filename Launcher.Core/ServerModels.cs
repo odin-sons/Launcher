@@ -28,13 +28,13 @@ namespace Odinsons.ValheimLauncher
     public sealed class ServerProfile
     {
         public ServerProfile(string id, string name, IReadOnlyList<string> mirrors,
-            string website = null, string discord = null)
+            string website = null, string community = null)
         {
             Id = id;
             Name = name;
             Mirrors = mirrors;
             Website = HttpsOrNull(website);
-            Discord = HttpsOrNull(discord);
+            Community = HttpsOrNull(community);
         }
 
         public string Id { get; }
@@ -46,7 +46,7 @@ namespace Odinsons.ValheimLauncher
         /// <summary>Community links shown in the launcher; null when the community has none.
         /// Only https URLs are kept, since the launcher hands them to the OS to open.</summary>
         public string Website { get; }
-        public string Discord { get; }
+        public string Community { get; }
 
         private static string HttpsOrNull(string url) =>
             Uri.TryCreate(url, UriKind.Absolute, out Uri uri) && uri.Scheme == Uri.UriSchemeHttps
@@ -64,7 +64,7 @@ namespace Odinsons.ValheimLauncher
                 "https://server.odinsons.club/Launcher/"
             },
             website: "https://odinsons.club/",
-            discord: "https://discord.gg/eTteBxWcfu");
+            community: "https://discord.gg/eTteBxWcfu");
 
         public static ServerProfile Default => Odinsons;
     }

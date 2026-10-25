@@ -915,7 +915,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             InitializeComponent();
             DataContext = this;
             WebsiteButton.IsVisible = !string.IsNullOrEmpty(_profile.Website);
-            DiscordButton.IsVisible = !string.IsNullOrEmpty(_profile.Discord);
+            CommunityButton.IsVisible = !string.IsNullOrEmpty(_profile.Community);
 
             WireScrollShadows(PlayersScrollViewer, PlayersTopShadow, PlayersBottomShadow);
             WireScrollShadows(ServerRightScrollViewer, ServerRightTopShadow, ServerRightBottomShadow);
@@ -1036,6 +1036,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             LauncherVersionText.Text = $"{Loc.T("gui.launcherVersionLabel")} v{_currentVersion}";
             CopyrightText.Text = Loc.T("gui.copyrightLabel");
             OurSiteLinkText.Text = Loc.T("gui.websiteLink");
+            CommunityLinkText.Text = Loc.T("gui.communityLink");
 
             InstallTab.Header = Loc.T("gui.tab.install");
             ServerTab.Header = Loc.T("gui.tab.server");
@@ -3509,7 +3510,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             if (Enum.TryParse(edgeName, out WindowEdge edge)) BeginResizeDrag(edge, e);
         }
 
-        private void DiscordButton_Click(object? sender, RoutedEventArgs e) => OpenProfileLink(_profile.Discord);
+        private void CommunityButton_Click(object? sender, RoutedEventArgs e) => OpenProfileLink(_profile.Community);
 
         private void WebsiteButton_Click(object? sender, RoutedEventArgs e) => OpenProfileLink(_profile.Website);
 

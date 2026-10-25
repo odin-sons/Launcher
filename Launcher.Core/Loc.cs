@@ -1738,6 +1738,10 @@ namespace Odinsons.ValheimLauncher
                 "Website", "Website", "Sitio web", "Site web", "Strona",
                 "Site", "Вебсайт", "Webbplats", "网站", "Веб-сайт"),
 
+            ["gui.communityLink"] = L(
+                "Community", "Community", "Comunidad", "Communauté", "Społeczność",
+                "Comunidade", "Сообщество", "Gemenskap", "社区", "Спільнота"),
+
             // MessageBoxWindow's OK button — same bug as gui.websiteLink, a bare "OK" literal
             // in MessageBoxWindow.axaml that never went through Loc at all. Same convention as
             // serverSelection.ok (Spanish "Aceptar" rather than a bare "OK").
