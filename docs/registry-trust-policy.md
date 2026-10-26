@@ -158,7 +158,7 @@ A server operator can pass review with a clean modpack and later swap the files 
 | Status | Meaning | Launcher behaviour |
 |--------|---------|--------------------|
 | `approved` | Reviewed, scans clean at the last check | Listed normally. Install and update allowed. Trust badge shown. |
-| `needs-approval` | Previously approved; a re-scan or a change needs a new review | Not listed for new installs. If already installed: the game can still be started from the existing files, updates are paused, and a clear notice explains why. |
+| `needs-approval` | Previously approved; a re-scan or a change needs a new review | Not listed for new installs. If already installed: the game can still be started from the existing files after the player confirms a prominent warning, updates are paused, and the notice explains why. |
 | `suspended` | Removed by the registry for a security reason | Not listed. If installed: the launcher does not start the modded game from that profile, tells the player why, and offers to remove the files. |
 
 The trust badge is drawn by the launcher and is not themable, so a community's theme cannot imitate
@@ -176,3 +176,10 @@ it.
 
 * Exact threshold and the known-benign hash list for VirusTotal results.
 * Whether a way to try a not-yet-listed community (for its own operator while the PR is open) is needed, and how to keep it from becoming a side door.
+
+## How the launcher applies the status
+
+The status is read from a freshly loaded index before every update and every launch (`ServerGate`),
+so a change takes effect at the next one. `ServerPolicy` maps it to what is allowed. The built-in
+profile ignores the registry. A profile that is installed but missing from the index, or whose index
+cannot be loaded, can still be started but is not updated; one that is not installed cannot be added.
