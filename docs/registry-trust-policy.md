@@ -159,10 +159,16 @@ A server operator can pass review with a clean modpack and later swap the files 
 |--------|---------|--------------------|
 | `approved` | Reviewed, scans clean at the last check | Listed normally. Install and update allowed. Trust badge shown. |
 | `needs-approval` | Previously approved; a re-scan or a change needs a new review | Not listed for new installs. If already installed: the game can still be started from the existing files after the player confirms a prominent warning, updates are paused, and the notice explains why. |
-| `suspended` | Removed by the registry for a security reason | Not listed. If installed: the launcher does not start the modded game from that profile, tells the player why, and offers to remove the files. |
+| `suspended` | Removed by the registry for a security reason | Not listed. If installed: the launcher does not start the modded game from that profile, tells the player why, offers to remove the files, and disables the mod loader's entry point (see [Suspended profiles](#suspended-profiles-and-starting-the-game-directly)). |
 
-The trust badge is drawn by the launcher and is not themable, so a community's theme cannot imitate
-it.
+The status is shown by a trust icon in the launcher's fixed header: a shield with a tick, a warning
+triangle or a blocked circle. The shapes differ, so the status does not depend on colour vision, and
+the icon has an accessible name and a tooltip. It is drawn by the launcher and is not themable, so a
+community's theme cannot imitate or hide it.
+
+A status says how the registry vetted the files. It does not say that the maintainers endorse a
+community or its terms, and the launcher says so in its own notice on the Terms step, before the
+community's terms are shown. See [server-page.md](server-page.md).
 
 ## What this model does not defend against
 
@@ -171,6 +177,8 @@ it.
 * Compromise of the owner's signing key together with a mirror at the same time, before a launcher
   update ships. The environment protections below and the short validity window shrink this, they do not remove it.
 * A compromised player machine, or a player who turns the checks off by running a modified launcher.
+* Starting the game directly, outside the launcher, before the launcher has seen a suspension (see
+  below).
 
 ## Open points
 
@@ -183,3 +191,43 @@ The status is read from a freshly loaded index before every update and every lau
 so a change takes effect at the next one. `ServerPolicy` maps it to what is allowed. The built-in
 profile ignores the registry. A profile that is installed but missing from the index, or whose index
 cannot be loaded, can still be started but is not updated; one that is not installed cannot be added.
+
+## Suspended profiles and starting the game directly
+
+Refusing to launch from the launcher is not enough on its own, because the game executable can be
+started without it. What the launcher can do depends on how the profile is laid out:
+
+| Layout | How mods load | On suspend |
+|--------|---------------|------------|
+| The game in its own folder, mods injected from the profile | The launcher passes the Doorstop settings for each launch and keeps `doorstop_config.ini` in the game folder disabled, so starting the game from Steam or by its executable is already vanilla | Nothing to disable; the launcher no longer builds the injection plan |
+| A game copy inside the profile folder, Windows | `winhttp.dll`, the Doorstop proxy next to the executable, loads BepInEx on any start | `winhttp.dll` is renamed to `winhttp.dll.suspended` |
+| A game copy inside the profile folder, Linux and macOS | Mods load only through the BepInEx start script; the game binary started by hand is vanilla | The start script is renamed with the same `.suspended` suffix |
+
+The quarantine follows these rules:
+
+* It is one rename per entry point. Nothing is deleted, rewritten or shuffled, and mods, configs,
+  saves and game files are not touched.
+* The launcher records the rename in `quarantine.json` in the profile folder before it does it, and
+  restores the original name before the next launch that the status allows. An interruption between
+  the record and the rename leaves either state recoverable.
+* It is applied whenever the launcher has fetched a fresh index: at startup, before a launch and
+  before an update. `needs-approval` is not quarantined, since launching it is allowed after the
+  player confirms.
+
+What this does not do:
+
+* The launcher can only act while it runs and has a fresh index. A player who starts the game
+  directly and never opens the launcher keeps whatever is installed.
+* A player who renames the file back, or starts the game by hand with the loader set up, is not
+  stopped. This is a safeguard for the careless case ("I just double-click the game"), not a defence
+  against someone bypassing the launcher.
+
+The controls that count stay upstream: review, pinned digests and re-scans. Suspension stops the
+launcher from being the way a withdrawn modpack keeps running, and protects players who do nothing
+unusual.
+
+Randomised or hidden file moves were considered and rejected. The launcher is open source and has to
+know the way back, so any ordering that it can undo is readable from its code; a crash in the middle
+of a shuffle would leave a broken install; the moves would disagree with the manifest's hashes; and
+mass renaming is what antivirus products flag. A single, fixed, recorded rename is predictable on
+purpose.
