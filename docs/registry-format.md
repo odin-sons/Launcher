@@ -49,5 +49,22 @@ The envelope is at most 1 MiB.
 
 Read in this order: envelope shape, key id, signature, then the payload. Failures are reported as
 `RegistryException` with a `RegistryFailure`: `Malformed`, `UnknownKey`, `BadSignature`,
-`UnsupportedSchema` or `Invalid`. Expiry and serial rollback belong to fetching and caching, and
-come with the index fetch (`IsExpired` is already on the index).
+`UnsupportedSchema` or `Invalid`.
+
+## Fetching and caching
+
+`RegistryClient` requests `<mirror>/index.json` from each registry mirror in order and accepts the
+first index that passes the reader and is also:
+
+- not expired (`Expired`);
+- not older than the highest serial ever accepted (`Rollback`);
+- usable by this launcher version (`LauncherTooOld`, which wins when it is the reason nothing was
+  accepted, so the player is told to update).
+
+A mirror that is down, slow or answers with garbage is skipped (`Unreachable`, `Malformed`, ...).
+Requests retry on 429 and 5xx, time out after 15 seconds and read at most 1 MiB.
+
+The accepted envelope is stored in the cache folder next to `serial.txt`, the serial floor. When no
+mirror gives an acceptable index, the cached envelope is verified again against the pinned keys and
+used only while it has not expired. The result says whether the index came from the network or the
+cache, and lists why each mirror was passed over.

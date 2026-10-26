@@ -16,7 +16,11 @@ namespace Odinsons.ValheimLauncher
         UnknownKey,
         BadSignature,
         UnsupportedSchema,
-        Invalid
+        Invalid,
+        Unreachable,
+        Expired,
+        Rollback,
+        LauncherTooOld
     }
 
     public sealed class RegistryException : Exception
