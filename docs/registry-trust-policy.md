@@ -24,7 +24,7 @@ A community that is not in the registry cannot be added to the launcher.
 
 ## What a signature guarantees
 
-The index is signed with an Ed25519 key. The launcher pins the public key(s) and verifies the
+The index is signed with an ECDSA P-256 key (SHA-256). The launcher pins the public key(s) and verifies the
 signature before it reads anything else from the index.
 
 Guaranteed:
@@ -83,7 +83,7 @@ Policy:
 
 ## Signing keys in CI
 
-The release key (launcher updates) and the registry key (index) are separate Ed25519 keys. Each is
+The release key (launcher updates) and the registry key (index) are separate ECDSA P-256 keys. Each is
 stored as a secret of its own GitHub Environment, never as a repository-wide secret. With keys in
 CI, the root of trust includes the security of the repository and the owner's GitHub account.
 
