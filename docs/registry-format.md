@@ -68,3 +68,13 @@ The accepted envelope is stored in the cache folder next to `serial.txt`, the se
 mirror gives an acceptable index, the cached envelope is verified again against the pinned keys and
 used only while it has not expired. The result says whether the index came from the network or the
 cache, and lists why each mirror was passed over.
+
+## Choosing a server
+
+The launcher lists the built-in profile first, then every community the registry lists, by name.
+`needs-approval` profiles show up only when already installed, `suspended` ones never. The choice is
+kept per player as `SelectedProfile` in `config.ini`, and a profile that is no longer offered falls
+back to the built-in one. At startup the list comes from the cached index, so the launcher opens
+without waiting for the network; the registry is refreshed in the background. Each community keeps
+publishing its own game servers in `servers.json`, which feed the server dropdown as before.
+Switching profiles reopens the window with the new profile.

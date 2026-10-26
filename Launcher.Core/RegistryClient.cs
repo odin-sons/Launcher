@@ -180,6 +180,40 @@ namespace Odinsons.ValheimLauncher
             };
         }
 
+        /// <summary>The cached index if it still verifies and has not expired; never touches the network.</summary>
+        public RegistryLoadResult LoadCached()
+        {
+            byte[] cached = _cache.ReadEnvelope();
+            if (cached != null)
+            {
+                try
+                {
+                    return new RegistryLoadResult
+                    {
+                        Index = Accept(cached, _cache.ReadSerialFloor()),
+                        Source = RegistrySource.Cache,
+                        Problems = Array.Empty<string>()
+                    };
+                }
+                catch (RegistryException ex)
+                {
+                    return new RegistryLoadResult
+                    {
+                        Source = RegistrySource.Cache,
+                        Problems = new[] { "cache: " + ex.Message },
+                        Failure = ex.Failure
+                    };
+                }
+            }
+
+            return new RegistryLoadResult
+            {
+                Source = RegistrySource.Cache,
+                Problems = Array.Empty<string>(),
+                Failure = RegistryFailure.Unreachable
+            };
+        }
+
         private RegistryIndex Accept(byte[] envelope, long floor)
         {
             RegistryIndex index = RegistryIndexReader.Read(envelope, _keys);

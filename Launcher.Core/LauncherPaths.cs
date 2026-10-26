@@ -52,6 +52,17 @@ namespace Odinsons.ValheimLauncher
         private static string SelectedServerSection(ServerProfile profile) =>
             IsBuiltIn(profile) ? LegacySettingsSection : "Profile:" + profile.Id;
 
+        public const string SelectedProfileKey = "SelectedProfile";
+
+        public static string SelectedProfileId(IniFile config) =>
+            Clean(config.Read(SelectedProfileKey, LegacySettingsSection));
+
+        public static void SetSelectedProfile(IniFile config, ServerProfile profile) =>
+            config.Write(SelectedProfileKey, profile.Id, LegacySettingsSection);
+
+        public static System.Threading.Tasks.Task SetSelectedProfileAsync(IniFile config, ServerProfile profile) =>
+            config.WriteAsync(SelectedProfileKey, profile.Id, LegacySettingsSection);
+
         public static string GameFolder(IniFile config) => Clean(config.Read(GameKey, GameSection));
 
         /// <param name="path">Null or empty goes back to the default.</param>

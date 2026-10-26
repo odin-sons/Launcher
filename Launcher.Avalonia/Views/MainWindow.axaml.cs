@@ -899,13 +899,20 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
         }
 
+        private readonly IReadOnlyList<ProfileChoice> _profileChoices;
+
         public MainWindow() : this(ServerProfile.Default)
         {
         }
 
-        public MainWindow(ServerProfile profile)
+        public MainWindow(ServerProfile profile) : this(profile, null)
+        {
+        }
+
+        public MainWindow(ServerProfile profile, IReadOnlyList<ProfileChoice>? profileChoices)
         {
             _profile = profile;
+            _profileChoices = profileChoices ?? new[] { new ProfileChoice(profile, ServerDecision.Full) };
 
             // Before InitializeComponent: nothing in it calls Loc.T today, but the very next
             // thing this constructor does is a batch of them (ApplyLocalizedChrome, below), so
@@ -914,6 +921,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
             InitializeComponent();
             DataContext = this;
+            ShowProfileChoices(_profileChoices);
             WebsiteButton.IsVisible = !string.IsNullOrEmpty(_profile.Website);
             CommunityButton.IsVisible = !string.IsNullOrEmpty(_profile.Community);
 
@@ -1011,6 +1019,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 // Server choice comes only from the top selector or config.ini (the CLI passes
                 // it the same way). LoadServersAsync reads config.ini, falls back to the first
                 // server, and persists that choice on first run — no separate picker dialog.
+                _ = RefreshProfileChoicesAsync();
                 await MainWindowLoadedAsync();
                 await CheckAndUpdateLauncherAsync();
             };
@@ -2513,6 +2522,60 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
         private async void GamePathResetButton_Click(object? sender, RoutedEventArgs e) =>
             await ChangeGameFolderAsync(null);
+
+        private void ShowProfileChoices(IReadOnlyList<ProfileChoice> choices)
+        {
+            ProfileSelector.SelectionChanged -= ProfileSelector_SelectionChanged;
+            ProfileSelector.ItemsSource = choices;
+            ProfileSelector.SelectedItem = choices.FirstOrDefault(c => c.Profile.Id == _profile.Id);
+            ProfileSelector.IsVisible = choices.Count > 1;
+            ProfileSelector.SelectionChanged += ProfileSelector_SelectionChanged;
+        }
+
+        private async Task RefreshProfileChoicesAsync()
+        {
+            try
+            {
+                IReadOnlyList<ProfileChoice> fresh = await OfficialRegistry.FreshChoicesAsync(Environment.CurrentDirectory);
+                if (fresh.Any(c => c.Profile.Id == _profile.Id))
+                    await Dispatcher.UIThread.InvokeAsync(() => ShowProfileChoices(fresh));
+            }
+            catch (Exception ex)
+            {
+                LauncherLog.Warn("Could not refresh the server registry", ex);
+            }
+        }
+
+        private async void ProfileSelector_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || ProfileSelector.SelectedItem is not ProfileChoice choice || choice.Profile.Id == _profile.Id)
+                return;
+
+            if (IsLoading)
+            {
+                ShowProfileChoices(_profileChoices);
+                return;
+            }
+
+            try
+            {
+                var config = new IniFile(ConfigPath);
+                config.Load();
+                await LauncherPaths.SetSelectedProfileAsync(config, choice.Profile);
+            }
+            catch (Exception ex)
+            {
+                LauncherLog.Warn("Could not persist the profile selection to config.ini", ex);
+            }
+
+            if (Application.Current?.ApplicationLifetime is global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                var next = new MainWindow(choice.Profile, (IReadOnlyList<ProfileChoice>)ProfileSelector.ItemsSource!);
+                desktop.MainWindow = next;
+                next.Show();
+                Close();
+            }
+        }
 
         private async void ServerSelector_SelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
