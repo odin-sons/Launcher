@@ -52,11 +52,34 @@ Not guaranteed:
   never delivers a new trusted key by itself; otherwise one leaked key could be used to install
   another.
 * Compromise: the leaked key is removed from the next launcher build. Players on older builds keep
-  trusting it until they update, so the launcher's own update check (already signed by the
-  existing release process) is the revocation channel. The index also carries a `minLauncher`
+  trusting it until they update, so the launcher's own update is the revocation channel (see
+  "Root of trust"). The index also carries a `minLauncher`
   version; a launcher older than that shows "update required" instead of using the index.
 * The private key is held offline by the owner and is not available to CI. CI builds and validates
   the index; signing is a manual step, or uses a hardware-backed key.
+
+## Root of trust: how the launcher is distributed
+
+The pinned key protects the index, but the key is only as trustworthy as the launcher that carries
+it. A public key is not a secret, so reading it out of the binary gains an attacker nothing. What
+they can do is replace it: a launcher with a different key trusts a different registry. The root of
+trust is therefore the channel that delivers the launcher to the player (the download page, the
+release assets and the launcher's self-update), not the key.
+
+Current state: the self-update downloads the new executable from the project's own server over
+HTTPS and replaces the old one. Nothing verifies the file beyond the TLS connection, so whoever can
+write to that server, or to a mirror, can push code to every player and change the pinned key with
+it. The registry's signing does not defend against this.
+
+Policy:
+
+* The launcher verifies a signature on its own update before replacing itself, with a key pinned in
+  the running launcher. Tracked in a separate issue.
+* The release signing key is separate from the registry key, so that neither compromise gives the
+  other.
+* Until that lands, the registry's guarantees hold only for players who got the launcher from a
+  trusted source and whose update server is not compromised. The first registry release must not
+  be presented as stronger than that.
 
 ## Expiry and replay
 
