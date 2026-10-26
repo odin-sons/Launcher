@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -16,7 +19,12 @@ namespace Odinsons.ValheimLauncher.Avalonia
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new MainWindow();
+                string baseFolder = Environment.CurrentDirectory;
+                IReadOnlyList<ProfileChoice> choices = OfficialRegistry.CachedChoices(baseFolder);
+                var config = new IniFile(Path.Combine(baseFolder, "config.ini"));
+                config.Load();
+                ProfileChoice current = ProfileCatalog.Resolve(LauncherPaths.SelectedProfileId(config), choices);
+                desktop.MainWindow = new MainWindow(current.Profile, choices);
             }
 
             base.OnFrameworkInitializationCompleted();

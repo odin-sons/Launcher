@@ -1,10 +1,11 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:core="clr-namespace:Odinsons.ValheimLauncher;assembly=Launcher.Core"
         xmlns:views="clr-namespace:Odinsons.ValheimLauncher.Avalonia.Views"
         x:Class="Odinsons.ValheimLauncher.Avalonia.Views.MainWindow"
         Title="OdinsonsLauncher"
         Width="900" Height="610"
-        MinWidth="672" MinHeight="610"
+        MinWidth="832" MinHeight="610"
         CanResize="True"
         WindowStartupLocation="CenterScreen"
         WindowDecorations="None"
@@ -22,7 +23,8 @@
          match the 20 elsewhere: growing the window-control hit areas pushed Close's own margin
          in to 10, and its icon's visual edge is still exactly 20 from the window edge, same as
          everywhere else, since the icon stays centered in the middle of the (bigger) hit area)
-         = 672 -->
+         + 160 (ProfileSelector and its gap)
+         = 832 -->
     <!-- Left margin (20) and the central panel/tab card's own left margin (also 20, see the
          Border/TabControl below) are the same value on purpose — logo, tab card, and the
          Play/Stop button row all line up flush against one vertical line now, instead of the
@@ -367,6 +369,19 @@
                   ItemTemplate="{StaticResource ServerRowTemplate}"
                   SelectionChanged="ServerSelector_SelectionChanged"
                   DropDownOpened="ServerSelector_DropDownOpened"/>
+
+        <ComboBox Name="ProfileSelector"
+                  Width="150" Height="34"
+                  HorizontalAlignment="Left" VerticalAlignment="Top"
+                  Margin="508,30,0,0"
+                  IsVisible="False"
+                  SelectionChanged="ProfileSelector_SelectionChanged">
+            <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="core:ProfileChoice">
+                    <TextBlock Text="{Binding Profile.Name}"/>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
 
         <!-- +12 over ServerSelector's own margin: compensates for ComboBox's internal left
              padding so this plain ContentControl's text lines up with where the dropdown's own
