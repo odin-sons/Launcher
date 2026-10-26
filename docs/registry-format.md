@@ -19,6 +19,9 @@ The registry repository holds one file per community, `servers/<id>.json`:
 Unknown fields are ignored, so a newer registry can add optional fields without breaking an older
 launcher. A change that an older launcher must not misread bumps `schema`.
 
+The optional presentation fields `theme`, `about` and `terms` are specified in
+[themes.md](themes.md) and [server-page.md](server-page.md).
+
 ## index.json
 
 An envelope that carries the signed bytes as they were signed, so nothing is re-serialised or
