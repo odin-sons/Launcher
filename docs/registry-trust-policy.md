@@ -55,8 +55,8 @@ Not guaranteed:
   trusting it until they update, so the launcher's own update is the revocation channel (see
   "Root of trust"). The index also carries a `minLauncher`
   version; a launcher older than that shows "update required" instead of using the index.
-* The private key is held offline by the owner and is not available to CI. CI builds and validates
-  the index; signing is a manual step, or uses a hardware-backed key.
+* Signing happens in CI, so it does not depend on any one person's machine and the index can be
+  re-signed on schedule. The private keys live in GitHub Environments, see "Signing keys in CI".
 
 ## Root of trust: how the launcher is distributed
 
@@ -76,10 +76,34 @@ Policy:
 * The launcher verifies a signature on its own update before replacing itself, with a key pinned in
   the running launcher. Tracked in a separate issue.
 * The release signing key is separate from the registry key, so that neither compromise gives the
-  other.
+  other. Both are signed in CI (see "Signing keys in CI").
 * Until that lands, the registry's guarantees hold only for players who got the launcher from a
   trusted source and whose update server is not compromised. The first registry release must not
   be presented as stronger than that.
+
+## Signing keys in CI
+
+The release key (launcher updates) and the registry key (index) are separate Ed25519 keys. Each is
+stored as a secret of its own GitHub Environment, never as a repository-wide secret. With keys in
+CI, the root of trust includes the security of the repository and the owner's GitHub account.
+
+Requirements:
+
+* Environment `release` (launcher): required reviewers, so a signature is made only after an explicit
+  approval; deployment restricted to `v*` tags. Tags are protected, so a release cannot be created
+  without the owner.
+* Environment `registry` (index): signs only from the protected default branch of the registry
+  repository, which requires reviewed pull requests. It may run unattended, since the scheduled
+  re-signing needs that.
+* Every action in a signing workflow is pinned to a full commit SHA, and third-party actions are
+  avoided there. Signing workflows do not run on `pull_request` from forks and never print or
+  upload the key.
+* Owners and maintainers use a hardware-backed second factor.
+* A suspected leak is handled as a key compromise: the key is replaced in the next launcher build
+  (see "Key pinning and rotation").
+
+Keyless signing (Sigstore with the workflow's OIDC identity) would remove the stored secret, but the
+verification in the launcher is heavier. It is not used now and can be revisited.
 
 ## Expiry and replay
 
@@ -145,11 +169,10 @@ it.
 * A malicious but well-disguised mod that passes review. Mitigations are the manifest pinning, the
   community's reputation and re-scans, not a guarantee.
 * Compromise of the owner's signing key together with a mirror at the same time, before a launcher
-  update ships. Offline key storage and the short validity window shrink this, they do not remove it.
+  update ships. The environment protections below and the short validity window shrink this, they do not remove it.
 * A compromised player machine, or a player who turns the checks off by running a modified launcher.
 
 ## Open points
 
 * Exact threshold and the known-benign hash list for VirusTotal results.
-* Whether the signing key is a hardware token or an offline key file.
 * Whether a way to try a not-yet-listed community (for its own operator while the PR is open) is needed, and how to keep it from becoming a side door.
