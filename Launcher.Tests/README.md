@@ -379,3 +379,31 @@ The Markdown subset of About, News and terms: paragraphs, bold, italic, bullet l
 ## LocalizedTextTests.cs
 
 - **TheInterfaceLanguage_IsUsedElseItsBase_ElseEnglish** / **WithoutEnglish_AnUnknownLanguageGetsNothing** — how a text is picked for the interface language.
+
+## ProfileQuarantineTests.cs
+
+Disabling the mod loader's entry point in a suspended profile's folder: `winhttp.dll` on Windows,
+the BepInEx start script on macOS and Linux, renamed to `<name>.suspended` and recorded in
+`quarantine.json`. Everything runs against a temp folder, with the OS faked where it matters.
+
+- **Apply_RenamesOnlyTheEntryPoint_AndRecordsIt** (×Windows/macOS/Linux) — one rename and the
+  record; mods, configs and game files are untouched.
+- **InjectorMode_HasNothingToDisable** (×Windows/macOS/Linux) — a profile folder without a game
+  copy (the game runs from Steam or a game folder of its own) is left exactly as it was.
+- **AGameCopyWithoutALoader_HasNothingToDisable** / **AMissingFolder_HasNothingToDisable** — no
+  loader, or no folder, means no record and no change.
+- **TheGameCopy_IsStillRecognisedWhileAnUpdateHasItsExecutableStashed** — the layout is told apart
+  by the game executable, also while the update has it moved aside.
+- **Apply_Twice_ChangesNothingTheSecondTime** — already disabled is reported as such.
+- **Restore_PutsTheOriginalNameBack_AndDropsTheRecord** / **Restore_WithoutARecord_LeavesASuspendedFileAlone**
+  — only what the record names is restored; a `.suspended` file the launcher did not record is not touched.
+- **ARenameThatFails_LeavesTheRecordAndTheFile_AndTheNextApplyFinishesIt** /
+  **Interrupted_RecordedButNotRenamed_RestoreJustDropsTheRecord** — an interruption after the record
+  and before the rename is recoverable from either side.
+- **Interrupted_RenamedButTheRecordKept_...** / **Interrupted_RestoredButTheRecordKept_...** /
+  **ARestoreThatFails_KeepsTheRecordSoItCanBeRetried** — the other half-finished states converge on
+  the next run.
+- **Restore_NeverOverwritesAFileThatIsAlreadyBackUnderItsName** / **Apply_ReplacesAStaleSuspendedCopy**
+  — the two states where both names exist.
+- **ARecordNamingAnythingButAnEntryPoint_RenamesNothing** / **AnUnreadableRecord_IsIgnored** — a
+  tampered or damaged record cannot make the launcher rename other files.
