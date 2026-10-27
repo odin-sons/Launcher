@@ -353,3 +353,29 @@ A theme is loaded with its pictures, and what fails a check is dropped without l
 - **APictureWhoseHashDiffers_IsDropped_AndTheOtherSchemeKeepsItsOwn** / **APictureOverItsPixelLimit_IsDropped**
   / **ALogoThatIsNotAPng_IsDropped_AndTheRestOfTheThemeStays** — a failed picture becomes the default one.
 - **APictureBothSchemesName_IsFetchedOnce**.
+
+## MarkdownSubsetTests.cs
+
+The Markdown subset of About, News and terms: paragraphs, bold, italic, bullet lists, headings of level
+2 and 3, https links. Everything else stays text.
+
+- **Paragraphs_...** / **HeadingsOfLevelTwoAndThree_AreRecognised** / **OtherHeadings_AreJustText**
+  / **BulletLists_...** / **AListEndsAtAParagraph_...** / **AWindowsFile_ParsesLikeAUnixOne** — block structure.
+- **BoldAndItalic_...** / **MarkersThatDoNotPair_StayAsWritten** / **AnEscapedMarker_IsLiteral** — emphasis.
+- **AnHttpsLink_KeepsItsTarget_AndShowsItsHost** / **ALinkWithAPort_ShowsIt** / **AnInternationalHost_IsShownInItsPunycodeForm**
+  — the host the player sees before a link opens.
+- **ALinkThatIsNotAnHttpsAddress_IsOnlyItsText** / **ALinkLongerThanTheLimit_IsOnlyItsText**
+  / **AnImage_IsNeverRendered_ItsSourceStaysText** / **RawHtml_AppearsAsText**
+  / **ControlAndDirectionCharacters_AreRemoved** — nothing a renderer could mistake for markup.
+- **ALongFile_IsCutAtTheBlockLimit** / **PathologicalInput_FinishesQuickly** — bounded work.
+
+## AboutReaderTests.cs
+
+- **ADocumentedFile_ReadsEveryField_AndFactsFollowTheVocabulary** — the example in `docs/server-page.md`, with unknown facts ignored.
+- **AFileTheLauncherCannotUse_GivesNoAboutZone** / **AFileOverTheSizeLimit_GivesNoAboutZone** — no zone, no exception.
+- **AFieldThatBreaksItsRule_IsLeftOutAlone** / **ATextWithoutEnglish_IsNotUsed** / **ATagline_IsOneLineOfPlainText**
+  / **ALanguageCodeThatIsNotOne_IsIgnored** / **AFileWithOnlyTheSchema_IsAnEmptyZone** — per-field fallback.
+
+## LocalizedTextTests.cs
+
+- **TheInterfaceLanguage_IsUsedElseItsBase_ElseEnglish** / **WithoutEnglish_AnUnknownLanguageGetsNothing** — how a text is picked for the interface language.
