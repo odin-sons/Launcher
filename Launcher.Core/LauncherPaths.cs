@@ -63,6 +63,15 @@ namespace Odinsons.ValheimLauncher
         public static System.Threading.Tasks.Task SetSelectedProfileAsync(IniFile config, ServerProfile profile) =>
             config.WriteAsync(SelectedProfileKey, profile.Id, LegacySettingsSection);
 
+        public static ColorSchemeSetting ColorScheme(IniFile config) =>
+            ColorSchemeSettings.Parse(config.Read(ColorSchemeSettings.Key, LegacySettingsSection));
+
+        public static void SetColorScheme(IniFile config, ColorSchemeSetting setting) =>
+            config.Write(ColorSchemeSettings.Key, ColorSchemeSettings.Format(setting), LegacySettingsSection);
+
+        public static System.Threading.Tasks.Task SetColorSchemeAsync(IniFile config, ColorSchemeSetting setting) =>
+            config.WriteAsync(ColorSchemeSettings.Key, ColorSchemeSettings.Format(setting), LegacySettingsSection);
+
         public static string GameFolder(IniFile config) => Clean(config.Read(GameKey, GameSection));
 
         /// <param name="path">Null or empty goes back to the default.</param>

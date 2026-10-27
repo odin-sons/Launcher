@@ -275,3 +275,47 @@ kept in `config.ini`.
 - **OneFolderInsideTheOther_IsNesting_InEitherOrder** / **SiblingsWithACommonPrefix_AreNotNesting**
   / **TheSameFolder_IsNotNesting_ButIsTheSame** — the game and profile folders may not lie inside
   one another; the same folder just means the default, and `Game` next to `Game2` is not nesting.
+
+## ThemeReaderTests.cs
+
+Reading `theme.json`, which a community writes and the launcher must never fail on.
+
+- **ADocumentedTheme_ReadsEveryField** — the example in `docs/themes.md` reads as written.
+- **ATheme_OverTheSizeLimit_IsTheDefault** / **UnknownValues_FallBackToTheirDefaults** /
+  **UnknownFields_AreIgnored_SoANewerThemeStillLoads** — anything unusable gives the default
+  theme or the default for that one field, never an exception.
+- **TheButtonShape_IsClamped_AndAFractionIsNotANumberOfPixels** — radius 0–12, border 0–4.
+- **AMissingScheme_IsBuiltFromTheOtherOne_InEitherDirection** — a theme with only a dark or only
+  a light scheme still has both.
+- **AMalformedField_FallsBackAlone_AndTheRestOfTheSchemeStillApplies** — one bad colour does not
+  throw away its neighbours.
+- **AColourWithAnAlphaChannel_IsNotAccepted** / **AGradient_DefaultsToHorizontal_AndRefusesAnUnknownDirection**
+  / **TheArt_CanBeAColourOrAGradient_AndAPictureDefaultsToTheCentre** — the paint and art forms.
+- **NoFill_NeedsABorderThatCanBeSeen** — a fill of `none` without a visible border becomes the plain accent fill.
+- **TheFilesATheme_Names_AreListedOnce** — a picture named by both schemes is fetched and counted once.
+
+## ThemeReadabilityTests.cs
+
+The readability guarantees of `docs/themes.md`, checked against each scheme's own launcher palette.
+
+- **TheContrastRatio_MatchesTheWcagDefinition** — the maths agrees with the published formula.
+- **AnAccentThatDisappearsIntoTheSurface_IsMoved_AndOneThatReadsIsLeftAlone** — accent ≥ 3:1.
+- **TheDefaultTheme_NeedsNoAdjustment_InEitherScheme** — the built-in theme is already readable.
+- **TheLabel_IsBlackOnALightFill_AndWhiteOnADarkOne** / **AMidToneFill_IsMovedUntilItsLabelReadsAndItsEdgeShows**
+  / **ABorderThatMatchesTheSurface_IsMoved_AndSaysSo** / **WithABorderOnly_TheLabelIsThePaletteText**
+  / **ABorderOfWidthZero_IsNoBorder** / **NoFillAndNoBorder_BecomesAPlainAccentFill** — button label ≥ 4.5:1
+  and edge ≥ 3:1, with the adjustment reported.
+- **AGradient_IsHeldToTheRulesAlongItsWholeLength** / **EveryFillOnAGrid_EndsUpReadable_WithAndWithoutABorder**
+  / **RandomGradients_EndUpReadable_AlongTheirWholeLength** — sweeps over a colour grid and random gradients.
+- **ResolvingATheme_MovesTheAccent_WithoutTouchingTheOtherScheme** — the two schemes are resolved independently.
+- **TheDarkeningLayer_NeedsNothingOverBlack_AndTheMostOverWhite** / **TheDarkeningLayer_IsTheFirstStepThatReaches45To1_ForEveryGrey**
+  / **TheBrightestCell_IsFoundInsideTheArea_AndOneStrayPixelDoesNotDecide** / **APixelBuffer_ThatDoesNotMatchItsSize_IsRefused**
+  — the layer over art, in 5% steps up to 55%, from the brightest cell of the area.
+
+## ColorSchemeSettingTests.cs
+
+The player's own light/dark choice.
+
+- **TheEffectiveScheme_FollowsTheSettingAndOtherwiseTheSystem** — System follows the operating system, Light and Dark do not.
+- **AnUnknownValue_MeansSystem** — a missing or unreadable value in `config.ini` is System.
+- **TheChoice_DefaultsToSystem_AndIsRememberedInConfig** — the choice survives a restart.

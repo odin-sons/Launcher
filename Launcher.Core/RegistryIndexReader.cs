@@ -189,7 +189,7 @@ namespace Odinsons.ValheimLauncher
             && uri.Fragment.Length == 0
             && url.EndsWith("/", StringComparison.Ordinal);
 
-        private static bool IsRelativePath(string path) =>
+        internal static bool IsRelativePath(string path) =>
             path.Length > 0
             && !path.StartsWith("/", StringComparison.Ordinal)
             && !path.Contains('\\')
