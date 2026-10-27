@@ -145,5 +145,41 @@ namespace Launcher.Tests
             Assert.False(LauncherPaths.AreNested(folder, folder + Path.DirectorySeparatorChar));
             Assert.True(LauncherPaths.AreSame(folder, folder + Path.DirectorySeparatorChar));
         }
+
+        [Fact]
+        public void ExistingProfileFolders_ListTheDefaultOnesAndTheConfiguredOnes_OfOneCommunityOnly()
+        {
+            string first = Directory.CreateDirectory(Path.Combine(_dir, "clients", "alpha", "one")).FullName;
+            string second = Directory.CreateDirectory(Path.Combine(_dir, "clients", "alpha", "two")).FullName;
+            Directory.CreateDirectory(Path.Combine(_dir, "clients", "beta", "one"));
+            string custom = Directory.CreateDirectory(ProfileDir).FullName;
+            IniFile config = LoadConfig();
+            LauncherPaths.SetProfileFolder(config, new ServerProfile("alpha", "Alpha", new[] { "https://a.test/" }), "three", custom);
+            LauncherPaths.SetProfileFolder(config, new ServerProfile("beta", "Beta", new[] { "https://b.test/" }), "one", GameDir);
+
+            IReadOnlyList<string> folders = LauncherPaths.ExistingProfileFolders(config, _dir, "alpha");
+
+            Assert.Equal(new[] { first, second, custom }.Order(), folders.Order());
+        }
+
+        [Fact]
+        public void ExistingProfileFolders_SkipFoldersThatAreGone_AndCountEachOnce()
+        {
+            string folder = Directory.CreateDirectory(Path.Combine(_dir, "clients", "alpha", "one")).FullName;
+            IniFile config = LoadConfig();
+            var profile = new ServerProfile("alpha", "Alpha", new[] { "https://a.test/" });
+            LauncherPaths.SetProfileFolder(config, profile, "one", folder);
+            LauncherPaths.SetProfileFolder(config, profile, "two", Path.Combine(_dir, "gone"));
+
+            Assert.Equal(new[] { folder }, LauncherPaths.ExistingProfileFolders(config, _dir, "alpha"));
+        }
+
+        [Fact]
+        public void ExistingProfileFolders_WithoutAConfig_StillFindTheDefaultOnes()
+        {
+            string folder = Directory.CreateDirectory(Path.Combine(_dir, "clients", "alpha", "one")).FullName;
+
+            Assert.Equal(new[] { folder }, LauncherPaths.ExistingProfileFolders(null, _dir, "alpha"));
+        }
     }
 }

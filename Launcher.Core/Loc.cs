@@ -126,6 +126,9 @@ namespace Odinsons.ValheimLauncher
                 ["pt"] = pt, ["ru"] = ru, ["sv"] = sv, ["zh"] = zh, ["uk"] = uk
             };
 
+        private static Dictionary<string, string> L(string en, string ru) =>
+            new() { ["en"] = en, ["ru"] = ru };
+
         private static readonly Dictionary<string, Dictionary<string, string>> Table = new()
         {
             // ---------- ClientFolderGuard ----------
@@ -1897,7 +1900,93 @@ namespace Odinsons.ValheimLauncher
                 "Здесь установлена сама игра. По умолчанию лончер запускает её из вашей установки Steam, если версия совпадает с серверной, а иначе держит копию в папке профиля рядом с модами.",
                 "Här är själva spelet installerat. Som standard startar launchern det från din Steam-installation om versionen stämmer med servern, annars ligger en kopia i profilmappen bredvid moddarna.",
                 "游戏本体安装在这里。默认情况下，若你的 Steam 安装版本与服务器一致，启动器直接从 Steam 运行；否则在配置文件文件夹中、模组旁保留一份副本。",
-                "Тут встановлена сама гра. За замовчуванням лончер запускає її з вашої інсталяції Steam, якщо версія збігається із серверною, а інакше тримає копію в папці профілю поруч із модами.")
+                "Тут встановлена сама гра. За замовчуванням лончер запускає її з вашої інсталяції Steam, якщо версія збігається із серверною, а інакше тримає копію в папці профілю поруч із модами."),
+
+            // ---------- Server registry status ----------
+
+            ["gate.title"] = L(
+                "Server status",
+                "Статус сервера"),
+
+            ["gate.refuse.needsApproval"] = L(
+                "{0} is waiting for a new review by the registry and cannot be installed until it is approved again.",
+                "{0} ожидает повторной проверки реестром и не может быть установлен, пока его снова не одобрят."),
+
+            ["gate.refuse.suspended"] = L(
+                "{0} was removed from the registry for a security reason and cannot be installed or started.",
+                "{0} исключён из реестра по соображениям безопасности, его нельзя ни установить, ни запустить."),
+
+            ["gate.refuse.unlisted"] = L(
+                "{0} is not in the registry, so it cannot be installed.",
+                "{0} нет в реестре, поэтому установить его нельзя."),
+
+            ["gate.refuse.unavailable"] = L(
+                "The registry cannot be reached right now, so {0} cannot be installed. Try again later.",
+                "Реестр сейчас недоступен, поэтому установить {0} нельзя. Попробуйте позже."),
+
+            ["gate.paused.needsApproval"] = L(
+                "Updates for {0} are paused: the registry marked it as waiting for a new review. The files already installed stay as they are.",
+                "Обновления {0} приостановлены: реестр пометил его как ожидающий повторной проверки. Уже установленные файлы остаются как есть."),
+
+            ["gate.paused.unlisted"] = L(
+                "Updates for {0} are paused: it is no longer in the registry. The files already installed stay as they are.",
+                "Обновления {0} приостановлены: его больше нет в реестре. Уже установленные файлы остаются как есть."),
+
+            ["gate.paused.unavailable"] = L(
+                "Updates for {0} are paused: the registry cannot be reached right now. The files already installed stay as they are.",
+                "Обновления {0} приостановлены: реестр сейчас недоступен. Уже установленные файлы остаются как есть."),
+
+            ["gate.confirm.title"] = L(
+                "Warning: {0} is waiting for review",
+                "Внимание: {0} ожидает повторной проверки"),
+
+            ["gate.confirm.message"] = L(
+                "The registry marked {0} as waiting for a new review. Its files were approved before, but something changed since, and nobody has checked the new state yet. Mods run as programs on your computer.\n\nUpdates are paused. If you continue, the game starts from the files already installed, at your own risk.\n\nStart the game anyway?",
+                "Реестр пометил {0} как ожидающий повторной проверки. Его файлы были одобрены раньше, но с тех пор что-то изменилось, и новое состояние никто не проверял. Моды запускаются на вашем компьютере как программы.\n\nОбновления приостановлены. Если продолжить, игра запустится из уже установленных файлов на ваш страх и риск.\n\nВсё равно запустить игру?"),
+
+            ["gate.confirm.yes"] = L(
+                "Start anyway",
+                "Всё равно запустить"),
+
+            ["gate.confirm.no"] = L(
+                "Cancel",
+                "Отмена"),
+
+            ["gate.suspended.title"] = L(
+                "{0} was suspended",
+                "{0} приостановлен"),
+
+            ["gate.suspended.message"] = L(
+                "The registry removed {0} for a security reason, so the launcher will not start it and no longer loads its mods.\n\nIts files are still on this computer:\n{1}\n\nRemove them?",
+                "Реестр исключил {0} по соображениям безопасности, поэтому лаунчер не запускает его и больше не подключает его моды.\n\nФайлы всё ещё лежат на этом компьютере:\n{1}\n\nУдалить их?"),
+
+            ["gate.suspended.remove"] = L(
+                "Remove the files",
+                "Удалить файлы"),
+
+            ["gate.suspended.keep"] = L(
+                "Keep the files",
+                "Оставить файлы"),
+
+            ["gate.removed"] = L(
+                "The files of {0} were removed.",
+                "Файлы {0} удалены."),
+
+            ["gate.removeFailed"] = L(
+                "The files could not be removed: {0}",
+                "Не удалось удалить файлы: {0}"),
+
+            ["gate.checkFailed"] = L(
+                "The server status could not be checked: {0}",
+                "Не удалось проверить статус сервера: {0}"),
+
+            ["gate.remove.root"] = L(
+                "the folder is a drive root",
+                "эта папка — корень диска"),
+
+            ["gate.remove.holdsOther"] = L(
+                "the folder contains {0}, which is not part of this server's profile",
+                "в папке находится {0}, который не относится к профилю этого сервера")
         };
     }
 }

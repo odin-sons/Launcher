@@ -1,24 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using Odinsons.ValheimLauncher;
 using Xunit;
+using static Launcher.Tests.TestRegistry;
 
 namespace Launcher.Tests
 {
     public sealed class ServerPolicyTests : IDisposable
     {
-        private const string Mirror = "https://a.example.test/registry/";
-        private const string Digest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-        private static readonly ECDsa SigningKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        private static readonly DateTimeOffset Now = new DateTimeOffset(2026, 1, 3, 0, 0, 0, TimeSpan.Zero);
-
         private readonly string _folder = Path.Combine(Path.GetTempPath(), "server-policy-" + Guid.NewGuid().ToString("N"));
 
         public void Dispose()
@@ -26,31 +16,7 @@ namespace Launcher.Tests
             if (Directory.Exists(_folder)) Directory.Delete(_folder, true);
         }
 
-        private static RegistryKeySet Keys() =>
-            new RegistryKeySet(new[] { new KeyValuePair<string, byte[]>("r1", SigningKey.ExportSubjectPublicKeyInfo()) });
-
-        private static byte[] Index(long serial, string status, string id = "community")
-        {
-            string server = "{\"id\":\"" + id + "\",\"name\":\"Community\",\"status\":\"" + status +
-                "\",\"mirrors\":[\"https://server.example.test/Launcher/\"],\"digests\":{\"servers.json\":\"" + Digest + "\"}}";
-            string payload = "{\"schema\":1,\"serial\":" + serial + ",\"issuedAt\":\"2026-01-01T00:00:00Z\"," +
-                "\"expiresAt\":\"2026-01-08T00:00:00Z\",\"minLauncher\":\"3.0.0\",\"servers\":[" + server + "]}";
-            byte[] data = Encoding.UTF8.GetBytes(payload);
-            byte[] signature = SigningKey.SignData(data, HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence);
-            return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
-            {
-                keyId = "r1",
-                signature = Convert.ToBase64String(signature),
-                payload = Convert.ToBase64String(data)
-            }));
-        }
-
-        private static RegistryLoadResult Loaded(string status, string id = "community") =>
-            new RegistryLoadResult { Index = RegistryIndexReader.Read(Index(1, status, id), Keys()) };
-
-        private ServerGate Gate(SwitchableFetcher fetcher) =>
-            new ServerGate(new RegistryClient(new[] { Mirror }, Keys(), new RegistryCache(_folder),
-                new Version(3, 0, 0), fetcher, () => Now));
+        private ServerGate Gate(SwitchableFetcher fetcher) => TestRegistry.Gate(_folder, fetcher);
 
         [Fact]
         public void Approved_AllowsEverything()
@@ -171,14 +137,6 @@ namespace Launcher.Tests
 
             Assert.False(replayed.CanLaunch);
             Assert.Equal(ServerNotice.Suspended, replayed.Notice);
-        }
-
-        private sealed class SwitchableFetcher : IRegistryFetcher
-        {
-            public byte[] Body { get; set; }
-
-            public Task<byte[]> FetchAsync(Uri url, CancellationToken cancellationToken) =>
-                Body != null ? Task.FromResult(Body) : throw new HttpRequestException("HTTP 404");
         }
     }
 }

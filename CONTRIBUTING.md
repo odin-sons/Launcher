@@ -9,7 +9,7 @@
 | `Launcher.Cli` | console version of the same update pipeline — Windows/Linux/macOS |
 | `Launcher.Core` | shared logic: downloading, manifest verification, Steam detection, injector mode, client folder safety, localization |
 | `Indexer` | server-side tool — lays out a profile into the manifests the launcher consumes |
-| `Launcher.Avalonia.Tests` | headless smoke tests for `Launcher.Avalonia` (constructs `MainWindow` via Avalonia.Headless to catch runtime-only XAML errors) |
+| `Launcher.Avalonia.Tests` | headless tests for `Launcher.Avalonia` (constructs `MainWindow` via Avalonia.Headless to catch runtime-only XAML errors, drives its dialogs) — see [its README](Launcher.Avalonia.Tests/README.md) |
 | `Launcher.Tests` | tests for `Launcher.Core` — see [its README](Launcher.Tests/README.md) for what each one covers |
 | `Indexer.Tests` | tests for `Indexer` — see [its README](Indexer.Tests/README.md) for what each one covers |
 

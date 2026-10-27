@@ -59,6 +59,22 @@ namespace Odinsons.ValheimLauncher
             foreach (string name in UpdateSession.ArtifactNames) OwnArtifacts.Add(name);
         }
 
+        /// <summary>Whether the folder exists and holds a game client or mods.</summary>
+        public static bool HoldsClient(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path)) return false;
+
+            try
+            {
+                return new DirectoryInfo(path).EnumerateFileSystemInfos()
+                    .Any(e => ClientMarkers.Contains(e.Name, StringComparer.OrdinalIgnoreCase));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return false;
+            }
+        }
+
         /// <summary>
         /// Whether it's safe to update this folder.
         /// </summary>

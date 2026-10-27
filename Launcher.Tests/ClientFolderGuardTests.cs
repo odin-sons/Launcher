@@ -133,5 +133,28 @@ namespace Launcher.Tests
             Assert.True(ClientFolderGuard.IsWritable(missing, out string reason, out _));
             Assert.Null(reason);
         }
+
+        [Theory]
+        [InlineData("BepInEx")]
+        [InlineData("valheim_Data")]
+        public void HoldsClient_RecognisesAClientFolder(string marker)
+        {
+            string folder = TempFolder();
+            Directory.CreateDirectory(Path.Combine(folder, marker));
+
+            Assert.True(ClientFolderGuard.HoldsClient(folder));
+        }
+
+        [Fact]
+        public void HoldsClient_IsFalseForAnEmptyMissingOrForeignFolder()
+        {
+            string foreign = TempFolder();
+            File.WriteAllText(Path.Combine(foreign, "taxes.xlsx"), "private");
+
+            Assert.False(ClientFolderGuard.HoldsClient(TempFolder()));
+            Assert.False(ClientFolderGuard.HoldsClient(Path.Combine(TempFolder(), "gone")));
+            Assert.False(ClientFolderGuard.HoldsClient(foreign));
+            Assert.False(ClientFolderGuard.HoldsClient(""));
+        }
     }
 }

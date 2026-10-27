@@ -29,4 +29,8 @@
         <ProjectReference Include="..\Launcher.Avalonia\Launcher.Avalonia.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Include="..\Launcher.Tests\TestRegistry.cs" Link="TestRegistry.cs" />
+    </ItemGroup>
+
 </Project>
