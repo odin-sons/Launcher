@@ -146,6 +146,11 @@ namespace Odinsons.ValheimLauncher
                 || second.StartsWith(first + Path.DirectorySeparatorChar, comparison);
         }
 
+        /// <summary>Whether <paramref name="folder"/> lies strictly inside <paramref name="parent"/>.</summary>
+        public static bool IsInside(string folder, string parent) =>
+            Normalize(folder).StartsWith(Normalize(parent) + Path.DirectorySeparatorChar,
+                RuntimePlatform.IsLinux ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+
         public static bool AreSame(string a, string b) =>
             string.Equals(Normalize(a), Normalize(b),
                 RuntimePlatform.IsLinux ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
