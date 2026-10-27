@@ -20,7 +20,32 @@ Unknown fields are ignored, so a newer registry can add optional fields without 
 launcher. A change that an older launcher must not misread bumps `schema`.
 
 The optional presentation fields `theme`, `about` and `terms` are specified in
-[themes.md](themes.md) and [server-page.md](server-page.md).
+[themes.md](themes.md) and [server-page.md](server-page.md). Every path they name (and every picture a
+theme names) must also be a key of `digests`; an entry with a path that is not pinned is invalid.
+
+## Display files
+
+The files a profile shows (the theme and its pictures, `about.json`, the terms, `changelog.md`) are
+fetched by `DisplayFiles` and are used only if:
+
+* the entry pins the path in `digests`; a path that is not pinned is never requested;
+* the bytes hash to the pinned SHA-256. A mirror that serves anything else is passed over for the next
+  one, so a swapped file is never shown;
+* the response fits the file's limit, which is enforced while it is read:
+
+| File | Limit |
+|------|-------|
+| `theme.json`, `about.json` | 16 KiB |
+| A terms file | 20 KiB |
+| `changelog.md` | 64 KiB |
+| Logo | PNG, 256 KiB, 512 x 512 pixels |
+| Art picture | PNG or JPEG, 1 MiB, 1920 x 1080 pixels |
+
+A picture is also checked from its header before anything decodes it: format, pixel size and, for a
+PNG, that it is not animated. A picture that fails is dropped and the theme uses its default for it.
+
+Verified files may be kept on disk under the name of their digest. A kept file is hashed again when it
+is read, so an edited or truncated copy is ignored and fetched afresh.
 
 ## index.json
 

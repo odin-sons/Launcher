@@ -269,5 +269,60 @@ namespace Launcher.Tests
             Assert.Equal(index.Find("odinsons").Mirrors, entry.Mirrors);
             Assert.Equal(index.Find("odinsons").Digests, entry.Digests);
         }
+
+        private static string Pinned(params string[] paths) =>
+            string.Concat(paths.Select(path => ",\"" + path + "\":\"" + Digest + "\""));
+
+        private static string ServerWith(string pinned, string extra) =>
+            "{\"id\":\"odinsons\",\"name\":\"Odinsons\",\"status\":\"approved\"," + MirrorsJson +
+            ",\"digests\":{" + DigestsJson + pinned + "}" + extra + "}";
+
+        [Fact]
+        public void ThePresentationFiles_AreReadWhenTheRegistryPinsThem()
+        {
+            string server = ServerWith(Pinned("theme/theme.json", "about.json", "terms/en.md", "terms/de.md", "changelog.md"),
+                ",\"theme\":\"theme/theme.json\",\"about\":\"about.json\"," +
+                "\"terms\":{\"en\":\"terms/en.md\",\"de\":\"terms/de.md\"}");
+
+            RegistryEntry entry = Assert.Single(RegistryIndexReader.Read(Sign(Payload(server)), Keys()).Entries);
+
+            Assert.Equal("theme/theme.json", entry.Theme);
+            Assert.Equal("about.json", entry.About);
+            Assert.Equal("terms/de.md", entry.Terms["de"]);
+            Assert.Equal("changelog.md", entry.Changelog);
+        }
+
+        [Fact]
+        public void AnEntryWithoutPresentationFiles_HasNone()
+        {
+            RegistryEntry entry = Assert.Single(RegistryIndexReader.Read(Sign(Payload()), Keys()).Entries);
+
+            Assert.Null(entry.Theme);
+            Assert.Null(entry.About);
+            Assert.Empty(entry.Terms);
+            Assert.Null(entry.Changelog);
+        }
+
+        [Theory]
+        [InlineData(",\"theme\":\"theme/theme.json\"")]
+        [InlineData(",\"about\":\"about.json\"")]
+        [InlineData(",\"terms\":{\"en\":\"terms/en.md\"}")]
+        public void APresentationFileThatIsNotPinned_IsRejected(string extra)
+        {
+            AssertInvalid(Payload(ServerWith("", extra)));
+        }
+
+        [Theory]
+        [InlineData(",\"theme\":\"../theme.json\"")]
+        [InlineData(",\"theme\":\"/theme.json\"")]
+        [InlineData(",\"about\":5")]
+        [InlineData(",\"terms\":[]")]
+        [InlineData(",\"terms\":{\"de\":\"terms/en.md\"}")]
+        [InlineData(",\"terms\":{\"EN\":\"terms/en.md\"}")]
+        [InlineData(",\"terms\":{\"en\":\"..\\terms.md\"}")]
+        public void AMalformedPresentationField_IsRejected(string extra)
+        {
+            AssertInvalid(Payload(ServerWith(Pinned("theme/theme.json", "terms/en.md"), extra)));
+        }
     }
 }

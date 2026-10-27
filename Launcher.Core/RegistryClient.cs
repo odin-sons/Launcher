@@ -12,13 +12,22 @@ namespace Odinsons.ValheimLauncher
         Task<byte[]> FetchAsync(Uri url, CancellationToken cancellationToken);
     }
 
-    public sealed class HttpRegistryFetcher : IRegistryFetcher
+    public interface IDisplayFileFetcher
+    {
+        /// <summary>Throws <see cref="RegistryException"/> if the response is longer than <paramref name="maxBytes"/>.</summary>
+        Task<byte[]> FetchAsync(Uri url, int maxBytes, CancellationToken cancellationToken);
+    }
+
+    public sealed class HttpRegistryFetcher : IRegistryFetcher, IDisplayFileFetcher
     {
         private const int Attempts = 3;
 
         private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
 
-        public async Task<byte[]> FetchAsync(Uri url, CancellationToken cancellationToken)
+        public Task<byte[]> FetchAsync(Uri url, CancellationToken cancellationToken) =>
+            FetchAsync(url, RegistryIndexReader.MaxEnvelopeBytes, cancellationToken);
+
+        public async Task<byte[]> FetchAsync(Uri url, int maxBytes, CancellationToken cancellationToken)
         {
             for (int attempt = 1; ; attempt++)
             {
@@ -28,7 +37,7 @@ namespace Odinsons.ValheimLauncher
                     response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode)
-                        return await ReadLimitedAsync(response, cancellationToken).ConfigureAwait(false);
+                        return await ReadLimitedAsync(response, maxBytes, cancellationToken).ConfigureAwait(false);
 
                     if (attempt == Attempts || !HttpRetry.IsRetryableStatus(response.StatusCode))
                         throw new HttpRequestException($"HTTP {(int)response.StatusCode}");
@@ -42,10 +51,10 @@ namespace Odinsons.ValheimLauncher
             }
         }
 
-        private static async Task<byte[]> ReadLimitedAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+        private static async Task<byte[]> ReadLimitedAsync(HttpResponseMessage response, int maxBytes, CancellationToken cancellationToken)
         {
-            if (response.Content.Headers.ContentLength > RegistryIndexReader.MaxEnvelopeBytes)
-                throw new RegistryException(RegistryFailure.Malformed, "The registry index is too large.");
+            if (response.Content.Headers.ContentLength > maxBytes)
+                throw new RegistryException(RegistryFailure.Malformed, "The response is larger than allowed.");
 
             using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var buffer = new MemoryStream();
@@ -53,8 +62,8 @@ namespace Odinsons.ValheimLauncher
             int read;
             while ((read = await stream.ReadAsync(chunk, 0, chunk.Length, cancellationToken).ConfigureAwait(false)) > 0)
             {
-                if (buffer.Length + read > RegistryIndexReader.MaxEnvelopeBytes)
-                    throw new RegistryException(RegistryFailure.Malformed, "The registry index is too large.");
+                if (buffer.Length + read > maxBytes)
+                    throw new RegistryException(RegistryFailure.Malformed, "The response is larger than allowed.");
                 buffer.Write(chunk, 0, read);
             }
             return buffer.ToArray();

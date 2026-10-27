@@ -319,3 +319,36 @@ The player's own light/dark choice.
 - **TheEffectiveScheme_FollowsTheSettingAndOtherwiseTheSystem** — System follows the operating system, Light and Dark do not.
 - **AnUnknownValue_MeansSystem** — a missing or unreadable value in `config.ini` is System.
 - **TheChoice_DefaultsToSystem_AndIsRememberedInConfig** — the choice survives a restart.
+
+## DisplayFilesTests.cs
+
+The files a profile shows are used only if the registry pins them and the bytes match.
+
+- **APinnedFile_WhoseHashMatches_IsReturned** / **AFileTheRegistryDoesNotPin_IsNeverRequested** — nothing
+  unpinned reaches the network.
+- **AMirrorThatServesAnotherFile_IsPassedOver_ForTheNextMirror** / **WhenNoMirrorHasTheRightFile_TheResultSaysSo_AndNothingIsThrown**
+  — a swapped file is never shown, and a failure is a result, not an exception.
+- **AFileOverTheLimit_IsRefused_EvenFromAFetcherThatDoesNotEnforceIt** — the limit holds even if the fetcher forgets it.
+- **AVerifiedFile_IsKeptByItsDigest_AndServedWithoutTheNetwork** / **ACachedFileThatWasChanged_IsNotUsed_AndIsFetchedAgain**
+  / **ACacheName_ThatIsNotADigest_IsIgnored** — the on-disk copy is hashed again on every read.
+
+## ImageInspectorTests.cs
+
+Pictures are judged from their header before anything decodes them.
+
+- **APng_ReportsItsSize** / **AJpeg_ReportsItsSize_BaselineOrProgressive** / **AZeroSize_IsNotAPicture**
+  / **ATruncatedPicture_IsNotAccepted** / **APngWhoseHeaderIsTheWrongLength_IsNotAccepted** — header reading.
+- **AnAnimatedPng_IsNotAcceptedAsAPicture** / **AJpegCodingASimpleDecoderCannotRead_IsNotAccepted**
+  / **BytesThatAreNotAPicture_AreNotAccepted** — still PNG and JPEG only.
+- **TheLogo_MustBeAPng_AtMost512Square** / **TheArt_MayBeAPngOrAJpeg_AtMost1920By1080**
+  / **APictureThatClaimsAHugeSize_IsTurnedAwayFromItsHeader** / **APictureOverItsByteLimit_IsNotAccepted** — the limits.
+
+## ThemeLoaderTests.cs
+
+A theme is loaded with its pictures, and what fails a check is dropped without losing the rest.
+
+- **AThemeWhoseFilesAllCheckOut_IsLoadedWithItsPictures** / **AProfileWithoutATheme_GetsTheDefault_WithoutAnyRequest**
+  / **AThemeThatCannotBeFetched_IsTheDefault_AndSaysWhy**.
+- **APictureWhoseHashDiffers_IsDropped_AndTheOtherSchemeKeepsItsOwn** / **APictureOverItsPixelLimit_IsDropped**
+  / **ALogoThatIsNotAPng_IsDropped_AndTheRestOfTheThemeStays** — a failed picture becomes the default one.
+- **APictureBothSchemesName_IsFetchedOnce**.
