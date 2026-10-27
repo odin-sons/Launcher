@@ -109,12 +109,12 @@ like any other file:
 | `online` | `left` or `right`, the side of the Online list on the Server step; anything else means `left` |
 | `font` | an id from the allowlist below; anything else means the default |
 | `logo` | `file` is a path listed in `digests`; shared by both schemes |
-| `button.radius` | integer 0 to 12 (pixels); out-of-range values are clamped |
+| `button.radius` | integer 0 to 12 (pixels); out-of-range values are clamped; default 6 |
 | `button.borderWidth` | integer 0 to 4; 0 means no border; default 0 |
 | `schemes.<scheme>.accent` | `#RRGGBB`; a missing or malformed value takes the default |
 | `schemes.<scheme>.buttonFill` | a paint (below) or `{ "type": "none" }`; default is a solid fill in the accent |
 | `schemes.<scheme>.buttonBorder` | a paint or `{ "type": "none" }`; default is none; unused while `borderWidth` is 0 |
-| `schemes.<scheme>.art` | a paint, or `{ "type": "image", "file", "position" }`; `position` is `left`, `center` or `right` and sets which part of the picture stays visible when it is cropped |
+| `schemes.<scheme>.art` | a paint, or `{ "type": "image", "file", "position" }`; `position` is `left`, `center` (the default) or `right` and sets which part of the picture stays visible when it is cropped |
 
 `<scheme>` is `dark` or `light`.
 
@@ -122,7 +122,7 @@ A **paint** is one of:
 
 * `{ "type": "solid", "color": "#RRGGBB" }`
 * `{ "type": "gradient", "from": "#RRGGBB", "to": "#RRGGBB", "direction": "horizontal" }`, where
-  `direction` is `horizontal`, `vertical` or `diagonal`. A gradient has exactly two stops.
+  `direction` is `horizontal` (the default), `vertical` or `diagonal`. A gradient has exactly two stops.
 
 Fill and border are independent: a button can have a gradient fill with a solid border, a border
 only, a gradient border around a solid fill, and so on. A button needs a visible edge, so a scheme with
