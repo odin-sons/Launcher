@@ -115,7 +115,8 @@ opens one in the browser. Images and HTML are never rendered; raw HTML appears a
 ## News
 
 News is the community's changelog, `changelog.md` on the mirror today, in the same Markdown subset,
-and it is pinned in `digests` like the other display files. A community without one has no News zone.
+and it is pinned in `digests` like the other display files. A community without one has no News zone. The file
+is at most 64 KiB.
 
 ## Terms
 

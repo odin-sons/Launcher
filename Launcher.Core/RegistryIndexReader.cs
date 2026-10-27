@@ -19,10 +19,12 @@ namespace Odinsons.ValheimLauncher
         public const int MaxEntries = 500;
         public const int MaxMirrors = 8;
         public const int MaxDigests = 64;
+        public const int MaxTermsLanguages = 16;
         public static readonly TimeSpan MaxValidity = TimeSpan.FromDays(31);
 
         private static readonly Regex IdPattern = new Regex("^[a-z0-9][a-z0-9-]{1,31}$", RegexOptions.CultureInvariant);
         private static readonly Regex DigestPattern = new Regex("^[0-9a-f]{64}$", RegexOptions.CultureInvariant);
+        private static readonly Regex LanguagePattern = new Regex("^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$", RegexOptions.CultureInvariant);
 
         public static RegistryIndex Read(byte[] envelope, RegistryKeySet keys)
         {
@@ -129,6 +131,8 @@ namespace Odinsons.ValheimLauncher
             if (mirrors.Count == 0 || mirrors.Count > MaxMirrors)
                 throw Invalid($"Server '{id}' needs between 1 and {MaxMirrors} mirrors.");
 
+            IReadOnlyDictionary<string, string> digests = ParseDigests(obj, id);
+
             return new RegistryEntry
             {
                 Id = id,
@@ -137,8 +141,46 @@ namespace Odinsons.ValheimLauncher
                 Website = OptionalHttpsLink(obj, "website", id),
                 Community = OptionalHttpsLink(obj, "community", id),
                 Status = ParseStatus(RequireString(obj, "status"), id),
-                Digests = ParseDigests(obj, id)
+                Digests = digests,
+                Theme = OptionalPinnedPath(obj, "theme", id, digests),
+                About = OptionalPinnedPath(obj, "about", id, digests),
+                Terms = ParseTerms(obj, id, digests)
             };
+        }
+
+        private static string OptionalPinnedPath(JsonElement obj, string name, string id,
+            IReadOnlyDictionary<string, string> digests)
+        {
+            if (!obj.TryGetProperty(name, out JsonElement value) || value.ValueKind == JsonValueKind.Null)
+                return null;
+
+            string path = value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+            if (path == null || !IsRelativePath(path) || !digests.ContainsKey(path))
+                throw Invalid($"Server '{id}' has a {name} that is not a pinned path.");
+            return path;
+        }
+
+        private static IReadOnlyDictionary<string, string> ParseTerms(JsonElement obj, string id,
+            IReadOnlyDictionary<string, string> digests)
+        {
+            if (!obj.TryGetProperty("terms", out JsonElement terms) || terms.ValueKind == JsonValueKind.Null)
+                return new Dictionary<string, string>();
+            if (terms.ValueKind != JsonValueKind.Object)
+                throw Invalid($"Server '{id}' terms must be an object.");
+
+            var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (JsonProperty property in terms.EnumerateObject())
+            {
+                string path = property.Value.ValueKind == JsonValueKind.String ? property.Value.GetString() : null;
+                if (!LanguagePattern.IsMatch(property.Name) || path == null || !IsRelativePath(path)
+                    || !digests.ContainsKey(path))
+                    throw Invalid($"Server '{id}' has an invalid terms entry '{property.Name}'.");
+                result[property.Name] = path;
+            }
+
+            if (result.Count > MaxTermsLanguages || (result.Count > 0 && !result.ContainsKey("en")))
+                throw Invalid($"Server '{id}' terms need an 'en' text and at most {MaxTermsLanguages} languages.");
+            return result;
         }
 
         private static RegistryStatus ParseStatus(string value, string id) => value switch
