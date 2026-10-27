@@ -17,8 +17,22 @@ next one.
 | 3 Mods | Required and optional mods | Next: Install |
 | 4 Install | Update check, installation, progress | Install and play, then Play |
 
-Only the Server step is arranged by the template. The other three look the same everywhere; their
-colours follow the theme, their layout does not.
+The template frames all four steps (see [themes.md](themes.md#layout-templates)). The Server step is
+arranged by zones: the Online list at the side the theme names, then the art, About and News. On the
+other three steps the community's art becomes a frame: a narrow column at the left or right (`classic`,
+`sidebar`), a slim strip on top (`banner`), or just the community's name and logo (`minimal`). The
+step's own content belongs to the launcher and arranges itself in the room that is left: one column
+beside a side column, two columns when it has the full width.
+
+| Step | One column | Two columns |
+|------|------------|-------------|
+| 2 Terms | The launcher notice, then the terms, then the acceptance | The notice on the left, the terms on the right, the acceptance underneath |
+| 3 Mods | Required mods, then optional ones | Required mods on the left, optional ones on the right |
+| 4 Install | Status, settings, progress and the step list, top to bottom | Status, settings and progress on the left, the step list on the right |
+
+In every arrangement the launcher notice comes before the community's terms in reading order and is at
+least as prominent: a template cannot shrink it, collapse it or place it after the terms. Nothing in the
+frame can carry text other than the community's name and tagline.
 
 Terms is skipped, and shown as done, while the player's acceptance still matches the current terms.
 The built-in profile has no launcher notice to show; it shows the Terms step only if it defines terms
@@ -127,20 +141,27 @@ The terms file is at most 20 KiB per language.
 
 The player ticks one box, "I have read and accept the notice and the terms", and the wizard button
 becomes available. Only display files (the theme and its images, About, News, the terms) are fetched
-before this point. No mod and no game file is downloaded until the terms are accepted.
+before this point.
+
+**Downloading waits for acceptance.** Acceptance is a precondition for any download from the
+community, for legal reasons that belong to the maintainers: the terms are agreed before files change
+hands. Until the player's acceptance matches the current terms and notice, the launcher does not
+download a mod or a game file, does not install, update or repair, and does not run a verification
+that could fetch files. This holds on a first install and again whenever the terms or the notice
+change; the wizard button then leads to the Terms step. The launcher does not interpret the terms or
+where the player is: it enforces that the current text was accepted.
 
 The launcher stores the acceptance locally, in the profile's own data folder, as: the profile id, the
 digest of the terms file that was shown, the version of the launcher notice, and the time. It is never
 sent anywhere and goes away with the profile.
 
-The player is asked again when the digest of the terms or the version of the notice changes: before the
-next update or launch of that profile. Declining leaves every file untouched and downloads nothing; the
-player can pick another server.
+The player is asked again when the digest of the terms or the version of the notice changes. Declining
+leaves every file untouched and downloads nothing; the player can pick another server.
 
 ### Open points
 
 * The wording of the launcher notice. It is a legal text and should be written and reviewed by the
   maintainers before 3.0.0 ships, not by the implementation.
-* Whether an already installed profile may still be launched while changed terms are unaccepted, or
-  only after they are.
+* Whether starting an already installed and complete profile should also wait for changed terms. The
+  rule above gates downloads only, and starting such a profile downloads nothing.
 * Terms in more than one language when the interface language is missing: today it falls back to `en`.
