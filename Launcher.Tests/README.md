@@ -328,6 +328,7 @@ The files a profile shows are used only if the registry pins them and the bytes 
   unpinned reaches the network.
 - **AMirrorThatServesAnotherFile_IsPassedOver_ForTheNextMirror** / **WhenNoMirrorHasTheRightFile_TheResultSaysSo_AndNothingIsThrown**
   — a swapped file is never shown, and a failure is a result, not an exception.
+- **APathThatWouldLeaveTheMirror_NeverReachesAnotherHost** — a pinned path cannot be turned into another host's URL.
 - **AFileOverTheLimit_IsRefused_EvenFromAFetcherThatDoesNotEnforceIt** — the limit holds even if the fetcher forgets it.
 - **AVerifiedFile_IsKeptByItsDigest_AndServedWithoutTheNetwork** / **ACachedFileThatWasChanged_IsNotUsed_AndIsFetchedAgain**
   / **ACacheName_ThatIsNotADigest_IsIgnored** — the on-disk copy is hashed again on every read.

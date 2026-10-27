@@ -73,6 +73,25 @@ namespace Launcher.Tests
             Assert.Contains("404", result.Problem);
         }
 
+        [Theory]
+        [InlineData("evil.example:8080/x")]
+        [InlineData("https:evil.example/x")]
+        [InlineData("http://evil.example/x")]
+        [InlineData("//evil.example/x")]
+        [InlineData("a/../../x")]
+        public async Task APathThatWouldLeaveTheMirror_NeverReachesAnotherHost(string path)
+        {
+            var fetcher = new FakeDisplayFetcher();
+            var entry = Entry(new Dictionary<string, byte[]> { [path] = _about });
+            var files = new DisplayFiles(entry, fetcher);
+
+            DisplayFileResult result = await files.LoadAsync(path, DisplayFileLimits.About);
+
+            Assert.False(result.Ok);
+            Assert.All(fetcher.Requests, url => Assert.True(
+                url.StartsWith(MirrorA, StringComparison.Ordinal) || url.StartsWith(MirrorB, StringComparison.Ordinal), url));
+        }
+
         [Fact]
         public async Task AFileOverTheLimit_IsRefused_EvenFromAFetcherThatDoesNotEnforceIt()
         {

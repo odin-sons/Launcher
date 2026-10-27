@@ -119,11 +119,16 @@ namespace Odinsons.ValheimLauncher
             var problems = new List<string>();
             foreach (string mirror in _entry.Mirrors)
             {
+                if (!TryResolve(mirror, path, out Uri url))
+                {
+                    problems.Add($"{mirror}: the path leaves the mirror.");
+                    continue;
+                }
+
                 byte[] bytes;
                 try
                 {
-                    bytes = await _fetcher.FetchAsync(new Uri(new Uri(mirror), path), maxBytes, cancellationToken)
-                        .ConfigureAwait(false);
+                    bytes = await _fetcher.FetchAsync(url, maxBytes, cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -153,6 +158,17 @@ namespace Odinsons.ValheimLauncher
             }
 
             return Failed($"'{path}' could not be fetched: {string.Join(" ", problems)}");
+        }
+
+        private static bool TryResolve(string mirror, string path, out Uri url)
+        {
+            var baseUri = new Uri(mirror);
+            if (!Uri.TryCreate(baseUri, path, out url))
+                return false;
+
+            return url.Scheme == baseUri.Scheme
+                && url.Authority == baseUri.Authority
+                && url.AbsolutePath.StartsWith(baseUri.AbsolutePath, StringComparison.Ordinal);
         }
 
         private static DisplayFileResult Failed(string problem) => new DisplayFileResult { Problem = problem };
