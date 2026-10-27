@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Text.RegularExpressions;
 using Odinsons.ValheimLauncher;
 using Xunit;
 
@@ -23,5 +25,27 @@ namespace Launcher.Tests
             Assert.Contains("clients/Lite_v2", message);
             if (os != TargetOs.Windows) Assert.DoesNotContain("valheim.exe", message);
         }
+
+        [Fact]
+        public void TheServerStatusStrings_ExistInEnglishAndRussian_WithTheSamePlaceholders()
+        {
+            var table = (IDictionary<string, Dictionary<string, string>>)typeof(Loc)
+                .GetField("Table", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+            string[] keys = table.Keys.Where(key => key.StartsWith("gate.", StringComparison.Ordinal)).ToArray();
+
+            Assert.NotEmpty(keys);
+            foreach (string key in keys)
+            {
+                string english = table[key]["en"];
+                string russian = table[key]["ru"];
+
+                Assert.False(string.IsNullOrWhiteSpace(english), key);
+                Assert.False(string.IsNullOrWhiteSpace(russian), key);
+                Assert.Equal(Placeholders(english), Placeholders(russian));
+            }
+        }
+
+        private static string[] Placeholders(string text) =>
+            Regex.Matches(text, @"\{\d+\}").Select(match => match.Value).Distinct().Order().ToArray();
     }
 }
