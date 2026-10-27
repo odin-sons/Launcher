@@ -2285,10 +2285,154 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             if (IsLoading) return;
 
             IsLoading = true;
+
+            if (!await PassServerGateAsync(start))
+            {
+                IsLoading = false;
+                return;
+            }
+
             StartButtonGrid.Opacity = 0;
             await Task.Delay(800); // matches the WPF fade-out duration
 
             await StartUpdateAsync(full, start);
+        }
+
+        private ServerAccess? _serverAccess;
+
+        internal void UseServerAccess(ServerAccess access) => _serverAccess = access;
+
+        /// <summary>Asks the registry about this profile before an update or launch. True when the
+        /// ordinary update and launch may go on; false when the answer was handled here.</summary>
+        internal async Task<bool> PassServerGateAsync(bool start)
+        {
+            _serverAccess ??= OfficialRegistry.Access(Environment.CurrentDirectory);
+
+            ServerCheck check;
+            try
+            {
+                check = await _serverAccess.CheckAsync(_profile, ClientFolder, start);
+            }
+            catch (Exception ex)
+            {
+                LauncherLog.Error("Could not check the server status", ex);
+                await MessageBoxWindow.ShowAsync(this, Loc.T("gate.checkFailed", ex.Message), Loc.T("gate.title"));
+                return false;
+            }
+
+            LauncherLog.Info($"server status for '{_profile.Id}': {check.Decision.Notice}, next step {check.Step}");
+
+            switch (check.Step)
+            {
+                case GateStep.Proceed:
+                    return true;
+
+                case GateStep.OfferRemoval:
+                    await OfferRemovalAsync();
+                    return false;
+
+                case GateStep.ConfirmThenLaunch:
+                    bool confirmed = await ConfirmationWindow.ShowAsync(this,
+                        Loc.T("gate.confirm.title", _profile.Name), Loc.T("gate.confirm.message", _profile.Name),
+                        Loc.T("gate.confirm.yes"), Loc.T("gate.confirm.no"));
+                    if (confirmed)
+                    {
+                        _serverAccess.ConfirmLaunch(ClientFolder);
+                        await LaunchInstalledFilesAsync();
+                    }
+                    return false;
+
+                case GateStep.LaunchExisting:
+                    await LaunchInstalledFilesAsync();
+                    return false;
+
+                default:
+                    await MessageBoxWindow.ShowAsync(this, StatusMessage(check), Loc.T("gate.title"));
+                    return false;
+            }
+        }
+
+        private string StatusMessage(ServerCheck check) => Loc.T(
+            (check.Step, check.Decision.Notice) switch
+            {
+                (GateStep.Paused, ServerNotice.NeedsApproval) => "gate.paused.needsApproval",
+                (GateStep.Paused, ServerNotice.Unlisted) => "gate.paused.unlisted",
+                (GateStep.Paused, _) => "gate.paused.unavailable",
+                (_, ServerNotice.NeedsApproval) => "gate.refuse.needsApproval",
+                (_, ServerNotice.Suspended) => "gate.refuse.suspended",
+                (_, ServerNotice.Unlisted) => "gate.refuse.unlisted",
+                _ => "gate.refuse.unavailable"
+            },
+            _profile.Name);
+
+        private async Task OfferRemovalAsync()
+        {
+            string folder = Path.GetFullPath(ClientFolder);
+            bool remove = await ConfirmationWindow.ShowAsync(this,
+                Loc.T("gate.suspended.title", _profile.Name), Loc.T("gate.suspended.message", _profile.Name, folder),
+                Loc.T("gate.suspended.remove"), Loc.T("gate.suspended.keep"));
+            if (!remove) return;
+
+            string clientFolder = ClientFolder;
+            string?[] keep = { Environment.CurrentDirectory, ResolveGameFolder(), FindSteamGameFolder() };
+            (bool removed, string? reason) = await Task.Run(() =>
+            {
+                bool ok = ProfileRemoval.TryRemove(clientFolder, keep.OfType<string>(), out string? why);
+                return (ok, why);
+            });
+
+            if (removed)
+            {
+                LauncherLog.Info($"removed the files of the suspended profile '{_profile.Id}' from '{folder}'");
+                RefreshFullCheckVisibility();
+                await MessageBoxWindow.ShowAsync(this, Loc.T("gate.removed", _profile.Name), Loc.T("gate.title"));
+                return;
+            }
+
+            LauncherLog.Warn($"could not remove '{folder}': {reason}");
+            await MessageBoxWindow.ShowAsync(this, Loc.T("gate.removeFailed", reason ?? string.Empty), Loc.T("gate.title"));
+        }
+
+        /// <summary>Starts the game from what is installed, without checking or updating anything.</summary>
+        private async Task LaunchInstalledFilesAsync()
+        {
+            string clientFolder = ClientFolder;
+            string? gameFolder = ResolveGameFolder();
+
+            (bool ok, InjectorPlan? plan, string? reason) = await Task.Run(() =>
+            {
+                bool resolved = InstalledLaunch.TryResolve(clientFolder, gameFolder, FindSteamGameFolder(),
+                    out InjectorPlan? found, out string? why);
+                return (resolved, found, why);
+            });
+
+            if (!ok)
+            {
+                LauncherLog.Error($"Launch error: {reason}");
+                await MessageBoxWindow.ShowAsync(this, reason ?? string.Empty, Loc.T("gui.title.launchError"));
+                return;
+            }
+
+            if (TryLaunchGame(plan)) CloseButton_Click(null, null);
+        }
+
+        /// <summary>The Steam install of the game when it is complete, otherwise null.</summary>
+        private static string? FindSteamGameFolder()
+        {
+            if (SteamLocator.TryFindGame(SteamLocator.ValheimAppId, SteamLocator.ValheimDepotId, null,
+                                         out SteamGameInfo steamGame, out string steamReason))
+            {
+                LauncherLog.Info($"steam: build {steamGame.BuildId}, depot manifest {steamGame.DepotManifestId}, " +
+                                 $"stateFlags={steamGame.StateFlags}");
+
+                if (steamGame.FullyInstalled) return steamGame.InstallPath;
+
+                LauncherLog.Warn("steam copy is not fully installed — not using it as a source");
+                return null;
+            }
+
+            LauncherLog.Info($"steam: {steamReason}");
+            return null;
         }
 
         private async Task StartUpdateAsync(bool full, bool start)
@@ -2341,20 +2485,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     full = true;
                 }
 
-                string? steamGameFolder = null;
-                if (SteamLocator.TryFindGame(SteamLocator.ValheimAppId, SteamLocator.ValheimDepotId, null,
-                                             out SteamGameInfo steamGame, out string steamReason))
-                {
-                    LauncherLog.Info($"steam: build {steamGame.BuildId}, depot manifest {steamGame.DepotManifestId}, " +
-                                     $"stateFlags={steamGame.StateFlags}");
-
-                    if (steamGame.FullyInstalled) steamGameFolder = steamGame.InstallPath;
-                    else LauncherLog.Warn("steam copy is not fully installed — not using it as a source");
-                }
-                else
-                {
-                    LauncherLog.Info($"steam: {steamReason}");
-                }
+                string? steamGameFolder = FindSteamGameFolder();
 
                 await FileDownloader.StartUpdateAsync(_worker, this, full, start, SelectedServerDirectory,
                     Path.GetFileName(Environment.ProcessPath ?? "OdinsonsLauncher.exe"), maxConcurrentDownloads: 8,
@@ -3791,12 +3922,24 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
 
             // Start the game first, close the launcher second — so a launch failure is still shown.
+            if (!TryLaunchGame(_readyInjectorPlan)) return;
+
+            Dispatcher.UIThread.Invoke(() =>
+            {
+                HideProgress();
+                CloseButton_Click(null, null);
+            });
+        }
+
+        /// <param name="plan">The injector plan, or null to start the game copy in the client folder.</param>
+        private bool TryLaunchGame(InjectorPlan? plan)
+        {
             try
             {
-                if (_readyInjectorPlan is not null)
+                if (plan is not null)
                 {
-                    InjectorLauncher.Launch(_readyInjectorPlan);
-                    Log($"Injector mode: launched from '{_readyInjectorPlan.WorkingDirectory}', closing the launcher");
+                    InjectorLauncher.Launch(plan);
+                    Log($"Injector mode: launched from '{plan.WorkingDirectory}', closing the launcher");
                 }
                 else
                 {
@@ -3812,7 +3955,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                             StartButtonGrid.Opacity = 1;
                         });
                         LauncherLog.Error($"Launch error: no runnable game executable in {ClientFolder}");
-                        return;
+                        return false;
                     }
 
                     Process.Start(new ProcessStartInfo { FileName = gamePath, UseShellExecute = true });
@@ -3828,14 +3971,10 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     StartButtonGrid.Opacity = 1;
                 });
                 LauncherLog.Error("Launch failed", ex);
-                return;
+                return false;
             }
 
-            Dispatcher.UIThread.Invoke(() =>
-            {
-                HideProgress();
-                CloseButton_Click(null, null);
-            });
+            return true;
         }
 
         private void CreateUpdateScript(string oldExePath, string tempExePath, string baseDir)
