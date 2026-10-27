@@ -164,6 +164,9 @@ translated.
   regression: `gui.valheimExeNotFound` used to hardcode "valheim.exe" in the message text
   itself regardless of OS; it now names whatever `InjectorLauncher.PrimaryExecutableName`
   actually is for the current platform (`valheim.app` on macOS, `valheim.x86_64` on Linux).
+- **TheServerStatusStrings_ExistInEnglishAndRussian_WithTheSamePlaceholders** — every `gate.*` string
+  has both required languages and the same `{n}` placeholders in each; other languages fall back
+  to English until someone translates them.
 
 ## InstallStepModelTests.cs
 
@@ -438,3 +441,30 @@ the profile folder is a temp folder, laid out as a game copy or as injector mode
   only the one in view; approved and needs-approval profiles, the built-in one and a missing index change nothing.
 - **Plan_PerStatus** — the step the front end takes for each status, installed or not, playing or not.
 - **HoldsClient** (in `ClientFolderGuardTests`) — what counts as an installed profile folder.
+
+## ProfileRemovalTests.cs
+
+Removing a suspended profile's files after the player agrees. The same folder checks as for any
+folder the launcher works in apply, plus a list of folders that must survive.
+
+- **TheProfileFolder_IsRemovedWithEverythingInIt_AndNothingAround** — the folder goes; its siblings and
+  the launcher's own files stay.
+- **AFolderThatIsAlreadyGone_IsNothingToRemove** — not an error.
+- **AFolderWithSomeoneElsesFiles_IsRefusedAndLeftAlone** — a folder that is neither empty nor a client is
+  refused with the offending names.
+- **AFolderThatHoldsAFolderToKeep_IsRefusedAndLeftAlone** / **AFolderThatIsAFolderToKeep_IsRefused** /
+  **AFolderInsideAFolderToKeep_IsStillRemoved** — the game folder, the Steam install and the launcher's own
+  folder are never swept away with a profile folder that contains or equals them.
+- **ADriveRoot_IsRefused** / **NoPath_IsRefused** — never a root, never an empty path.
+
+## InstalledLaunchTests.cs
+
+Starting the game from the files already installed, when updates are paused or the registry is
+not consulted: no check, no download.
+
+- **AGameCopyInTheProfileFolder_StartsAsItIs** (×Windows/macOS/Linux) — no plan, the executable in the folder.
+- **AGameFolderOfItsOwn_StartsFromThereWithTheMods** (×Windows/macOS/Linux) — a plan from the game folder.
+- **NoGameCopyAndNoGameFolder_StartsFromTheSteamInstall** (×Windows/macOS/Linux) — a plan from the Steam install.
+- **TheSteamInstallSetAsTheGameFolder_IsUsedTheSameWayAsWithoutOne** — as the downloader treats it.
+- **NothingToStart_SaysWhichExecutableIsMissingAndWhere** / **AGameFolderWithoutTheGame_IsReportedNotSilentlyReplacedBySteam**
+  — a failure names the problem instead of launching something else.

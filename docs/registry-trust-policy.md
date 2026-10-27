@@ -192,6 +192,20 @@ so a change takes effect at the next one. `ServerPolicy` maps it to what is allo
 profile ignores the registry. A profile that is installed but missing from the index, or whose index
 cannot be loaded, can still be started but is not updated; one that is not installed cannot be added.
 
+In the window:
+
+* `approved` goes on with the update and launch as usual.
+* `needs-approval` shows a warning first. On "yes" the game starts from the installed files, with no
+  check or update; on "no" nothing happens. A request to check or update only gets a notice that updates
+  are paused.
+* `suspended` refuses the launch and the update, explains why, and asks whether to remove the files. Removal
+  runs the same folder checks as any other folder the launcher works in, and refuses a folder that holds
+  the launcher's own folder, the game folder or the Steam install.
+* A profile that is missing from the index, or whose index cannot be loaded, starts from the installed files
+  without an update; when it is not installed the player is told it cannot be added.
+
+The console launcher (`Launcher.Cli`) works only with the built-in profile, so it has no status to apply.
+
 ## Suspended profiles and starting the game directly
 
 Refusing to launch from the launcher is not enough on its own, because the game executable can be
@@ -201,7 +215,7 @@ started without it. What the launcher can do depends on how the profile is laid 
 |--------|---------------|------------|
 | The game in its own folder, mods injected from the profile | The launcher passes the Doorstop settings for each launch and keeps `doorstop_config.ini` in the game folder disabled, so starting the game from Steam or by its executable is already vanilla | Nothing to disable; the launcher no longer builds the injection plan |
 | A game copy inside the profile folder, Windows | `winhttp.dll`, the Doorstop proxy next to the executable, loads BepInEx on any start | `winhttp.dll` is renamed to `winhttp.dll.suspended` |
-| A game copy inside the profile folder, Linux and macOS | Mods load only through the BepInEx start script; the game binary started by hand is vanilla | The start script is renamed with the same `.suspended` suffix |
+| A game copy inside the profile folder, Linux and macOS | Mods load only through the BepInEx start script; the game binary started by hand is vanilla | The start script (`start_game_bepinex.sh`, and `run_bepinex.sh` when the pack ships it) is renamed with the same `.suspended` suffix |
 
 The quarantine follows these rules:
 
@@ -213,6 +227,11 @@ The quarantine follows these rules:
 * It is applied whenever the launcher has fetched a fresh index: at startup, before a launch and
   before an update. `needs-approval` is not quarantined, since launching it is allowed after the
   player confirms.
+* A profile folder counts as holding a game copy when the game executable is in it. At startup every
+  installed profile that the index suspends is handled, not only the one on screen: the folders under
+  `clients/<id>` and those set in `config.ini`.
+* Only the known entry point names are ever restored from the record, so an edited `quarantine.json`
+  cannot make the launcher rename anything else.
 
 What this does not do:
 
