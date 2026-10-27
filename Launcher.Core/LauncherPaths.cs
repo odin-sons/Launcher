@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Odinsons.ValheimLauncher
 {
@@ -39,6 +41,30 @@ namespace Odinsons.ValheimLauncher
 
         public static string ProfileFolder(IniFile config, ServerProfile profile, string server) =>
             Clean(config.Read(ProfileKey, ServerSection(profile, server))) ?? DefaultProfileFolder(profile, server);
+
+        /// <summary>Every profile folder of a community that exists on disk: the default ones and those set in config.ini (null skips the latter).</summary>
+        public static IReadOnlyList<string> ExistingProfileFolders(IniFile config, string baseFolder, string profileId)
+        {
+            string root = Path.GetFullPath(baseFolder);
+            var folders = new List<string>();
+
+            string defaults = Path.Combine(root, "clients", profileId);
+            if (Directory.Exists(defaults)) folders.AddRange(Directory.GetDirectories(defaults));
+
+            string prefix = $"Server:{profileId}/";
+            foreach (string section in config?.SectionNames ?? Array.Empty<string>())
+            {
+                if (!section.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
+
+                string configured = Clean(config.Read(ProfileKey, section));
+                if (configured != null) folders.Add(Path.GetFullPath(configured, root));
+            }
+
+            return folders
+                .Where(Directory.Exists)
+                .DistinctBy(Normalize, RuntimePlatform.IsLinux ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
 
         public static string SelectedServer(IniFile config, ServerProfile profile) =>
             Clean(config.Read(SelectedServerKey, SelectedServerSection(profile)));

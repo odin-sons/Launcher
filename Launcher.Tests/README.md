@@ -275,6 +275,9 @@ kept in `config.ini`.
 - **OneFolderInsideTheOther_IsNesting_InEitherOrder** / **SiblingsWithACommonPrefix_AreNotNesting**
   / **TheSameFolder_IsNotNesting_ButIsTheSame** — the game and profile folders may not lie inside
   one another; the same folder just means the default, and `Game` next to `Game2` is not nesting.
+- **ExistingProfileFolders_...** (×3) — the profile folders of one community that exist on disk,
+  the default `clients/<community>/*` ones plus those set in `config.ini`, each once; other
+  communities' folders and folders that are gone are left out; no config still finds the defaults.
 
 ## ThemeReaderTests.cs
 
@@ -407,3 +410,31 @@ the BepInEx start script on macOS and Linux, renamed to `<name>.suspended` and r
   — the two states where both names exist.
 - **ARecordNamingAnythingButAnEntryPoint_RenamesNothing** / **AnUnreadableRecord_IsIgnored** — a
   tampered or damaged record cannot make the launcher rename other files.
+
+## ServerAccessTests.cs
+
+What an update or launch may do with a community's profile once the registry has been asked, and
+what that does to the mod loader's entry point. A signed index is served by a fake fetcher and
+the profile folder is a temp folder, laid out as a game copy or as injector mode.
+
+- **Approved_Proceeds_AndLeavesTheFilesAlone** / **Approved_NotInstalledYet_ProceedsToInstall** — the
+  normal path.
+- **Suspended_Installed_RefusesAndOffersRemoval_AndDisablesTheEntryPoint** /
+  **Suspended_InInjectorMode_RefusesWithNothingToDisable** /
+  **Suspended_NotInstalled_RefusesWithoutOfferingRemoval** — a suspended profile is never started or
+  updated; removal is offered only when there are files; only a game copy has anything to disable.
+- **NeedsApproval_Installed_AsksFirst_AndKeepsTheLoaderUntilTheAnswerIsYes** — the warning comes
+  first; a previously disabled loader goes back only after the player confirms.
+- **NeedsApproval_Installed_WithoutPlaying_OnlyPausesTheUpdate** / **NeedsApproval_NotInstalled_CannotBeAdded**
+  / **NeedsApproval_IsNeverQuarantined** — updates are paused, new installs refused, nothing renamed.
+- **AProfileMissingFromTheIndex_...** / **WithoutAnIndex_...** — an installed profile still starts from its
+  files but is not updated; one that is not installed cannot be added.
+- **TheBuiltInProfile_IgnoresTheRegistryEntirely** — no index is even fetched for it.
+- **EveryCheck_LoadsAFreshIndex** — each check goes to the registry, so a status change takes effect at
+  the next update or launch.
+- **SuspendedThenApprovedAgain_PutsTheLoaderBackBeforeTheNextLaunch** /
+  **ASuspensionStaysInForce_WhenAnOldApprovedIndexIsReplayed** — the restore, and the replay guard.
+- **ApplySuspensions_...** (×3) — at startup every installed profile the index suspends is disabled, not
+  only the one in view; approved and needs-approval profiles, the built-in one and a missing index change nothing.
+- **Plan_PerStatus** — the step the front end takes for each status, installed or not, playing or not.
+- **HoldsClient** (in `ClientFolderGuardTests`) — what counts as an installed profile folder.

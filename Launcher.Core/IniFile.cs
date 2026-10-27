@@ -151,6 +151,8 @@ namespace Odinsons.ValheimLauncher
             _sections[section][key] = value;
         }
 
+        public IReadOnlyCollection<string> SectionNames => _sections.Keys;
+
         public string Read(string key, string section)
         {
             return _sections.TryGetValue(section, out var sectionDict) && sectionDict.TryGetValue(key, out var value)

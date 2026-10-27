@@ -2536,7 +2536,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         {
             try
             {
-                IReadOnlyList<ProfileChoice> fresh = await OfficialRegistry.FreshChoicesAsync(Environment.CurrentDirectory);
+                IReadOnlyList<ProfileChoice> fresh = await OfficialRegistry.RefreshAsync(Environment.CurrentDirectory);
                 if (fresh.Any(c => c.Profile.Id == _profile.Id))
                     await Dispatcher.UIThread.InvokeAsync(() => ShowProfileChoices(fresh));
             }

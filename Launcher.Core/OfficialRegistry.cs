@@ -19,9 +19,31 @@ namespace Odinsons.ValheimLauncher
         public static IReadOnlyList<ProfileChoice> CachedChoices(string baseFolder) =>
             ProfileCatalog.Build(Client(baseFolder).LoadCached(), id => IsInstalled(baseFolder, id));
 
-        public static async Task<IReadOnlyList<ProfileChoice>> FreshChoicesAsync(string baseFolder, CancellationToken ct = default) =>
-            ProfileCatalog.Build(await Client(baseFolder).LoadAsync(ct).ConfigureAwait(false),
-                id => IsInstalled(baseFolder, id));
+        /// <summary>Loads a fresh index, disables every installed profile it suspends, and returns the choices.</summary>
+        public static async Task<IReadOnlyList<ProfileChoice>> RefreshAsync(string baseFolder, CancellationToken ct = default)
+        {
+            RegistryLoadResult load = await Client(baseFolder).LoadAsync(ct).ConfigureAwait(false);
+            Access(baseFolder).ApplySuspensions(load, id => InstalledFolders(baseFolder, id));
+            return ProfileCatalog.Build(load, id => IsInstalled(baseFolder, id));
+        }
+
+        public static ServerAccess Access(string baseFolder) =>
+            new ServerAccess(new ServerGate(Client(baseFolder)), new ProfileQuarantine());
+
+        private static IReadOnlyList<string> InstalledFolders(string baseFolder, string profileId)
+        {
+            IniFile config = null;
+            try
+            {
+                config = new IniFile(Path.Combine(baseFolder, "config.ini"));
+                config.Load();
+            }
+            catch (Exception ex)
+            {
+                LauncherLog.Warn("Could not read config.ini for the profile folders", ex);
+            }
+            return LauncherPaths.ExistingProfileFolders(config, baseFolder, profileId);
+        }
 
         private static RegistryClient Client(string baseFolder) =>
             new RegistryClient(Mirrors, RegistryKeySet.Official, new RegistryCache(Path.Combine(baseFolder, "registry")),
