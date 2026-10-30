@@ -36,3 +36,21 @@ it is resolved).
 - **NeedsApproval_WithoutPlaying_ExplainsThatUpdatesArePaused** — a check or update request gets the notice.
 - **Approved_GoesStraightToTheUpdate** / **TheBuiltInProfile_GoesStraightToTheUpdate_WithoutAskingTheRegistry**
   — no dialog; the built-in profile never touches the registry.
+
+## ThemingTests.cs
+
+The four layout templates and the two colour schemes on a real window, built headless. Nothing is drawn to a
+screen, so how it looks is for a person to judge; these tests hold the structure.
+
+- **EveryTemplate_BuildsAllSteps_InBothSchemes** — each template frames the Server, Mods and Install steps in
+  the dark and the light scheme, with the palette and theme variant of that scheme.
+- **ServerStep_PlacesTheOnlineListAtTheNamedSide** / **ServerStep_ArrangesTheZonesTheWayEachTemplateSays** /
+  **OtherSteps_FrameTheirContentAndChooseOneOrTwoColumns** — zone positions and column counts per template.
+- **TheHeader_ShowsTheProductNameFromAResource_NotFromTheProfile** / **TheHeader_StaysDark_InTheLightScheme**.
+- **TrustIcon_*** — a name, a tooltip and a different shape for every registry status.
+- **ReadabilityRules_ApplyPerScheme_AgainstItsOwnPalette** / **TheWizardButton_TakesItsShapeFromTheTheme**.
+- **TheSchemeChoice_IsSavedInConfig_AndRestoredByTheNextWindow** / **System_FollowsTheOperatingSystem** /
+  **TheSchemeSelector_SitsNextToTheLanguageSelector_WithThreeChoices**.
+- **Darkening_*** / **TheArt_DarkensItsOwnFrame_*** — the darkening layer follows the part of the picture each
+  frame shows, and a colour or gradient uses its brightest point.
+
