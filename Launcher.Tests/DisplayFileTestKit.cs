@@ -29,14 +29,15 @@ namespace Launcher.Tests
         public const string MirrorA = "https://a.example.test/community/";
         public const string MirrorB = "https://b.example.test/community/";
 
-        public static RegistryEntry Entry(Dictionary<string, byte[]> pinned, string? theme = null) => new RegistryEntry
+        public static RegistryEntry Entry(Dictionary<string, byte[]> pinned, string? theme = null, string? about = null) => new RegistryEntry
         {
             Id = "community",
             Name = "Community",
             Mirrors = new[] { MirrorA, MirrorB },
             Status = RegistryStatus.Approved,
             Digests = pinned.ToDictionary(p => p.Key, p => DisplayFiles.Digest(p.Value), StringComparer.Ordinal),
-            Theme = theme
+            Theme = theme,
+            About = about
         };
 
         public static byte[] Text(string text) => Encoding.UTF8.GetBytes(text);

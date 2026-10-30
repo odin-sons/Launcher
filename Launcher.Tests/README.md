@@ -382,6 +382,14 @@ The Markdown subset of About, News and terms: paragraphs, bold, italic, bullet l
 - **AFieldThatBreaksItsRule_IsLeftOutAlone** / **ATextWithoutEnglish_IsNotUsed** / **ATagline_IsOneLineOfPlainText**
   / **ALanguageCodeThatIsNotOne_IsIgnored** / **AFileWithOnlyTheSchema_IsAnEmptyZone** — per-field fallback.
 
+## ServerPageTests.cs
+
+- **MeasuredFacts_*** / **AnUnreadableManifest_LeavesTheFactsOut** — mod count, download size and game version come from the manifests; garbage gives nothing.
+- **Facts_ListMeasuredOnesFirst_ThenTheCommunitysInVocabularyOrder** / **Online_WithoutACapacity_ShowsOnlyTheCount** / **NothingToShow_GivesNoFacts**.
+- **FactLabels_AreTranslated_ForEveryLanguage** / **FactLabels_FollowTheInterfaceLanguage** — the fact vocabulary is localised by the launcher.
+- **TheBuiltInProfile_MapsItsTaglineAndInfoToTheDescriptionAndTagline** / **TheLegacyTagline_IsCutToTheTaglineLimit** / **EmptyLegacyText_GivesAnEmptyAbout** — the migration of `info.md` and the tagline.
+- **TheLoader_ReadsThePinnedAboutAndChangelog** / **AFileThatIsNotPinned_IsNeverRequested** / **ASwappedFile_IsLeftOut** — only pinned, verified files reach the zones.
+
 ## LocalizedTextTests.cs
 
 - **TheInterfaceLanguage_IsUsedElseItsBase_ElseEnglish** / **WithoutEnglish_AnUnknownLanguageGetsNothing** — how a text is picked for the interface language.

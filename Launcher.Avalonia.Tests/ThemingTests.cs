@@ -64,6 +64,7 @@ namespace Launcher.Avalonia.Tests
             window.Show();
             window.UseTheme(theme);
             window.UseColorScheme(scheme);
+            window.ShowServerPage(ServerPageSamples.Full);
             window.BuildActionButtons();
             window.UpdateLayout();
             return window;

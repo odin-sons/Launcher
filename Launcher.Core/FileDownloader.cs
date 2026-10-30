@@ -135,9 +135,7 @@ namespace Odinsons.ValheimLauncher
         /// </summary>
         private static IEnumerable<string> GameManifestCandidates()
         {
-            if (RuntimePlatform.IsMacOS) return new[] { "game_macos.info" };
-            if (RuntimePlatform.IsLinux) return new[] { "game_linux.info" };
-            return new[] { "game.info" };
+            return new[] { MeasuredFacts.GameManifestName };
         }
 
         /// <summary>
@@ -1505,18 +1503,7 @@ namespace Odinsons.ValheimLauncher
 
         private static void SetFilePercent(double percent) => _ui.SetFileProgress(percent);
 
-        private static string FormatBytes(long bytes)
-        {
-            string[] suffixes = Loc.T("dl.sizeUnits").Split('|');
-            int suffixIndex = 0;
-            double size = bytes;
-            while (size >= 1024 && suffixIndex < suffixes.Length - 1)
-            {
-                size /= 1024;
-                suffixIndex++;
-            }
-            return $"{size:0.0} {suffixes[suffixIndex]}";
-        }
+        private static string FormatBytes(long bytes) => ByteSize.Format(bytes);
 
         private static string FormatSpeed(double bytesPerSecond)
         {

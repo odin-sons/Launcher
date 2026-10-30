@@ -39,6 +39,17 @@ namespace Odinsons.ValheimLauncher
             return await ThemeLoader.LoadAsync(entry, files, ct).ConfigureAwait(false);
         }
 
+        /// <summary>The About and News text the cached index pins for a profile; null when the profile is not in the cached index.</summary>
+        public static async Task<ServerPage> LoadPageAsync(string baseFolder, string profileId, CancellationToken ct = default)
+        {
+            RegistryEntry entry = Client(baseFolder).LoadCached()?.Index?.Entries.FirstOrDefault(e => e.Id == profileId);
+            if (entry == null)
+                return null;
+
+            var files = new DisplayFiles(entry, null, new DisplayFileCache(Path.Combine(baseFolder, "registry", "display")));
+            return await ServerPageLoader.LoadAsync(entry, files, ct).ConfigureAwait(false);
+        }
+
         public static ServerAccess Access(string baseFolder) =>
             new ServerAccess(new ServerGate(Client(baseFolder)), new ProfileQuarantine());
 

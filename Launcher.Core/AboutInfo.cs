@@ -28,6 +28,22 @@ namespace Odinsons.ValheimLauncher
 
         public bool IsEmpty => Tagline.Count == 0 && Facts.Count == 0 && Description.Count == 0;
 
+        /// <summary>The built-in profile has no about.json: its servers.json description is the tagline and its info.md the description.</summary>
+        public static AboutInfo FromLegacy(string tagline, string infoMarkdown)
+        {
+            string line = PlainText.Line(tagline);
+            if (line.Length > AboutReader.MaxTaglineLength)
+                line = line.Substring(0, AboutReader.MaxTaglineLength).TrimEnd();
+            string description = PlainText.Lines(infoMarkdown).Trim();
+
+            return new AboutInfo
+            {
+                Tagline = line.Length == 0 ? Empty.Tagline : new Dictionary<string, string> { [LocalizedText.Fallback] = line },
+                Facts = Empty.Facts,
+                Description = description.Length == 0 ? Empty.Description : new Dictionary<string, string> { [LocalizedText.Fallback] = description }
+            };
+        }
+
         public string TaglineFor(string language) => LocalizedText.Pick(Tagline, language);
 
         public string DescriptionFor(string language) => LocalizedText.Pick(Description, language);
