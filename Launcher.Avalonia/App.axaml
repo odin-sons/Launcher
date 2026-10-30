@@ -3,6 +3,10 @@
              x:Class="Odinsons.ValheimLauncher.Avalonia.App"
              Name="Odinsons Launcher"
              RequestedThemeVariant="Dark">
+    <Application.Resources>
+        <x:String x:Key="ProductName">Odinsons Launcher</x:String>
+        <x:String x:Key="ProductByline">by OdinSons</x:String>
+    </Application.Resources>
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>

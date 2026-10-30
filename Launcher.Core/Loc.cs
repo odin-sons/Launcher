@@ -1902,6 +1902,24 @@ namespace Odinsons.ValheimLauncher
                 "游戏本体安装在这里。默认情况下，若你的 Steam 安装版本与服务器一致，启动器直接从 Steam 运行；否则在配置文件文件夹中、模组旁保留一份副本。",
                 "Тут встановлена сама гра. За замовчуванням лончер запускає її з вашої інсталяції Steam, якщо версія збігається із серверною, а інакше тримає копію в папці профілю поруч із модами."),
 
+            // ---------- Color scheme and trust icon ----------
+
+            ["gui.colorScheme.system"] = L("System", "Системная"),
+            ["gui.colorScheme.light"] = L("Light", "Светлая"),
+            ["gui.colorScheme.dark"] = L("Dark", "Тёмная"),
+            ["gui.colorScheme.tooltip"] = L("Color scheme", "Цветовая схема"),
+
+            ["trust.approved"] = L(
+                "Approved: the registry has reviewed this server.",
+                "Одобрен: реестр проверил этот сервер."),
+            ["trust.needsApproval"] = L(
+                "Needs approval: the registry is waiting for a new review of this server.",
+                "Требуется одобрение: реестр ожидает повторной проверки этого сервера."),
+            ["trust.suspended"] = L(
+                "Suspended: the registry removed this server for a security reason.",
+                "Приостановлен: реестр исключил этот сервер по соображениям безопасности."),
+            ["trust.accessibleName"] = L("Registry status", "Статус в реестре"),
+
             // ---------- Server registry status ----------
 
             ["gate.title"] = L(

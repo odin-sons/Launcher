@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:core="clr-namespace:Odinsons.ValheimLauncher;assembly=Launcher.Core"
         xmlns:views="clr-namespace:Odinsons.ValheimLauncher.Avalonia.Views"
+        xmlns:controls="clr-namespace:Odinsons.ValheimLauncher.Avalonia.Controls"
         x:Class="Odinsons.ValheimLauncher.Avalonia.Views.MainWindow"
         Title="OdinsonsLauncher"
         Width="900" Height="610"
@@ -13,7 +14,8 @@
         TransparencyLevelHint="Transparent"
         Icon="avares://OdinsonsLauncher/Resources/favicon.ico"
         FontFamily="avares://OdinsonsLauncher/Resources/Fonts#Montserrat"
-        FontWeight="Medium">
+        FontWeight="Medium"
+        Foreground="{DynamicResource LauncherText}">
 
     <!-- MinWidth (672) is the header row's own content, added up — nothing narrower can fit it
          without something overlapping or clipping:
@@ -50,7 +52,7 @@
                         </Ellipse.RenderTransform>
                     </Ellipse>
                 </Panel>
-                <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Name}" Foreground="{DynamicResource LauncherText}" FontWeight="Bold" VerticalAlignment="Center"/>
             </StackPanel>
         </DataTemplate>
 
@@ -121,7 +123,7 @@
             <Setter Property="Template">
                 <ControlTemplate>
                     <Panel Background="{TemplateBinding Background}">
-                        <ContentPresenter Content="{TemplateBinding Content}"
+                        <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
                                           HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
                                           VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
                     </Panel>
@@ -151,7 +153,7 @@
              A class selector
              lets both reuse one Animation/KeyFrame definition instead of duplicating it. -->
         <Style Selector="Ellipse.stepSpinner">
-            <Setter Property="Stroke" Value="White"/>
+            <Setter Property="Stroke" Value="{DynamicResource LauncherText}"/>
             <Setter Property="StrokeThickness" Value="2"/>
             <Setter Property="StrokeDashArray" Value="3,3.7"/>
             <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
@@ -173,7 +175,7 @@
             <Setter Property="CornerRadius" Value="5"/>
             <Setter Property="Height" Value="15"/>
             <Setter Property="Margin" Value="0,0,0,14"/>
-            <Setter Property="Background" Value="#26FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource LauncherSkeleton}"/>
             <Setter Property="ClipToBounds" Value="True"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
@@ -223,11 +225,17 @@
              estimate, while still reading clearly dimmer than the White used for headers/
              selected-tab text — the hierarchy step this needs to preserve. -->
         <Style Selector="TabControl.main TabItem">
-            <Setter Property="Foreground" Value="#FFD6D6D6"/>
+            <Setter Property="Foreground" Value="{DynamicResource LauncherMuted}"/>
             <Setter Property="FontSize" Value="14"/>
         </Style>
         <Style Selector="TabControl.main TabItem:selected">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource LauncherText}"/>
+        </Style>
+        <Style Selector="ProgressBar">
+            <Setter Property="Foreground" Value="{DynamicResource ThemeAccent}"/>
+        </Style>
+        <Style Selector="Button.iconButton:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Opacity" Value="0.5"/>
         </Style>
 
         <!-- ServerSelector — default FluentTheme ComboBox styling read as too washed-out
@@ -247,23 +255,16 @@
             <Setter Property="Background" Value="#E0303030"/>
         </Style>
 
-        <!-- LanguageSelector — same washed-out-default reasoning as ServerSelector, just a
-             smaller/quieter treatment: it sits over the tab card's own semi-transparent fill
-             (#80303030), not directly over the photo background, so it already has some
-             contrast to build on and doesn't need the same visual weight as the server
-             picker. -->
-        <Style Selector="ComboBox#LanguageSelector">
-            <Setter Property="Background" Value="#40FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#40FFFFFF"/>
+        <!-- The card's own selectors (language, colour scheme): drawn on the launcher's palette. -->
+        <Style Selector="ComboBox.cardSelector">
+            <Setter Property="Background" Value="{DynamicResource LauncherBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource LauncherLine}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource LauncherText}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Padding" Value="8,0"/>
             <Setter Property="MinHeight" Value="26"/>
-        </Style>
-        <Style Selector="ComboBox#LanguageSelector:pointerover">
-            <Setter Property="Background" Value="#50FFFFFF"/>
         </Style>
     </Window.Styles>
 
@@ -292,20 +293,8 @@
              nothing at runtime, and a blurred photo is exactly the case JPEG compresses far
              better than PNG (58KB here vs. 545KB for the old PNG, despite the much larger
              source). -->
-        <Rectangle PointerPressed="Background_PointerPressed">
-            <Rectangle.Fill>
-                <ImageBrush Source="avares://OdinsonsLauncher/Resources/background.jpg"
-                            Stretch="UniformToFill" AlignmentX="Right" AlignmentY="Center"/>
-            </Rectangle.Fill>
+        <Rectangle PointerPressed="Background_PointerPressed" Fill="{DynamicResource LauncherBackground}">
         </Rectangle>
-
-        <!-- Logo — sized to roughly match the Start button's width, and its own card is gone
-             (the central panel below now spans the full width in its place — see the Border
-             right after this) so nothing needs to visually anchor to a left column anymore. -->
-        <Image Source="avares://OdinsonsLauncher/Resources/logo.png"
-               Width="226" Height="61"
-               VerticalAlignment="Top" HorizontalAlignment="Left"
-               Margin="20,16,0,0"/>
 
         <!-- Central panel — one continuous card spanning the tabs and the space the old
              left-side button column used to occupy. Left/right margin (20/20) matches the
@@ -335,8 +324,32 @@
              ScrollShadowTopBrush's comment. -->
         <Border VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                 Margin="20,93,20,90" CornerRadius="20"
-                BorderBrush="#40FFFFFF" BorderThickness="1"
-                Background="#80303030"/>
+                BorderBrush="{DynamicResource LauncherLine}" BorderThickness="1"
+                Background="{DynamicResource LauncherSurface}"/>
+
+        <!-- The fixed header: dark in both schemes (its own resources are set in code, see
+             MainWindow.Theming.cs), with the raven mark and the product name. The mark is the
+             round part of logo.png; the name comes from the ProductName and ProductByline resources. -->
+        <ThemeVariantScope Name="HeaderScope" RequestedThemeVariant="Dark"
+                           VerticalAlignment="Top" HorizontalAlignment="Stretch" Height="84">
+        <Grid>
+        <Border Name="HeaderBand" Height="84" VerticalAlignment="Top" Background="{DynamicResource HeaderBackground}"
+                BorderBrush="{DynamicResource HeaderLine}" BorderThickness="0,0,0,1"
+                PointerPressed="Background_PointerPressed"/>
+        <Panel Width="61" Height="61" Margin="20,16,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"
+               ClipToBounds="True" IsHitTestVisible="False">
+            <Image Source="avares://OdinsonsLauncher/Resources/logo.png" Width="226" Height="61"
+                   HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        </Panel>
+        <StackPanel Width="176" Margin="90,26,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"
+                    IsHitTestVisible="False">
+            <TextBlock Name="ProductNameText" Text="{DynamicResource ProductName}" FontSize="15" FontWeight="Bold"
+                       Foreground="{DynamicResource LauncherText}" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Name="ProductBylineText" Text="{DynamicResource ProductByline}" FontSize="11"
+                       Foreground="{DynamicResource LauncherMuted}" TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
+        <controls:TrustIcon Name="TrustIcon" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="268,31,0,0"/>
+
 
         <!-- Server picker — global chrome: it affects every tab (players/mods/news/changelog
              all depend on which server is selected), so it lives in the window's header row
@@ -393,6 +406,8 @@
                          VerticalContentAlignment="Center"
                          ContentTemplate="{StaticResource ServerRowTemplate}"
                          IsVisible="False"/>
+        </Grid>
+        </ThemeVariantScope>
 
         <!-- Wraps just the TabControl (not the Border above, which only paints the card's
              background and stays a separate sibling so it's still behind ServerSelector/logo
@@ -438,14 +453,14 @@
                      window's left/right edges (see the Border above), so the gap between
                      panels reads as the same "unit" as everything else instead of its own
                      wider one. -->
-                <Grid ColumnDefinitions="Auto,*">
-                <Grid Grid.Column="0" Name="PlayersColumn">
+                <controls:StepFrame Name="ServerFrame" Step="Server">
+                <Grid Name="PlayersColumn">
                     <ScrollViewer Name="PlayersScrollViewer" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="12,12,10,12" Spacing="14">
                             <!-- Horizontal, not a Grid's *,Auto columns — the button sits right
                                  next to the count, not pinned to the far edge of the sidebar. -->
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Name="PlayersHeading" Foreground="White" FontSize="18"
+                                <TextBlock Name="PlayersHeading" Foreground="{DynamicResource LauncherText}" FontSize="18"
                                            FontWeight="Bold" VerticalAlignment="Center"/>
                                 <!-- Content filled in code (SetupRefreshPlayersButton) — same
                                      service.png/service_green.png hover-swap pair as FullCheck's
@@ -472,7 +487,7 @@
 
                                                 <!-- Loading skeleton: a softly pulsing circle standing
                                                      in for an avatar that hasn't downloaded yet. -->
-                                                <Ellipse Width="28" Height="28" Fill="#FF4A4A4A" IsVisible="{Binding ShowSkeleton}">
+                                                <Ellipse Width="28" Height="28" Fill="{DynamicResource LauncherLine}" IsVisible="{Binding ShowSkeleton}">
                                                     <Ellipse.Styles>
                                                         <Style Selector="Ellipse">
                                                             <Style.Animations>
@@ -493,12 +508,12 @@
                                                      circle-with-slash, not an avatar shape, so it doesn't
                                                      read as a broken/missing image. -->
                                                 <Panel IsVisible="{Binding ShowEmptyIcon}">
-                                                    <Ellipse Width="28" Height="28" Stroke="#FF808080" StrokeThickness="1.5"/>
-                                                    <Line StartPoint="6,6" EndPoint="22,22" Stroke="#FF808080" StrokeThickness="1.5"/>
+                                                    <Ellipse Width="28" Height="28" Stroke="{DynamicResource LauncherMuted}" StrokeThickness="1.5"/>
+                                                    <Line StartPoint="6,6" EndPoint="22,22" Stroke="{DynamicResource LauncherMuted}" StrokeThickness="1.5"/>
                                                 </Panel>
                                             </Panel>
                                             <TextBlock Grid.Column="1" Margin="10,0,0,0"
-                                                       Text="{Binding Name}" Foreground="White" FontSize="14" VerticalAlignment="Center"
+                                                       Text="{Binding Name}" Foreground="{DynamicResource LauncherText}" FontSize="14" VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis" TextWrapping="{Binding NameWrapping}"/>
                                         </Grid>
                                     </DataTemplate>
@@ -520,13 +535,15 @@
                      — splitting them left the changelog with barely any room of its own
                      whenever the description ran long, since each got a fixed slice of the
                      tab's height instead of sharing all of it. -->
-                <Grid Grid.Column="1" Name="ServerRightColumn">
+                <Border Name="ServerRightColumn" ClipToBounds="True" CornerRadius="12">
+                <Grid>
                     <ScrollViewer Name="ServerRightScrollViewer" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Margin="10,12,12,12" Spacing="14">
+                        <Grid Name="AboutNewsGrid" Margin="10,12,12,12">
+                            <StackPanel Name="AboutZone" Spacing="14">
                             <TextBlock Name="ServerDescriptionText" IsVisible="False"
-                                       Foreground="#FFD8D8D8" FontSize="13" TextWrapping="Wrap"/>
+                                       Foreground="{DynamicResource LauncherMuted}" FontSize="13" TextWrapping="Wrap"/>
 
-                            <TextBlock Name="ServerInfoHeading" Foreground="White" FontSize="18" FontWeight="Bold"/>
+                            <TextBlock Name="ServerInfoHeading" Foreground="{DynamicResource LauncherText}" FontSize="18" FontWeight="Bold"/>
                             <Grid>
                                 <StackPanel Name="ServerInfoContent"/>
 
@@ -539,23 +556,29 @@
                                 </StackPanel>
                             </Grid>
 
-                            <Border Height="1" Background="#1FFFFFFF"/>
-                            <TextBlock Name="ChangelogHeading" Foreground="White" FontSize="18" FontWeight="Bold"/>
+                            </StackPanel>
+
+                            <StackPanel Name="NewsZone" Spacing="14">
+                            <Border Name="NewsSeparator" Height="1" Background="{DynamicResource LauncherLine}"/>
+                            <TextBlock Name="ChangelogHeading" Foreground="{DynamicResource LauncherText}" FontSize="18" FontWeight="Bold"/>
                             <StackPanel Name="ChangelogContent"/>
-                        </StackPanel>
+                            </StackPanel>
+                        </Grid>
                     </ScrollViewer>
                     <Border Name="ServerRightTopShadow" Height="10" Margin="1,0,1,0" VerticalAlignment="Top"
                             Background="{StaticResource ScrollShadowTopBrush}" IsHitTestVisible="False" IsVisible="False"/>
                     <Border Name="ServerRightBottomShadow" Height="10" Margin="1,0,20,0" VerticalAlignment="Bottom"
                             Background="{StaticResource ScrollShadowBottomBrush}" IsHitTestVisible="False" IsVisible="False"/>
                 </Grid>
-                </Grid>
+                </Border>
+                </controls:StepFrame>
             </TabItem>
 
             <!-- Моды: reachable directly at any time; the wizard button routes here until it's
                  been visited at least once — see MarkModsTabVisited/StartGameBtn_Click. -->
             <TabItem Name="ModsTab">
-                <Grid>
+                <controls:StepFrame Name="ModsFrame" Step="Mods">
+                <Grid Name="ModsBody">
                 <ScrollViewer Name="ModsScrollViewer" VerticalScrollBarVisibility="Auto">
                     <StackPanel Name="ModsContent" Margin="12"/>
                 </ScrollViewer>
@@ -564,17 +587,20 @@
                 <Border Name="ModsBottomShadow" Height="10" Margin="20,0,20,0" VerticalAlignment="Bottom"
                         Background="{StaticResource ScrollShadowBottomBrush}" IsHitTestVisible="False" IsVisible="False"/>
                 </Grid>
+                </controls:StepFrame>
             </TabItem>
 
             <!-- Установка: last step of the wizard sequence — check, install, play. -->
             <TabItem Name="InstallTab">
-                <Grid>
+                <controls:StepFrame Name="InstallFrame" Step="Install">
+                <Grid Name="InstallBody">
                 <ScrollViewer Name="InstallScrollViewer" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="12" Spacing="14">
+                    <Grid Name="InstallColumnsGrid" ColumnDefinitions="*,Auto">
+                    <StackPanel Name="InstallContent" Margin="12" Spacing="14">
                         <!-- How the game will actually launch — set once the update check decides;
                              see MainWindow.axaml.cs, SetInjectorPlan. Empty until the first check runs. -->
                         <TextBlock Name="InstallStatusText"
-                                   Foreground="#FFD6D6D6" FontSize="13" TextWrapping="Wrap"/>
+                                   Foreground="{DynamicResource LauncherMuted}" FontSize="13" TextWrapping="Wrap"/>
                         <!-- Forces a full re-verification of every file, including the ones a normal
                              start skips for speed — pointless before the client exists at all, so
                              it starts hidden and only appears once RefreshFullCheckVisibility (see
@@ -586,7 +612,7 @@
                                     <Image Classes="normalImg" Source="avares://OdinsonsLauncher/Resources/service.png" Stretch="Fill"/>
                                     <Image Classes="hoverImg" Source="avares://OdinsonsLauncher/Resources/service_green.png" Stretch="Fill"/>
                                 </Panel>
-                                <TextBlock Name="FullCheckLabel" Foreground="White" FontSize="13" VerticalAlignment="Center"/>
+                                <TextBlock Name="FullCheckLabel" Foreground="{DynamicResource LauncherText}" FontSize="13" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
@@ -611,7 +637,7 @@
                             <Panel Name="InstallSettingsChevronSlot" Grid.Column="0"
                                    Width="16" Height="16" VerticalAlignment="Center"/>
                             <TextBlock Name="InstallSettingsHeaderText" Grid.Column="1"
-                                       Foreground="White" FontSize="13" FontWeight="Bold"
+                                       Foreground="{DynamicResource LauncherText}" FontSize="13" FontWeight="Bold"
                                        VerticalAlignment="Center" Margin="6,0,0,0"/>
                         </Grid>
                         <Border Name="InstallSettingsBox" ClipToBounds="True">
@@ -627,7 +653,7 @@
                                      (the FullCheck button above always passes start:false regardless, a
                                      deliberate re-verify, not an install). -->
                                 <CheckBox Name="AutoStartAfterValidationCheckBox"
-                                           Foreground="#FFD6D6D6" FontSize="13"
+                                           Foreground="{DynamicResource LauncherMuted}" FontSize="13"
                                            Click="AutoStartAfterValidationCheckBox_Click"/>
 
                                 <!-- Windows only — see LoadDesktopShortcutState/DesktopShortcutCheckBox_Click
@@ -635,13 +661,13 @@
                                      derived from whether the shortcut file actually exists, so it can't
                                      drift out of sync with reality if the player deletes it by hand. -->
                                 <CheckBox Name="DesktopShortcutCheckBox"
-                                           Foreground="#FFD6D6D6" FontSize="13"
+                                           Foreground="{DynamicResource LauncherMuted}" FontSize="13"
                                            Click="DesktopShortcutCheckBox_Click"/>
 
                                 <!-- Windows only, same reasoning/pattern as DesktopShortcutCheckBox
                                      above — see LoadStartMenuShortcutState/StartMenuShortcutCheckBox_Click. -->
                                 <CheckBox Name="StartMenuShortcutCheckBox"
-                                           Foreground="#FFD6D6D6" FontSize="13"
+                                           Foreground="{DynamicResource LauncherMuted}" FontSize="13"
                                            Click="StartMenuShortcutCheckBox_Click"/>
 
                                 <!-- Windows only — same "IsChecked reflects live reality" pattern as the
@@ -650,13 +676,13 @@
                                      file on disk. A permanent, always-reachable equivalent of the old
                                      one-time popup — see defender.message's own comment in Loc.cs. -->
                                 <CheckBox Name="DefenderExclusionCheckBox"
-                                           Foreground="#FFD6D6D6" FontSize="13"
+                                           Foreground="{DynamicResource LauncherMuted}" FontSize="13"
                                            Click="DefenderExclusionCheckBox_Click"/>
 
                                 <!-- Where the profile (mods) and the game live — see LauncherPaths. Unset,
                                      the profile is clients/<server> and the game sits inside it. -->
                                 <StackPanel Name="PathSettingsStack" Spacing="3" Margin="0,8,0,0">
-                                    <TextBlock Name="ProfilePathLabel" Foreground="#FFD6D6D6" FontSize="13"/>
+                                    <TextBlock Name="ProfilePathLabel" Foreground="{DynamicResource LauncherMuted}" FontSize="13"/>
                                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                                         <TextBox Name="ProfilePathBox" Grid.Column="0" IsReadOnly="True" FontSize="12"/>
                                         <Button Name="ProfilePathBrowseButton" Grid.Column="1" FontSize="12"
@@ -665,7 +691,7 @@
                                                 Click="ProfilePathResetButton_Click"/>
                                     </Grid>
 
-                                    <TextBlock Name="GamePathLabel" Foreground="#FFD6D6D6" FontSize="13" Margin="0,4,0,0"/>
+                                    <TextBlock Name="GamePathLabel" Foreground="{DynamicResource LauncherMuted}" FontSize="13" Margin="0,4,0,0"/>
                                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                                         <TextBox Name="GamePathBox" Grid.Column="0" IsReadOnly="True" FontSize="12"/>
                                         <Button Name="GamePathBrowseButton" Grid.Column="1" FontSize="12"
@@ -702,10 +728,10 @@
                                 <Panel Name="InstallStepsChevronSlot" Grid.Column="0"
                                        Width="16" Height="16" VerticalAlignment="Center"/>
                                 <TextBlock Name="InstallStepLabel" Grid.Column="1"
-                                           Foreground="White" FontSize="16" FontWeight="Bold"
+                                           Foreground="{DynamicResource LauncherText}" FontSize="16" FontWeight="Bold"
                                            TextTrimming="CharacterEllipsis" Margin="6,0,0,0"/>
                                 <TextBlock Name="InstallStepCounter" Grid.Column="2"
-                                           Foreground="#FFD6D6D6" FontSize="12"
+                                           Foreground="{DynamicResource LauncherMuted}" FontSize="12"
                                            VerticalAlignment="Center" Margin="12,0,0,0"/>
                             </Grid>
                             <ProgressBar Name="InstallOverallProgress" Minimum="0" Maximum="100" Value="0" Height="8"/>
@@ -721,20 +747,23 @@
                                 <StackPanel Name="InstallStepsBoxContent" Spacing="14">
                                     <StackPanel Name="InstallStepsPanel" Spacing="6"/>
                                     <StackPanel Name="DownloadDetailPanel" Spacing="7" IsVisible="False">
-                                        <Border Height="1" Background="#1FFFFFFF"/>
-                                        <TextBlock Name="DownloadDetailHeadline" Foreground="#FFD8D8D8" FontSize="12"/>
+                                        <Border Height="1" Background="{DynamicResource LauncherLine}"/>
+                                        <TextBlock Name="DownloadDetailHeadline" Foreground="{DynamicResource LauncherMuted}" FontSize="12"/>
                                         <StackPanel Name="DownloadDetailList" Spacing="5"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
                     </StackPanel>
+                    <StackPanel Name="InstallRightColumn" Grid.Column="1" Margin="0,12,12,12" IsVisible="False"/>
+                    </Grid>
                 </ScrollViewer>
                 <Border Name="InstallTopShadow" Height="10" Margin="1,0,1,0" VerticalAlignment="Top"
                         Background="{StaticResource ScrollShadowTopBrush}" IsHitTestVisible="False" IsVisible="False"/>
                 <Border Name="InstallBottomShadow" Height="10" Margin="20,0,20,0" VerticalAlignment="Bottom"
                         Background="{StaticResource ScrollShadowBottomBrush}" IsHitTestVisible="False" IsVisible="False"/>
                 </Grid>
+                </controls:StepFrame>
             </TabItem>
         </TabControl>
 
@@ -745,11 +774,14 @@
              doesn't sit under the curved top-right corner; top margin is an eyeballed guess at
              the (theme-default, not explicitly set anywhere) tab strip's own height and may
              need a follow-up nudge once seen on screen. -->
-        <ComboBox Name="LanguageSelector"
-                  HorizontalAlignment="Right" VerticalAlignment="Top"
-                  Margin="0,6,22,0"
-                  ItemTemplate="{StaticResource LanguageRowTemplate}"
-                  SelectionChanged="LanguageSelector_SelectionChanged"/>
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="0,6,22,0">
+            <ComboBox Name="ColorSchemeSelector" Classes="cardSelector"
+                      SelectionChanged="ColorSchemeSelector_SelectionChanged"/>
+            <ComboBox Name="LanguageSelector" Classes="cardSelector"
+                      ItemTemplate="{StaticResource LanguageRowTemplate}"
+                      SelectionChanged="LanguageSelector_SelectionChanged"/>
+        </StackPanel>
         </Panel>
         </Border>
 
@@ -800,10 +832,10 @@
             <StackPanel Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Button Name="LauncherChangelogButton" Classes="iconButton" HorizontalAlignment="Right"
                         Click="LauncherChangelogButton_Click">
-                    <TextBlock Name="LauncherVersionText" FontSize="12" Foreground="White"/>
+                    <TextBlock Name="LauncherVersionText" FontSize="12" Foreground="{DynamicResource LauncherText}"/>
                 </Button>
 
-                <TextBlock Name="CopyrightText" FontSize="12" Foreground="#FFD6D6D6" HorizontalAlignment="Right"/>
+                <TextBlock Name="CopyrightText" FontSize="12" Foreground="{DynamicResource LauncherMuted}" HorizontalAlignment="Right"/>
 
                 <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Right">
                     <Button Name="WebsiteButton" Classes="iconButton" Click="WebsiteButton_Click">
@@ -814,13 +846,13 @@
                             <Viewbox Width="14" Height="14">
                                 <Canvas Width="24" Height="24">
                                     <Ellipse Canvas.Left="2" Canvas.Top="2" Width="20" Height="20"
-                                             Stroke="White" StrokeThickness="2"/>
-                                    <Line StartPoint="2,12" EndPoint="22,12" Stroke="White" StrokeThickness="2"/>
-                                    <Path Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                                             Stroke="{DynamicResource LauncherText}" StrokeThickness="2"/>
+                                    <Line StartPoint="2,12" EndPoint="22,12" Stroke="{DynamicResource LauncherText}" StrokeThickness="2"/>
+                                    <Path Stroke="{DynamicResource LauncherText}" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
                                           Data="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                                 </Canvas>
                             </Viewbox>
-                            <TextBlock Name="OurSiteLinkText" FontSize="13" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBlock Name="OurSiteLinkText" FontSize="13" Foreground="{DynamicResource LauncherText}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Button Name="CommunityButton" Classes="iconButton" Click="CommunityButton_Click">
@@ -828,10 +860,10 @@
                             <!-- Feather Icons "message-circle" (MIT) — a generic chat glyph, so
                                  it fits whichever messenger the community uses. -->
                             <Viewbox Width="14" Height="14">
-                                <Path Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                                <Path Stroke="{DynamicResource LauncherText}" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
                                       Data="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                             </Viewbox>
-                            <TextBlock Name="CommunityLinkText" FontSize="13" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBlock Name="CommunityLinkText" FontSize="13" Foreground="{DynamicResource LauncherText}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
