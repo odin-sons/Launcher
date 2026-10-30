@@ -54,3 +54,13 @@ screen, so how it looks is for a person to judge; these tests hold the structure
 - **Darkening_*** / **TheArt_DarkensItsOwnFrame_*** — the darkening layer follows the part of the picture each
   frame shows, and a colour or gradient uses its brightest point.
 
+
+## ServerPageTests.cs
+
+The About and News zones of the Server step.
+
+- **WithNothingToShow_BothZonesCollapse** / **ADescriptionAlone_ShowsAbout_AndNoNews** / **NewsAlone_ShowsNews_AndNoAbout** / **ATemplateWithoutNews_KeepsTheNewsZoneHidden**
+  — a zone with nothing to show is gone, and a template that has no News keeps it hidden.
+- **TheTagline_IsDrawnOnTheArt** — the tagline follows the page.
+- **MeasuredFacts_AreListedFirst_AndMarked** / **TheOnlineFact_FollowsTheServerQuery** / **TheLabels_FollowTheInterfaceLanguage**.
+- **Markdown_NeverDrawsImagesOrHtml** / **ALink_ShowsItsHostFirst_AndOpensOnlyItsHttpsTarget** / **Markdown_DrawsHeadingsAndBullets**.

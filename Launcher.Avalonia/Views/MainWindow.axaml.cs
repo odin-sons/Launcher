@@ -44,6 +44,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
     {
         public string? name { get; set; }
         public int playersCount { get; set; }
+        public int? maxPlayers { get; set; }
         public List<PlayerInfo>? players { get; set; }
 
         // PublicWebLink (server-side mod) switched "mods" from a bare list of names to a list
@@ -915,6 +916,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             ModsTab.Header = Loc.T("gui.tab.mods");
             ServerInfoHeading.Text = Loc.T("gui.tab.serverInfo");
             ChangelogHeading.Text = Loc.T("gui.tab.changelog");
+            RenderServerPage();
             FullCheckLabel.Text = Loc.T("gui.fullCheckTooltip");
             InstallSettingsHeaderText.Text = Loc.T("gui.installSettingsHeading");
             AutoStartAfterValidationCheckBox.Content = Loc.T("gui.autoStartAfterValidation");
@@ -1413,7 +1415,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         }
 
         // Not async: every step in here is either synchronous or deliberately fire-and-forget
-        // (ShowChangelogAsync/ShowServerInfoAsync), so there's nothing left to await —
+        // (LoadServerPageAsync), so there's nothing left to await —
         // Task.CompletedTask keeps the signature callers already await unchanged.
         private Task InitializeAsync()
         {
@@ -1421,21 +1423,11 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             {
                 IsLoading = false;
 
-                UpdateServerDescriptionText();
                 RefreshFullCheckVisibility();
 
-                Dispatcher.UIThread.Invoke(() =>
-                {
-                    InstallProgressPanel.IsVisible = false;
-                    // Panel stays visible; the skeleton stands in for the text while it loads.
-                    ServerInfoContent.Children.Clear();
-                    ServerInfoSkeleton.IsVisible = true;
-                });
+                Dispatcher.UIThread.Invoke(() => InstallProgressPanel.IsVisible = false);
 
-                // Fire-and-forget, both of them: neither gates the rest of startup, and
-                // failures inside either are already swallowed (see their own doc comments).
-                _ = ShowChangelogAsync();
-                _ = ShowServerInfoAsync();
+                _ = LoadServerPageAsync();
             }
             finally
             {
@@ -1444,16 +1436,6 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
             return Task.CompletedTask;
         }
-
-        /// <summary>Static text set once per server in servers.json (e.g. mode, wipe schedule) —
-        /// see Server.Description in Launcher.Core/ServerModels.cs. Hidden when absent so an
-        /// empty line doesn't sit above the player list.</summary>
-        private void UpdateServerDescriptionText() => Dispatcher.UIThread.Invoke(() =>
-        {
-            string? text = _serverDescriptions.TryGetValue(SelectedServer, out string? d) ? d : null;
-            ServerDescriptionText.Text = text ?? string.Empty;
-            ServerDescriptionText.IsVisible = !string.IsNullOrWhiteSpace(text);
-        });
 
         /// <summary>BepInEx/LogOutput.log is the same "is this client actually installed" signal
         /// FileDownloader itself already uses to force a full check when it's missing — reused
@@ -1844,93 +1826,6 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             UpdateWizardButton();
         }
 
-        /// <summary>Fetches this server's changelog.md and caches it locally, falling back to
-        /// the cached copy (or an "unavailable" message) if the mirror can't be reached — used
-        /// by the Changelog tab (ShowChangelogAsync) and the unread-badge check.</summary>
-        private async Task<string> FetchServerChangelogAsync()
-        {
-            string changelogPath = Path.Combine(ClientFolder, "changelog.md");
-            try
-            {
-                Log($"Loading changelog for {SelectedServer} from {ActiveLauncherUrl}");
-                string changelogText = await HttpClient.GetStringAsync(ActiveLauncherUrl + SelectedServer + "/changelog.md");
-                await File.WriteAllTextAsync(changelogPath, changelogText);
-                return changelogText;
-            }
-            catch (HttpRequestException)
-            {
-                return File.Exists(changelogPath)
-                    ? await File.ReadAllTextAsync(changelogPath)
-                    : Loc.T("gui.changelogUnavailable");
-            }
-        }
-
-        /// <summary>
-        /// Stale-while-revalidate for the Server tab's "About" section: a cached info.md (from
-        /// a previous run) shows immediately — no reason to make the player wait on a network
-        /// round-trip for text that's very likely unchanged since last time — while the current
-        /// text is fetched in the background and swapped in only if it actually differs. With no
-        /// cache yet (first-ever run for this server) the skeleton just stays up until the
-        /// network answer arrives, since there's nothing else to show in the meantime.
-        /// </summary>
-        private async Task ShowServerInfoAsync()
-        {
-            string infoPath = Path.Combine(ClientFolder, "info.md");
-            string? cached = null;
-            try
-            {
-                if (File.Exists(infoPath)) cached = await File.ReadAllTextAsync(infoPath);
-            }
-            catch (Exception ex)
-            {
-                LauncherLog.Warn("Could not read cached server info", ex);
-            }
-
-            if (cached is not null)
-            {
-                Dispatcher.UIThread.Invoke(() =>
-                {
-                    ParseMarkdownToUI(cached, ServerInfoContent);
-                    ServerInfoSkeleton.IsVisible = false;
-                });
-            }
-
-            try
-            {
-                Log($"Checking server info for {SelectedServer} at {ActiveLauncherUrl}");
-                string fresh = await HttpClient.GetStringAsync(ActiveLauncherUrl + SelectedServer + "/info.md");
-                if (fresh == cached) return; // unchanged — nothing to redraw
-
-                await File.WriteAllTextAsync(infoPath, fresh);
-                Dispatcher.UIThread.Invoke(() =>
-                {
-                    ParseMarkdownToUI(fresh, ServerInfoContent);
-                    ServerInfoSkeleton.IsVisible = false;
-                });
-            }
-            catch (Exception ex)
-            {
-                LauncherLog.Warn("Could not refresh server info", ex);
-
-                // Already showing the cached copy — a failed background revalidation isn't
-                // worth alarming the player over. Only genuinely nothing-to-show gets a message.
-                if (cached is null)
-                {
-                    Dispatcher.UIThread.Invoke(() =>
-                    {
-                        ServerInfoContent.Children.Add(new TextBlock
-                        {
-                            Text = Loc.T("gui.serverInfoUnavailable"),
-                            Foreground = LauncherBrushes.Text,
-                            FontSize = 14,
-                            TextWrapping = TextWrapping.Wrap
-                        });
-                        ServerInfoSkeleton.IsVisible = false;
-                    });
-                }
-            }
-        }
-
         /// <summary>Updates the matching row's dot in ServerSelector.ItemsSource — a no-op if
         /// the server was removed from servers.json between the list loading and this call.</summary>
         private void SetServerListItemStatus(string serverName, ServerOnlineStatus status)
@@ -1974,8 +1869,9 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         private void ShowServerChecking() => Dispatcher.UIThread.Invoke(() =>
             SetServerListItemStatus(SelectedServer, ServerOnlineStatus.Checking));
 
-        private void ShowServerStatus(bool online, int playerCount) => Dispatcher.UIThread.Invoke(() =>
+        private void ShowServerStatus(bool online, int playerCount, int? capacity = null) => Dispatcher.UIThread.Invoke(() =>
         {
+            ShowOnlineFact(online ? playerCount : null, capacity);
             SetServerListItemStatus(SelectedServer, online ? ServerOnlineStatus.Online : ServerOnlineStatus.Offline);
             PopulatePlayersList(playerCount);
         });
@@ -2041,7 +1937,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     ?? throw new InvalidOperationException("empty /serverinfo response");
 
                 _currentPlayers = serverInfo.players ?? new List<PlayerInfo>();
-                ShowServerStatus(online: true, playerCount: serverInfo.playersCount);
+                ShowServerStatus(online: true, playerCount: serverInfo.playersCount, capacity: serverInfo.maxPlayers);
                 Log($"Received player list: {string.Join(", ", _currentPlayers.Select(p => p.Name))}");
                 return;
             }
@@ -3272,86 +3168,6 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             canvas.Children.Add(meridian);
 
             return new Viewbox { Width = 16, Height = 16, Child = canvas };
-        }
-
-        private async Task ShowChangelogAsync()
-        {
-            try
-            {
-                string changelogText = await FetchServerChangelogAsync();
-
-                Dispatcher.UIThread.Invoke(() =>
-                {
-                    ChangelogContent.Children.Clear();
-                    ParseMarkdownToUI(changelogText, ChangelogContent);
-                });
-            }
-            catch (Exception ex)
-            {
-                Dispatcher.UIThread.Invoke(() =>
-                {
-                    ChangelogContent.Children.Clear();
-                    ChangelogContent.Children.Add(new TextBlock
-                    {
-                        Text = Loc.T("gui.changelogLoadError", ex.Message),
-                        Foreground = LauncherBrushes.Text,
-                        FontSize = 16,
-                        TextWrapping = TextWrapping.Wrap
-                    });
-                });
-                LauncherLog.Warn("Error loading changelog", ex);
-            }
-        }
-
-        private static void ParseMarkdownToUI(string markdownText, StackPanel target)
-        {
-            var lines = markdownText.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-
-            foreach (var line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-
-                var textBlock = new TextBlock
-                {
-                    Foreground = LauncherBrushes.Muted,
-                    FontSize = 14,
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, 0, 0, 2)
-                };
-
-                if (line.StartsWith("#"))
-                {
-                    int headerLevel = line.TakeWhile(c => c == '#').Count();
-                    string headerText = line.TrimStart('#').Trim();
-
-                    (double fontSize, double gapAbove, double gapBelow) = headerLevel switch
-                    {
-                        1 => (18.0, 20.0, 8.0),
-                        2 => (16.0, 18.0, 6.0),
-                        3 => (15.0, 12.0, 4.0),
-                        _ => (14.0, 10.0, 4.0)
-                    };
-
-                    textBlock.Text = headerText;
-                    textBlock.FontSize = fontSize;
-                    textBlock.FontWeight = FontWeight.Bold;
-                    textBlock.Foreground = LauncherBrushes.Text;
-                    textBlock.Margin = new Thickness(0, target.Children.Count == 0 ? 0 : gapAbove, 0, gapBelow);
-                }
-                else if (line.TrimStart().StartsWith("-") || line.TrimStart().StartsWith("*"))
-                {
-                    string listItem = line.TrimStart('-', '*', ' ').Trim();
-                    textBlock.Inlines ??= new InlineCollection();
-                    textBlock.Inlines.Add(new Run("• "));
-                    textBlock.Inlines.Add(new Run(listItem));
-                }
-                else
-                {
-                    textBlock.Text = line.Trim();
-                }
-
-                target.Children.Add(textBlock);
-            }
         }
 
         private bool _closing;

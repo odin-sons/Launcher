@@ -168,11 +168,12 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             Grid.SetRow(NewsZone, sideBySide ? 0 : 1);
             NewsZone.Margin = sideBySide ? new Thickness(20, 0, 0, 0) : new Thickness(0, 14, 0, 0);
             NewsSeparator.IsVisible = !sideBySide;
-            NewsZone.IsVisible = plan.ShowNews;
+            NewsZone.IsVisible = plan.ShowNews && _hasNewsZone;
 
-            ServerRightColumn.Background = plan.AboutIsCard ? LauncherBrushes.Surface : null;
-            ServerRightColumn.BorderBrush = plan.AboutIsCard ? LauncherBrushes.Line : null;
-            ServerRightColumn.BorderThickness = new Thickness(plan.AboutIsCard ? 1 : 0);
+            bool card = plan.AboutIsCard && (AboutZone.IsVisible || NewsZone.IsVisible);
+            ServerRightColumn.Background = card ? LauncherBrushes.Surface : null;
+            ServerRightColumn.BorderBrush = card ? LauncherBrushes.Line : null;
+            ServerRightColumn.BorderThickness = new Thickness(card ? 1 : 0);
             ServerRightColumn.MaxWidth = plan.AboutIsCard ? 360 : double.PositiveInfinity;
             ServerRightColumn.MaxHeight = plan.AboutIsCard ? 320 : double.PositiveInfinity;
         }

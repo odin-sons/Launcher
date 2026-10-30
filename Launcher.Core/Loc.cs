@@ -2004,7 +2004,53 @@ namespace Odinsons.ValheimLauncher
 
             ["gate.remove.holdsOther"] = L(
                 "the folder contains {0}, which is not part of this server's profile",
-                "в папке находится {0}, который не относится к профилю этого сервера")
+                "в папке находится {0}, который не относится к профилю этого сервера"),
+
+            // ---------- Server page: About facts ----------
+
+            ["about.measured"] = L(
+                "Measured by the launcher", "Vom Launcher gemessen", "Medido por el launcher", "Mesuré par le launcher",
+                "Zmierzone przez launcher", "Medido pelo launcher", "Измерено лаунчером", "Mätt av launchern", "由启动器测得",
+                "Виміряно лаунчером"),
+
+            ["about.fact.gameVersion"] = L(
+                "Game version", "Spielversion", "Versión del juego", "Version du jeu", "Wersja gry",
+                "Versão do jogo", "Версия игры", "Spelversion", "游戏版本", "Версія гри"),
+
+            ["about.fact.mods"] = L(
+                "Mods", "Mods", "Mods", "Mods", "Mody", "Mods", "Моды", "Mods", "模组", "Моди"),
+
+            ["about.fact.download"] = L(
+                "Download size", "Downloadgröße", "Tamaño de descarga", "Taille du téléchargement", "Rozmiar pobierania",
+                "Tamanho da transferência", "Размер загрузки", "Nedladdningsstorlek", "下载大小", "Розмір завантаження"),
+
+            ["about.fact.online"] = L(
+                "Online now", "Jetzt online", "En línea ahora", "En ligne maintenant", "Teraz online",
+                "Online agora", "Сейчас онлайн", "Online nu", "当前在线", "Зараз онлайн"),
+
+            ["about.fact.playstyle"] = L(
+                "Playstyle", "Spielstil", "Estilo de juego", "Style de jeu", "Styl gry",
+                "Estilo de jogo", "Стиль игры", "Spelstil", "玩法风格", "Стиль гри"),
+
+            ["about.fact.pvp"] = L(
+                "PvP", "PvP", "PvP", "PvP", "PvP", "PvP", "PvP", "PvP", "PvP", "PvP"),
+
+            ["about.fact.difficulty"] = L(
+                "Difficulty", "Schwierigkeit", "Dificultad", "Difficulté", "Poziom trudności",
+                "Dificuldade", "Сложность", "Svårighetsgrad", "难度", "Складність"),
+
+            ["about.fact.region"] = L(
+                "Region", "Region", "Región", "Région", "Region", "Região", "Регион", "Region", "地区", "Регіон"),
+
+            ["about.fact.languages"] = L(
+                "Languages", "Sprachen", "Idiomas", "Langues", "Języki", "Idiomas", "Языки", "Språk", "语言", "Мови"),
+
+            ["about.fact.wipes"] = L(
+                "Wipes", "Wipes", "Wipes", "Wipes", "Wipe'y", "Wipes", "Вайпы", "Wipes", "重置周期", "Вайпи"),
+
+            ["about.fact.restarts"] = L(
+                "Restarts", "Neustarts", "Reinicios", "Redémarrages", "Restarty",
+                "Reinícios", "Перезапуски", "Omstarter", "重启时间", "Перезапуски")
         };
     }
 }

@@ -106,6 +106,12 @@ registry change.
 The launcher shows the text for its interface language and falls back to `en`. The file is at most
 16 KiB.
 
+### The built-in profile
+
+The built-in profile has no `about.json`. Its `info.md` is the description and the `servers.json` description
+of the selected game server is the tagline. Its News is the `changelog.md` on its own mirror. The online
+capacity is shown when the server's status answer carries `maxPlayers`; without it only the count is shown.
+
 ### Text format
 
 Descriptions, news and terms use the same Markdown subset: paragraphs, bold, italic, bullet lists,

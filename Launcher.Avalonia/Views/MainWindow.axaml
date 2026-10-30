@@ -539,29 +539,16 @@
                 <Grid>
                     <ScrollViewer Name="ServerRightScrollViewer" VerticalScrollBarVisibility="Auto">
                         <Grid Name="AboutNewsGrid" Margin="10,12,12,12">
-                            <StackPanel Name="AboutZone" Spacing="14">
-                            <TextBlock Name="ServerDescriptionText" IsVisible="False"
-                                       Foreground="{DynamicResource LauncherMuted}" FontSize="13" TextWrapping="Wrap"/>
-
+                            <StackPanel Name="AboutZone" Spacing="14" IsVisible="False">
                             <TextBlock Name="ServerInfoHeading" Foreground="{DynamicResource LauncherText}" FontSize="18" FontWeight="Bold"/>
-                            <Grid>
-                                <StackPanel Name="ServerInfoContent"/>
-
-                                <!-- Loading skeleton: swaps out once FetchServerInfoAsync
-                                     returns, so nothing blinks while info.md loads. -->
-                                <StackPanel Name="ServerInfoSkeleton" HorizontalAlignment="Stretch" VerticalAlignment="Top">
-                                    <Border Classes="skeletonBar" Width="430"><Rectangle/></Border>
-                                    <Border Classes="skeletonBar" Width="392"><Rectangle/></Border>
-                                    <Border Classes="skeletonBar" Width="286"><Rectangle/></Border>
-                                </StackPanel>
-                            </Grid>
-
+                            <controls:FactsView Name="AboutFacts"/>
+                            <controls:MarkdownView Name="AboutDescription"/>
                             </StackPanel>
 
-                            <StackPanel Name="NewsZone" Spacing="14">
+                            <StackPanel Name="NewsZone" Spacing="14" IsVisible="False">
                             <Border Name="NewsSeparator" Height="1" Background="{DynamicResource LauncherLine}"/>
                             <TextBlock Name="ChangelogHeading" Foreground="{DynamicResource LauncherText}" FontSize="18" FontWeight="Bold"/>
-                            <StackPanel Name="ChangelogContent"/>
+                            <controls:MarkdownView Name="NewsContent"/>
                             </StackPanel>
                         </Grid>
                     </ScrollViewer>

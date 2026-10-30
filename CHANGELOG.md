@@ -17,6 +17,12 @@ version bumps of its own.
 - On macOS the Steam overlay (Shift+Tab) works in a modded game started from the launcher: the
   launcher loads Steam's overlay libraries next to Doorstop, the way Steam does when it starts the
   game itself. If Steam's libraries aren't found, the game starts without the overlay as before.
+- The Server step shows an About zone and a News zone. About lists the facts the launcher measures (game
+  version, number of mods, download size, players online and capacity) marked with a diamond, then the
+  community's own facts and description from `about.json`; the tagline sits on the art and News is the
+  community's changelog. Text uses a restricted Markdown subset: images and HTML are never drawn and a link
+  shows its host before it opens. A zone with nothing to show collapses. The built-in profile's `info.md`
+  and `servers.json` description become its description and tagline.
 
 ### Fixed
 - On Apple Silicon Macs without Rosetta 2 (macOS 27 no longer installs it) the modded game used to
