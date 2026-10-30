@@ -7,6 +7,13 @@ version bumps of its own.
 ## [2.5.0] — unreleased
 
 ### Added
+- Four layout templates (classic, sidebar, banner, minimal) frame the Server, Mods and Install steps, and the
+  launcher has a light and a dark palette. A System / Light / Dark selector next to the language selector is
+  saved in `config.ini`; System follows the operating system while the launcher is open.
+- A fixed header with the raven mark and a trust icon (shield with a tick, warning triangle or blocked circle)
+  showing the registry status. A theme cannot restyle or hide it.
+- A theme's accent, wizard button and art are adjusted per scheme until they are readable; text on the art sits
+  on a darkening layer computed for each frame.
 - On macOS the Steam overlay (Shift+Tab) works in a modded game started from the launcher: the
   launcher loads Steam's overlay libraries next to Doorstop, the way Steam does when it starts the
   game itself. If Steam's libraries aren't found, the game starts without the overlay as before.

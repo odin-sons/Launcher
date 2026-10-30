@@ -28,6 +28,8 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using Odinsons.ValheimLauncher;
+using Odinsons.ValheimLauncher.Avalonia.Controls;
+using Odinsons.ValheimLauncher.Avalonia.Theming;
 using Ellipse = Avalonia.Controls.Shapes.Ellipse;
 using Rectangle = Avalonia.Controls.Shapes.Rectangle;
 using Line = Avalonia.Controls.Shapes.Line;
@@ -114,11 +116,6 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
             MaxConnectionsPerServer = 10
         }) { Timeout = TimeSpan.FromSeconds(20) };
-
-        // The one shared "secondary text" gray for everything built in code — matches
-        // #FFD6D6D6 in MainWindow.axaml (see that value's own comment, on TabControl.main
-        // TabItem's style, for the WCAG contrast reasoning behind this exact number).
-        private static readonly Color SecondaryTextColor = Color.FromRgb(0xD6, 0xD6, 0xD6);
 
         private Dictionary<string, string> _serverDirectories = new();
         public string SelectedServer { get; private set; } = string.Empty;
@@ -328,7 +325,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         private bool _interrupted;
 
         // The label overlaid on InstallCancelButton's sliced-image content — its Content is a
-        // whole Grid (see BuildStretchButtonContent), so the "Stop checking"/"Stop downloading"/
+        // whole Grid (see ButtonSkin), so the "Stop checking"/"Stop downloading"/
         // "Stopping…" text goes here instead of Button.Content directly.
         private TextBlock _installCancelLabel = null!;
 
@@ -342,8 +339,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         // built content ends up (see RebuildStartButtonContent's own comment for why it rebuilds
         // per step instead of sizing once for the widest of all three, like InstallCancelButton
         // does).
-        private (IImage Left, Bitmap Center, IImage Right) _startNormalSlices;
-        private (IImage Left, Bitmap Center, IImage Right) _startHoverSlices;
+        private bool _actionButtonsBuilt;
 
         // Persisted across launches (config.ini) — see LoadAutoStartPreference. Governs whether
         // the wizard button's first Install-tab click (StartGameAsync's "start" flag) launches
@@ -440,7 +436,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             var title = new TextBlock
             {
                 Text = item.Title,
-                Foreground = Brushes.White,
+                Foreground = LauncherBrushes.Text,
                 FontSize = 12,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center
@@ -450,7 +446,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             var size = new TextBlock
             {
                 Text = item.SizeText,
-                Foreground = new SolidColorBrush(Color.Parse("#FFA8A8A8")),
+                Foreground = LauncherBrushes.Muted,
                 FontSize = 11,
                 Margin = new Thickness(10, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center
@@ -562,14 +558,14 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 InstallStepModel.ItemState.Done => new TextBlock
                 {
                     Text = "✓", FontWeight = FontWeight.Bold,
-                    Foreground = new SolidColorBrush(Color.Parse("#FF6FCF6F")),
+                    Foreground = LauncherBrushes.Positive,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 },
                 InstallStepModel.ItemState.Active => _interrupted ? BuildPausedIcon() : BuildInstallStepSpinner(),
                 _ => new Ellipse
                 {
                     Width = 8, Height = 8,
-                    Fill = new SolidColorBrush(Color.Parse("#FF808080")),
+                    Fill = LauncherBrushes.Muted,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 }
             };
@@ -587,7 +583,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 {
                     Text = (group.Collapsed ? "▸  " : "▾  ") + group.Label,
                     FontWeight = FontWeight.SemiBold,
-                    Foreground = Brushes.White
+                    Foreground = LauncherBrushes.Text
                 }
             };
             toggle.Click += GroupHeader_Click;
@@ -596,7 +592,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             var time = new TextBlock
             {
                 Text = elapsed is { } e ? $"{e.TotalSeconds:0.0}s" : string.Empty,
-                Foreground = new SolidColorBrush(SecondaryTextColor),
+                Foreground = LauncherBrushes.Muted,
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -618,14 +614,14 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 InstallStepModel.ItemState.Done => new TextBlock
                 {
                     Text = "✓", FontWeight = FontWeight.Bold,
-                    Foreground = new SolidColorBrush(Color.Parse("#FF6FCF6F")),
+                    Foreground = LauncherBrushes.Positive,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 },
                 InstallStepModel.ItemState.Active => _interrupted ? BuildPausedIcon() : BuildInstallStepSpinner(),
                 _ => new Ellipse
                 {
                     Width = 8, Height = 8,
-                    Fill = new SolidColorBrush(Color.Parse("#FF808080")),
+                    Fill = LauncherBrushes.Muted,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 }
             };
@@ -634,7 +630,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             var label = new TextBlock
             {
                 Text = step.Label,
-                Foreground = new SolidColorBrush(step.State == InstallStepModel.ItemState.Pending ? Color.Parse("#FF808080") : Colors.White),
+                Foreground = step.State == InstallStepModel.ItemState.Pending ? LauncherBrushes.Muted : LauncherBrushes.Text,
                 Margin = new Thickness(8, 0, 8, 0),
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -643,7 +639,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             var time = new TextBlock
             {
                 Text = elapsed is { } e ? $"{e.TotalSeconds:0.0}s" : string.Empty,
-                Foreground = new SolidColorBrush(SecondaryTextColor),
+                Foreground = LauncherBrushes.Muted,
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -663,32 +659,6 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         }
 
         private static Bitmap LoadBitmap(string avaresUri) => new(AssetLoader.Open(new Uri(avaresUri)));
-
-        /// <summary>
-        /// Loads three separately-exported end-cap/tile images for BuildStretchButtonContent.
-        /// </summary>
-        private static (IImage Left, Bitmap Center, IImage Right) LoadStretchSlices(
-            string leftUri, string centerUri, string rightUri) =>
-            (LoadBitmap(leftUri), LoadBitmap(centerUri), LoadBitmap(rightUri));
-
-        /// <summary>Font used for BuildStretchButtonContent's label, matched between the
-        /// rendered TextBlock and the FormattedText used to measure it for auto-width.</summary>
-        private static readonly Typeface StretchButtonTypeface =
-            new(new FontFamily("avares://OdinsonsLauncher/Resources/Fonts#Montserrat"), FontStyle.Normal, FontWeight.Bold);
-        private const double StretchButtonFontSize = 22;
-        // Each side, between the text and where the tile ends — deliberately small: the caps
-        // themselves (left/right button images) already read as the button's own padding, wood
-        // carved in from the outer edge, so this only needs to keep the text off the tile
-        // texture directly, not recreate a second layer of edge space. Was 24, then 16, back
-        // when this only ever sized itself around one known word ("Играть") — now that the same
-        // button's width has to fit whichever of "Далее"/"Проверить и установить"/"Играть" is
-        // longest, any padding here is paid twice (once per side) on top of an already-long
-        // phrase.
-        private const double StretchButtonTextPadding = 6;
-
-        private static double MeasureTextWidth(string text) =>
-            new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-                StretchButtonTypeface, StretchButtonFontSize, Brushes.White).Width;
 
         /// <summary>Valheim caps character names at 24 characters (no official spec, but
         /// community-confirmed), but sizing the column for 24 repeats of the single widest
@@ -725,116 +695,6 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 + avatarWidth + avatarGap + sideMargins + scrollbarAllowance;
         }
 
-        /// <summary>
-        /// A button skin built from three slices instead of one fixed-size image: the end caps
-        /// render at their native aspect ratio, the middle repeats via ImageBrush TileMode to
-        /// fill however much width the label needs — so one source asset works at any button
-        /// width instead of needing a re-export per size (or looking stretched/blurry from
-        /// naively scaling the whole thing, caps included).
-        ///
-        /// Width is driven by content, not fixed: <paramref name="possibleTexts"/> covers every
-        /// string the label might ever show (a button whose text changes between states — Stop's
-        /// "Stop checking"/"Stop downloading"/"Stopping…" — needs to be wide enough for all of
-        /// them, not just whichever set it first, or it'd visibly resize mid-run).
-        /// </summary>
-        private static Panel BuildStretchButtonContent(
-            double height, IReadOnlyList<string> possibleTexts,
-            (IImage Left, Bitmap Center, IImage Right) normal,
-            (IImage Left, Bitmap Center, IImage Right) hover,
-            out TextBlock label)
-        {
-            // Whole pixels, not fractional DIPs: at this scale (source images ~470-730px tall,
-            // rendered ~64px) a fractional edge — 54.008 instead of 54 — lands each adjacent
-            // piece's boundary on a different sub-pixel offset, and the rasterizer antialiases
-            // each independently, which is what the seam actually was (extending the caps'
-            // overlap alone didn't fix it because that overlap was itself still fractional).
-            double leftWidth = Math.Round(height * (normal.Left.Size.Width / normal.Left.Size.Height));
-            double rightWidth = Math.Round(height * (normal.Right.Size.Width / normal.Right.Size.Height));
-            double tileWidth = Math.Round(height * (normal.Center.Size.Width / normal.Center.Size.Height));
-
-            double textWidth = possibleTexts.Count == 0 ? 0 : possibleTexts.Max(MeasureTextWidth);
-            double centerWidth = Math.Round(textWidth) + StretchButtonTextPadding * 2;
-
-            // Round up to a whole number of tiles: TileMode.Tile repeats the center texture
-            // every tileWidth px, and DestinationRect only sizes ONE tile — the browser/renderer
-            // clips whatever's left over at the end. When centerWidth isn't an exact multiple of
-            // tileWidth, that leftover is a partial tile cut off mid-pattern right before the
-            // right cap — a second, independent source of the seam from the "whole pixels" fix
-            // above (that one fixed sub-pixel edges; this one fixes a sub-*tile* edge). Barely
-            // mattered for the old single-text Play button (one specific width, rarely far from
-            // a clean multiple); now that one button's width is driven by whichever of several
-            // very different-length texts is longest, it needs handling for real.
-            centerWidth = Math.Ceiling(centerWidth / tileWidth) * tileWidth;
-
-            double width = leftWidth + centerWidth + rightWidth;
-
-            // Small integer overlap on top of the rounding above — each cap renders a couple
-            // pixels wider than its own aspect ratio calls for (stretched slightly, still
-            // anchored to the outer edge), and the tile reaches the same couple pixels back
-            // under it, so there's still a safety margin even if the two land a pixel apart.
-            const double overlap = 2;
-
-            var root = new Panel { Width = width, Height = height };
-
-            root.Children.Add(BuildStretchCenterLayer(normal.Center, height, tileWidth, leftWidth, rightWidth, overlap, "normalImg"));
-            root.Children.Add(BuildStretchCenterLayer(hover.Center, height, tileWidth, leftWidth, rightWidth, overlap, "hoverImg"));
-
-            root.Children.Add(BuildStretchCapImage(normal.Left, leftWidth, overlap, height, HorizontalAlignment.Left, "normalImg"));
-            root.Children.Add(BuildStretchCapImage(hover.Left, leftWidth, overlap, height, HorizontalAlignment.Left, "hoverImg"));
-            root.Children.Add(BuildStretchCapImage(normal.Right, rightWidth, overlap, height, HorizontalAlignment.Right, "normalImg"));
-            root.Children.Add(BuildStretchCapImage(hover.Right, rightWidth, overlap, height, HorizontalAlignment.Right, "hoverImg"));
-
-            label = new TextBlock
-            {
-                Foreground = Brushes.White, FontWeight = FontWeight.Bold, FontSize = StretchButtonFontSize,
-                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                IsHitTestVisible = false
-            };
-            root.Children.Add(label);
-
-            return root;
-        }
-
-        private static Border BuildStretchCenterLayer(
-            Bitmap tile, double height, double tileWidth, double leftWidth, double rightWidth, double overlap, string hoverClass)
-        {
-            var border = new Border
-            {
-                Margin = new Thickness(leftWidth - overlap, 0, rightWidth - overlap, 0),
-                IsHitTestVisible = false,
-                Background = new ImageBrush
-                {
-                    Source = tile,
-                    TileMode = TileMode.Tile,
-                    Stretch = Stretch.Fill,
-                    AlignmentX = AlignmentX.Left,
-                    // DestinationRect, not Viewport — this Avalonia version's TileBrush has no
-                    // Viewport/ViewportUnits (that's WPF); DestinationRect+Absolute is the
-                    // equivalent, sizing one tile in the destination's own pixel space.
-                    DestinationRect = new RelativeRect(0, 0, tileWidth, height, RelativeUnit.Absolute)
-                }
-            };
-            border.Classes.Add(hoverClass);
-            return border;
-        }
-
-        private static Image BuildStretchCapImage(
-            IImage source, double capWidth, double overlap, double height, HorizontalAlignment side, string hoverClass)
-        {
-            var image = new Image
-            {
-                // Slightly wider than the cap's own aspect ratio calls for, still anchored to
-                // the outer edge — the extra sliver is a barely-there stretch (a few percent
-                // over ~54-70px), trading unnoticeable distortion for guaranteed opaque coverage
-                // all the way past the seam.
-                Source = source, Stretch = Stretch.Fill,
-                Width = capWidth + overlap, Height = height,
-                HorizontalAlignment = side, IsHitTestVisible = false
-            };
-            image.Classes.Add(hoverClass);
-            return image;
-        }
-
         // Same 14x14 slot as the spinner, so swapping between them doesn't shift the row.
         private static Panel BuildPausedIcon() => new()
         {
@@ -847,8 +707,8 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                     Children =
                     {
-                        new Rectangle { Width = 3, Height = 12, Fill = Brushes.White },
-                        new Rectangle { Width = 3, Height = 12, Fill = Brushes.White }
+                        new Rectangle { Width = 3, Height = 12, Fill = LauncherBrushes.Text },
+                        new Rectangle { Width = 3, Height = 12, Fill = LauncherBrushes.Text }
                     }
                 }
             }
@@ -970,6 +830,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             LoadDesktopShortcutState();
             LoadStartMenuShortcutState();
 
+            InitializeTheming();
             LanguageSelector.ItemsSource = LanguageListItems;
             LanguageSelector.SelectedItem = LanguageListItems.FirstOrDefault(i => i.Code == Loc.Language);
 
@@ -1005,6 +866,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 // first — the buttons pop in a beat later instead, which reads as far snappier
                 // than the window itself being slow to open.
                 await Dispatcher.UIThread.InvokeAsync(BuildActionButtons, DispatcherPriority.Background);
+                _ = LoadProfileThemeAsync();
 
                 Log($"Launcher starting — version {_currentVersion}, exe SHA-256 {ComputeExecutableHash()}");
                 await InitializeLauncherUrlAsync();
@@ -1042,6 +904,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         /// simply the next launch).</summary>
         private void ApplyLocalizedChrome()
         {
+            ApplyThemingLocalization();
             LauncherVersionText.Text = $"{Loc.T("gui.launcherVersionLabel")} v{_currentVersion}";
             CopyrightText.Text = Loc.T("gui.copyrightLabel");
             OurSiteLinkText.Text = Loc.T("gui.websiteLink");
@@ -1121,18 +984,14 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
         }
 
-        /// <summary>Builds the Start/Stop buttons' sliced-image content — see
-        /// BuildStretchButtonContent. Split out of the constructor and called from Loaded
-        /// instead (Background priority) purely for startup latency: decoding a dozen PNGs
-        /// synchronously before the window ever paints was a real, measurable chunk of the
-        /// double-click-to-window-appearing delay.</summary>
+        /// <summary>Builds the wizard and Stop buttons' content (see ButtonSkin). Called from Loaded
+        /// instead of the constructor, at Background priority, because the label widths need text
+        /// measurement.</summary>
         internal void BuildActionButtons()
         {
             const double buttonHeight = 64;
-            const string res = "avares://OdinsonsLauncher/Resources/";
 
-            _startNormalSlices = LoadStretchSlices(res + "start-left.png", res + "start-center.png", res + "start-right.png");
-            _startHoverSlices = LoadStretchSlices(res + "start-left_hover.png", res + "start-center_hover.png", res + "start-right_hover.png");
+            _actionButtonsBuilt = true;
             UpdateWizardButton();
 
             // Wide enough for whichever of these three the label ends up showing (see
@@ -1141,12 +1000,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             {
                 Loc.T("dl.cancelChecking"), Loc.T("dl.cancelDownloading"), Loc.T("dl.stopping")
             };
-            InstallCancelButton.Content = BuildStretchButtonContent(buttonHeight, cancelTexts,
-                LoadStretchSlices(
-                    res + "start-danger-burgundy-left.png", res + "start-danger-burgundy-center.png", res + "start-danger-burgundy-right.png"),
-                LoadStretchSlices(
-                    res + "start-danger-burgundy-left_hover.png", res + "start-danger-burgundy-center_hover.png", res + "start-danger-burgundy-right_hover.png"),
-                out _installCancelLabel);
+            InstallCancelButton.Content = ButtonSkin.Build(buttonHeight, cancelTexts, themed: false, out _installCancelLabel);
 
             StartGameBtn.IsEnabled = true; // starts disabled in XAML — see its own comment there
         }
@@ -1630,7 +1484,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         /// actually does when clicked.</summary>
         private void UpdateWizardButton()
         {
-            if (_startNormalSlices.Center is null) return; // BuildActionButtons hasn't run yet
+            if (!_actionButtonsBuilt) return;
 
             string text;
             if (_modsTabVisit == ModsTabVisit.NotVisited)
@@ -1645,19 +1499,12 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             RebuildStartButtonContent(text);
         }
 
-        /// <summary>Rebuilds StartGameBtn's sliced-image content sized for just this one text,
-        /// instead of once for the widest of UpdateWizardButton's possible texts and reusing
-        /// that same width for all of them (InstallCancelButton's approach, appropriate there
-        /// since its text changes while visibly static on screen mid-download — resizing then
-        /// would be jarring). This button's text only ever changes at a tab switch or
-        /// install/autostart state change, a natural moment for its size to change too. The
-        /// slice PNGs are loaded once in BuildActionButtons (_startNormalSlices/
-        /// _startHoverSlices) and just reused here.</summary>
+        /// <summary>Rebuilds StartGameBtn's face sized for just this one text; it only changes at a
+        /// tab switch or an install/autostart state change, a natural moment to resize.</summary>
         private void RebuildStartButtonContent(string text)
         {
             const double buttonHeight = 64;
-            StartGameBtn.Content = BuildStretchButtonContent(buttonHeight, new[] { text },
-                _startNormalSlices, _startHoverSlices, out _startButtonLabel);
+            StartGameBtn.Content = ButtonSkin.Build(buttonHeight, new[] { text }, themed: true, out _startButtonLabel);
             _startButtonLabel.Text = text;
         }
 
@@ -2074,7 +1921,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                         ServerInfoContent.Children.Add(new TextBlock
                         {
                             Text = Loc.T("gui.serverInfoUnavailable"),
-                            Foreground = new SolidColorBrush(Colors.White),
+                            Foreground = LauncherBrushes.Text,
                             FontSize = 14,
                             TextWrapping = TextWrapping.Wrap
                         });
@@ -2321,6 +2168,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             }
 
             LauncherLog.Info($"server status for '{_profile.Id}': {check.Decision.Notice}, next step {check.Step}");
+            ShowTrust(TrustIcon.FromNotice(check.Decision.Notice));
 
             switch (check.Step)
             {
@@ -2876,7 +2724,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
             var finalContent = new StackPanel();
             if (requiredColumn.Children.Count > 0 || optionalColumn.Children.Count > 0)
-                finalContent.Children.Add(BuildResponsiveModColumns(requiredColumn, optionalColumn));
+                finalContent.Children.Add(BuildResponsiveModColumns(requiredColumn, optionalColumn, () => _stepsUseTwoColumns));
 
             ModsContent.Children.Clear();
             ModsContent.Children.Add(finalContent);
@@ -2915,7 +2763,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         /// player is more likely to actually want to glance at and toggle, required is mostly
         /// just "yes, these are here" and can sit below the fold.
         /// </summary>
-        private static Control BuildResponsiveModColumns(Control required, Control optional)
+        private static Control BuildResponsiveModColumns(Control required, Control optional, Func<bool> twoColumnsAllowed)
         {
             const double narrowThreshold = 520;
 
@@ -2933,13 +2781,16 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             // ColumnDefinitions/RowDefinitions (itself a re-layout) on passes where the width
             // hasn't actually changed.
             double lastWidth = double.NaN;
+            bool lastWide = false;
 
             void Relayout(double width)
             {
-                if (Math.Abs(width - lastWidth) < 0.5) return;
+                bool wide = width >= narrowThreshold && twoColumnsAllowed();
+                if (Math.Abs(width - lastWidth) < 0.5 && wide == lastWide) return;
                 lastWidth = width;
+                lastWide = wide;
 
-                if (width >= narrowThreshold)
+                if (wide)
                 {
                     grid.ColumnDefinitions = new ColumnDefinitions("*,20,*");
                     grid.RowDefinitions = new RowDefinitions("Auto");
@@ -2988,7 +2839,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         private static TextBlock NewSectionHeader(string text, bool topGap = true) => new()
         {
             Text = text,
-            Foreground = new SolidColorBrush(Colors.White),
+            Foreground = LauncherBrushes.Text,
             FontSize = 18,
             FontWeight = FontWeight.Bold,
             Margin = new Thickness(0, topGap ? 16 : 0, 0, 8)
@@ -2997,7 +2848,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         private static TextBlock NewModsText(string text, bool bold) => new()
         {
             Text = text,
-            Foreground = new SolidColorBrush(Colors.White),
+            Foreground = LauncherBrushes.Text,
             FontSize = 14,
             FontWeight = bold ? FontWeight.Bold : FontWeight.Normal,
             TextWrapping = TextWrapping.Wrap
@@ -3135,7 +2986,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             var name = new TextBlock
             {
                 Text = data.Name,
-                Foreground = new SolidColorBrush(Colors.White),
+                Foreground = LauncherBrushes.Text,
                 FontSize = 14,
                 FontWeight = FontWeight.Bold,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -3145,7 +2996,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
             var version = new TextBlock
             {
                 Text = data.Version,
-                Foreground = new SolidColorBrush(SecondaryTextColor),
+                Foreground = LauncherBrushes.Muted,
                 FontSize = 12,
                 Margin = new Thickness(8, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center
@@ -3224,7 +3075,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                 var descriptionText = new TextBlock
                 {
                     Text = data.Description,
-                    Foreground = new SolidColorBrush(SecondaryTextColor),
+                    Foreground = LauncherBrushes.Muted,
                     FontSize = 12,
                     FontStyle = FontStyle.Italic,
                     TextWrapping = TextWrapping.Wrap,
@@ -3329,7 +3180,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         {
             var path = new ShapePath
             {
-                Stroke = Brushes.White,
+                Stroke = LauncherBrushes.Text,
                 StrokeThickness = 2,
                 StrokeLineCap = PenLineCap.Round,
                 StrokeJoin = PenLineJoin.Round,
@@ -3396,19 +3247,19 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
         /// are built programmatically. A generic site icon, not a brand mark.</summary>
         private static Control BuildWebsiteIconVisual()
         {
-            var circle = new Ellipse { Width = 20, Height = 20, Stroke = Brushes.White, StrokeThickness = 2 };
+            var circle = new Ellipse { Width = 20, Height = 20, Stroke = LauncherBrushes.Text, StrokeThickness = 2 };
             Canvas.SetLeft(circle, 2);
             Canvas.SetTop(circle, 2);
 
             var equator = new Line
             {
                 StartPoint = new Point(2, 12), EndPoint = new Point(22, 12),
-                Stroke = Brushes.White, StrokeThickness = 2
+                Stroke = LauncherBrushes.Text, StrokeThickness = 2
             };
 
             var meridian = new ShapePath
             {
-                Stroke = Brushes.White,
+                Stroke = LauncherBrushes.Text,
                 StrokeThickness = 2,
                 StrokeLineCap = PenLineCap.Round,
                 StrokeJoin = PenLineJoin.Round,
@@ -3443,7 +3294,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     ChangelogContent.Children.Add(new TextBlock
                     {
                         Text = Loc.T("gui.changelogLoadError", ex.Message),
-                        Foreground = new SolidColorBrush(Colors.White),
+                        Foreground = LauncherBrushes.Text,
                         FontSize = 16,
                         TextWrapping = TextWrapping.Wrap
                     });
@@ -3462,7 +3313,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
 
                 var textBlock = new TextBlock
                 {
-                    Foreground = new SolidColorBrush(SecondaryTextColor),
+                    Foreground = LauncherBrushes.Muted,
                     FontSize = 14,
                     TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(0, 0, 0, 2)
@@ -3484,7 +3335,7 @@ namespace Odinsons.ValheimLauncher.Avalonia.Views
                     textBlock.Text = headerText;
                     textBlock.FontSize = fontSize;
                     textBlock.FontWeight = FontWeight.Bold;
-                    textBlock.Foreground = new SolidColorBrush(Colors.White);
+                    textBlock.Foreground = LauncherBrushes.Text;
                     textBlock.Margin = new Thickness(0, target.Children.Count == 0 ? 0 : gapAbove, 0, gapBelow);
                 }
                 else if (line.TrimStart().StartsWith("-") || line.TrimStart().StartsWith("*"))
